@@ -35,12 +35,12 @@ jobs:
 
             echo "Deploying commit: ${{ github.sha }}"
 
-            cd /opt/platch
+            cd ~/projects/platch
 
             git fetch origin main
             git reset --hard origin/main
 
-            cd /opt/platch/backend
+            cd ~/projects/platch/backend
 
             npm ci --include=dev
             npx prisma generate
