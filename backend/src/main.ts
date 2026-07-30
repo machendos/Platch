@@ -2,11 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from './system/config/config.service';
 import { envBootstrapValidation } from './system/config/env-bootstrap-validation';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   envBootstrapValidation();
 
   const app = await NestFactory.create(AppModule);
+
+  app.useLogger(app.get(Logger));
 
   app.enableCors({
     origin: [

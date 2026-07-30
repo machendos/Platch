@@ -1,0 +1,57 @@
+name: Deploy PLATCH API
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy.yml"
+
+concurrency:
+  group: platch-production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Lightsail
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -Eeuo pipefail
+
+            export PATH="/opt/bitnami/node/bin:$PATH"
+
+            echo "Deploying commit: ${{ github.sha }}"
+
+            cd /opt/platch
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            cd /opt/platch/backend
+
+            npm ci --include=dev
+            npx prisma generate
+            npm run build
+            npx prisma migrate deploy
+
+            sudo systemctl restart platch-api
+
+            sleep 2
+
+            sudo systemctl is-active --quiet platch-api
+            sudo systemctl status platch-api --no-pager -l
+
+            echo "PLATCH API deployed successfully"

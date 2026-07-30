@@ -2,9 +2,9 @@ import { Global, Module } from '@nestjs/common';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { pinoLoggerOptions } from './pino.logger.options';
 import * as pino from 'pino';
-import { join } from '@prisma/client/runtime/edge';
 import { ConfigService } from '../config/config.service';
-
+import { join } from 'path';
+console.log(join(ConfigService.logDirPath, ConfigService.logFileName));
 @Global()
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { ConfigService } from '../config/config.service';
             pinoLoggerOptions,
             pino.destination(
               // process.stdout,
-              join([ConfigService.logDirPath, ConfigService.logFileName]),
+              join(ConfigService.logDirPath, ConfigService.logFileName),
             ),
           ],
         };
