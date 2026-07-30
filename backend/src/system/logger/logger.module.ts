@@ -16,8 +16,8 @@ console.log(join(ConfigService.logDirPath, ConfigService.logFileName));
           pinoHttp: [
             pinoLoggerOptions,
             pino.destination(
-              // process.stdout,
-              join(ConfigService.logDirPath, ConfigService.logFileName),
+              process.stdout,
+              // join(ConfigService.logDirPath, ConfigService.logFileName),
             ),
           ],
         };
