@@ -31,7 +31,9 @@ jobs:
           script: |
             set -Eeuo pipefail
 
-            export PATH="/opt/bitnami/node/bin:$PATH"
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            nvm use 24
 
             echo "Deploying commit: ${{ github.sha }}"
 
