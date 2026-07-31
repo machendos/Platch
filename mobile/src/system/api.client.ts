@@ -88,5 +88,5 @@ const authenticatedFetch: typeof fetch = async (input, init) => {
     await redirectToLogin();
   }
 
-  return response;
+  return responseRepeat;
 };

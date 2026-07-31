@@ -46,13 +46,11 @@ export const Register = () => {
     }
 
     try {
-      console.log('1');
       await apiClient.user.createUser(getConnection(), { username, password });
       history.replace('/login');
     } catch (e) {
       console.log(e);
 
-      console.log('2');
       setError('Username is already taken. Please choose a different one.');
     }
   };
