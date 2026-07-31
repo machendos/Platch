@@ -4,6 +4,8 @@ export type EnvModel = {
 
   DATABASE_URL: string;
 
+  ENV: 'local' | 'prod';
+
   REDIS_HOST: string;
   REDIS_PORT: string;
   REDIS_PASSWORD: string;

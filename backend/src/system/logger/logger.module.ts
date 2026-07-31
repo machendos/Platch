@@ -16,8 +16,9 @@ import { join } from 'path';
           pinoHttp: [
             pinoLoggerOptions,
             pino.destination(
-              // process.stdout,
-              join(ConfigService.logDirPath, ConfigService.logFileName),
+              ConfigService.env === 'local'
+                ? join(ConfigService.logDirPath, ConfigService.logFileName)
+                : process.stdout,
             ),
           ],
         };

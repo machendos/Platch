@@ -11,6 +11,8 @@ export const ConfigService = {
   redisPort: env.REDIS_PORT,
   redisPassword: env.REDIS_PASSWORD,
 
+  env: env.ENV,
+
   logDirPath: env.LOG_DIR_PATH,
   logFileName: env.LOG_FILE_NAME,
 
