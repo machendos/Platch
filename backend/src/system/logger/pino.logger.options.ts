@@ -6,6 +6,8 @@ export const pinoLoggerOptions = {
 
   formatters: { bindings: () => ({}) },
 
+  redact: ['req.body.password'],
+
   hooks: {
     logMethod(inputArgs, method) {
       // for removing the default behavior of PinoLogger

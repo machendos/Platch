@@ -1,0 +1,1 @@
+export const DEFAULT_STATUS_CODE_ON_ERROR = 500;

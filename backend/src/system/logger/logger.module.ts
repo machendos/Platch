@@ -4,7 +4,7 @@ import { pinoLoggerOptions } from './pino.logger.options';
 import * as pino from 'pino';
 import { ConfigService } from '../config/config.service';
 import { join } from 'path';
-console.log(join(ConfigService.logDirPath, ConfigService.logFileName));
+
 @Global()
 @Module({
   imports: [
@@ -16,8 +16,8 @@ console.log(join(ConfigService.logDirPath, ConfigService.logFileName));
           pinoHttp: [
             pinoLoggerOptions,
             pino.destination(
-              process.stdout,
-              // join(ConfigService.logDirPath, ConfigService.logFileName),
+              // process.stdout,
+              join(ConfigService.logDirPath, ConfigService.logFileName),
             ),
           ],
         };

@@ -11,6 +11,7 @@ export class UserController {
 
   @Get()
   async getCurrentUser(@GetUser() user: UserDescriptor) {
+    throw new Error('test error');
     return this.userService.getUser(user.id);
   }
 

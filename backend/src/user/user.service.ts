@@ -3,6 +3,8 @@ import * as crypto from 'node:crypto';
 import { randomBytes } from 'node:crypto';
 import { promisify } from 'node:util';
 import { PrismaService } from '../system/database/prisma.service';
+import { ErrorType, PlatchError } from '../system/errors/platch.error';
+import { ErrorCode } from '../system/errors/error.code';
 
 const scrypt = promisify(crypto.scrypt);
 
@@ -16,9 +18,17 @@ class UserService {
 
   async createUser(username: string, unhashedPassword: string) {
     const hashedPassword = await this.hashPassword(unhashedPassword);
-    await this.prismaService.user.create({
-      data: { hashedPassword, username },
-    });
+    try {
+      await this.prismaService.user.create({
+        data: { hashedPassword, username },
+      });
+    } catch (e) {
+      throw new PlatchError({
+        type: ErrorType.COMMON,
+        code: ErrorCode.USERNAME_ALREADY_EXIST,
+        original: e,
+      });
+    }
   }
 
   async comparePassword(password: string, hash: string) {
