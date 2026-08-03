@@ -1,8 +1,0 @@
-ion-tab-button {
-    border-right: 1px solid var(--ion-border-color, #e0e0e0);
-}
-
-ion-tab-button:last-child {
-    border-right: none;
-}
-

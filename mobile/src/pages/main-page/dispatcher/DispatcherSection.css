@@ -1,0 +1,55 @@
+.dispatcher-section {
+  min-height: 0; /* lets the grid track shrink the section, not the page */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --section-header-height comes from layout-constants.ts (applied as a
+   CSS variable on the page shell in MainPage.tsx) */
+.section-header {
+  height: var(--section-header-height);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  border: 1px solid #999;
+  background: #f2f2f2;
+}
+
+.section-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  /* keep the title visually centered despite the chevron on the left */
+  margin-right: 28px;
+}
+
+.chevron-button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.chevron {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+/* Expanded: chevron points up; collapsed (default): points right */
+.chevron-expanded {
+  transform: rotate(-90deg);
+}
+
+.section-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto; /* each section scrolls its own content */
+  padding: 8px;
+}

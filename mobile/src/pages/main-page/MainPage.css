@@ -1,0 +1,114 @@
+/* Sizes shared with the layout math (--section-header-height,
+   --divider-size) are defined once in layout-constants.ts and applied
+   as CSS variables on .main-page-shell in MainPage.tsx. */
+
+/* ===== Page shell: header on top, workspace fills the rest ===== */
+
+.main-page-shell {
+  height: 100dvh;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-page-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
+}
+
+.header-button {
+  min-width: 44px;
+  padding: 6px 12px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  background: white;
+  font: inherit;
+}
+
+.header-button.active {
+  background: #d9e4ff;
+  border-color: #4a6fd0;
+}
+
+/* ===== Workspace: dispatcher | divider | calendar =====
+   Column sizes come from an inline grid-template-columns built in
+   MainPage.tsx (the dispatcher column width is draggable state). */
+
+.workspace {
+  flex: 1;
+  min-height: 0; /* lets children shrink to fit instead of overflowing the page */
+  display: grid;
+}
+
+/* ===== Dividers (drag handles) =====
+
+   Styled like the iOS sheet "grabber": a lane with a small rounded pill
+   in the middle. The pill (::after) shows that the divider is draggable;
+   an invisible overlay (::before) extends the touch area beyond the lane
+   so it is easy to grab on a phone. */
+
+.divider {
+  background: #dededf; /* the lane is visible too, so the divider is easy to spot */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative; /* anchor for the ::before touch overlay */
+  z-index: 1; /* keep the touch overlay above the sections next to it */
+  touch-action: none; /* required for pointer-dragging to work on touch screens */
+}
+
+/* the visible pill */
+.divider::after {
+  content: '';
+  border-radius: 3px;
+  background: #a9a9af;
+}
+
+/* the invisible touch overlay */
+.divider::before {
+  content: '';
+  position: absolute;
+}
+
+/* while dragging, the pill darkens as feedback */
+.divider-dragging::after {
+  background: #8e8e93;
+}
+
+.divider-horizontal {
+  height: var(--divider-size);
+  cursor: row-resize;
+}
+
+.divider-horizontal::after {
+  width: 36px;
+  height: 5px;
+}
+
+.divider-horizontal::before {
+  inset: -8px 0; /* the lane + 8px above and below = comfortable touch area */
+}
+
+.divider-vertical {
+  width: var(--divider-size);
+  cursor: col-resize;
+}
+
+.divider-vertical::after {
+  width: 5px;
+  height: 36px;
+}
+
+.divider-vertical::before {
+  inset: 0 -8px;
+}

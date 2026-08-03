@@ -1,5 +1,6 @@
-import { Redirect, Route, Switch, BrowserRouter } from 'react-router-dom';
-import { IonApp, setupIonicReact } from '@ionic/react';
+import { Redirect, Route } from 'react-router-dom';
+import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+import { IonReactRouter } from '@ionic/react-router';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -10,25 +11,25 @@ import './index.css';
 
 import { Login } from './pages/login/Login';
 import { Register } from './pages/login/Register';
-import { Home } from './pages/common/Home';
+import { MainPage } from './pages/main-page/MainPage';
 
 setupIonicReact();
 
+// IonRouterOutlet (instead of a plain react-router Switch) drives Ionic's
+// page transitions and lifecycle events (useIonViewDidEnter etc.).
+// Note: it keeps visited pages mounted, showing only the active one.
 const App: React.FC = () => (
   <IonApp>
-    <BrowserRouter>
-      <Switch>
+    <IonReactRouter>
+      <IonRouterOutlet>
         <Route exact path="/login" component={Login} />
         <Route exact path="/register" component={Register} />
+        <Route path="/home" component={MainPage} />
         <Route exact path="/">
           <Redirect to="/login" />
         </Route>
-        <Route path="/home" component={Home} />
-        <Route>
-          <Redirect to="/login" />
-        </Route>
-      </Switch>
-    </BrowserRouter>
+      </IonRouterOutlet>
+    </IonReactRouter>
   </IonApp>
 );
 

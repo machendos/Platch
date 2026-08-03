@@ -1,0 +1,23 @@
+/* Row sizes come from an inline grid-template-rows built in Dispatcher.tsx:
+   'auto' for collapsed sections, weighted fr for expanded ones. */
+.dispatcher {
+  min-width: 0;
+  overflow: hidden;
+  display: grid;
+  /* When every section is collapsed there are no fr rows to absorb the
+     free space, and the default (align-content: stretch) would inflate
+     the header rows to fill the pane. Pack them at the top instead. */
+  align-content: start;
+}
+
+/* Temporary blocks for testing section scrolling */
+.test-item {
+  height: 60px;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
