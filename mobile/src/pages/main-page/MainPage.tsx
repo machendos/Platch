@@ -3,18 +3,21 @@ import { IonContent, IonPage } from '@ionic/react';
 import { Calendar } from './calendar/Calendar';
 import { Dispatcher } from './dispatcher/Dispatcher';
 import { Divider } from './Divider';
-import { layoutCssVariables } from './layout-constants';
+import {
+  CALENDAR_MIN_PANE_WIDTH,
+  DISPATCHER_MIN_PANE_WIDTH,
+  layoutCssVariables,
+} from './layout-constants';
 import './MainPage.css';
+import { clamp } from '../../common/helpers';
 
-const MIN_PANE_WIDTH = 60;
+// TODO: dynamic default pane weights
 const DEFAULT_PANE_WEIGHTS = { dispatcher: 1, calendar: 2 };
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
 
 export const MainPage = () => {
   const [isDispatcherVisible, setIsDispatcherVisible] = useState(true);
   const [isCalendarVisible, setIsCalendarVisible] = useState(true);
+  const [isDarkModeEnabled] = useState(false);
 
   const [paneWeights, setPaneWeights] = useState(DEFAULT_PANE_WEIGHTS);
 
@@ -34,23 +37,28 @@ export const MainPage = () => {
 
   const resizePanes = (delta: number) => {
     const start = widthsAtDragStart.current;
-    const applied = clamp(
+    // Negative when drags left, positive when drags right
+    const appliedDelta = clamp(
       delta,
-      MIN_PANE_WIDTH - start.dispatcher,
-      start.calendar - MIN_PANE_WIDTH,
+      DISPATCHER_MIN_PANE_WIDTH - start.dispatcher,
+      start.calendar - CALENDAR_MIN_PANE_WIDTH,
     );
     setPaneWeights({
-      dispatcher: start.dispatcher + applied,
-      calendar: start.calendar - applied,
+      dispatcher: start.dispatcher + appliedDelta,
+      calendar: start.calendar - appliedDelta,
     });
   };
 
   // dispatcher | divider | calendar.
-  const paneTrack = (weight: number) =>
-    `minmax(${MIN_PANE_WIDTH}px, ${weight}fr)`;
+  const paneTrack = (weight: number, min: number) =>
+    `minmax(${min}px, ${weight}fr)`;
   const gridTemplateColumns =
     isDispatcherVisible && isCalendarVisible
-      ? `${paneTrack(paneWeights.dispatcher)} auto ${paneTrack(paneWeights.calendar)}`
+      ? [
+          paneTrack(paneWeights.dispatcher, DISPATCHER_MIN_PANE_WIDTH),
+          'auto',
+          paneTrack(paneWeights.calendar, CALENDAR_MIN_PANE_WIDTH),
+        ].join(' ')
       : '1fr';
 
   return (
@@ -91,7 +99,9 @@ export const MainPage = () => {
               />
             )}
 
-            {isCalendarVisible && <Calendar />}
+            {isCalendarVisible && (
+              <Calendar isDarkModeEnabled={isDarkModeEnabled} />
+            )}
           </main>
         </div>
       </IonContent>

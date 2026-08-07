@@ -1,5 +1,96 @@
+/* The stacked weeks form one continuous document: week 1's header and full
+   day, then week 2's, and so on. This pane is the only thing that scrolls —
+   each week grows to its natural height instead of scrolling internally, so
+   zooming makes the whole surface taller and pushes later weeks down. */
 .calendar {
   min-width: 0;
-  overflow: auto;
-  padding: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--calendar-pane-padding);
+}
+
+/* Pinned to the constant the row-splitting maths subtracts, so the rendered
+   gutter and the layout calculation cannot drift apart (mobiscroll's own
+   width is em-based and would move with font size). */
+.calendar .mbsc-schedule-time-col,
+.calendar .mbsc-schedule-time-wrapper {
+  width: var(--calendar-time-gutter-width);
+}
+
+/* Undo mobiscroll's "fill the container and scroll inside" sizing so each
+   week can report its true height to the pane above. These all sit in
+   column-direction (or block) parents, so flex here only governs height. */
+.calendar-week-row .mbsc-calendar,
+.calendar-week-row .mbsc-schedule-wrapper,
+.calendar-week-row .mbsc-schedule-grid-wrapper {
+  flex: none;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* Sit the calendar on the app's own background instead of mobiscroll's.
+   These are the theme's base surface tokens, so everything derived from
+   them — grid, headers, time gutter — follows without being listed.
+   In dark mode the calendar keeps mobiscroll's own dark surface, since the
+   app background is a light colour. */
+.calendar:not(.calendar-dark) {
+  --mbsc-ios-background: var(--app-background);
+  --mbsc-ios-background-alt: var(--app-background);
+}
+
+/* Current-time line. Mobiscroll only draws its per-day segment
+   (mbsc-schedule-time-indicator-day) in week-type views, which now means
+   single-day rows alone — multi-day rows get just the line spanning the
+   row. So the spanning line has to stay, or the indicator disappears
+   entirely from every row with more than one day in it. The segment keeps
+   its accent border, which this theme otherwise leaves unstyled. */
+.calendar .mbsc-schedule-time-indicator-day {
+  border-bottom: 1px solid var(--mbsc-eventcalendar-accent);
+}
+
+/* Let events use the full width of their day column. Mobiscroll insets the
+   event track by 0.5em on the right and puts side margins on the event body;
+   both are dropped so narrow columns lose no space. The extra class in the
+   selector is what outranks mobiscroll's own .mbsc-schedule-events.mbsc-ltr. */
+.calendar .mbsc-schedule-events.mbsc-ltr {
+  right: 0;
+}
+
+.calendar .mbsc-schedule-event-inner {
+  margin: 0;
+}
+
+/* The grid itself sits in a ROW-direction parent, where flex governs WIDTH.
+   It has to keep growing to fill the pane — only its height should become
+   natural, so the week stops scrolling inside itself. */
+.calendar-week-row .mbsc-schedule-grid-scroll {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* The month title and navigation belong to the stack as a whole, so it is
+   shown once on the top week only. */
+.calendar-week-row:not(:first-child) .mbsc-calendar-header {
+  display: none;
+}
+
+/* Height of one time cell — the single value the pinch-to-zoom gesture
+   changes (see useCalendarZoom.ts). Scoped under .calendar so it outranks
+   mobiscroll's own .mbsc-schedule-item rule, which is loaded after this
+   file and would otherwise win on source order. */
+.calendar .mbsc-schedule-time-wrapper,
+.calendar .mbsc-schedule-item {
+  height: var(--calendar-cell-height);
+}
+
+/* Day columns grow to fill the row, so this width acts as their floor.
+   Pinned to the same constant the row-splitting maths uses: mobiscroll's own
+   floor is wider (6.25em once a row holds more than seven days), which made
+   the grid refuse to shrink and let the last days spill past the pane. */
+.calendar .mbsc-schedule-col-width,
+.calendar .mbsc-schedule-col-width-multi {
+  width: var(--calendar-min-column-width);
 }

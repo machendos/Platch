@@ -1,15 +1,13 @@
 import { useRef } from 'react';
 import type { RefObject } from 'react';
 import { DISPATCHER_SECTION_HEADER_HEIGHT } from '../layout-constants';
+import { clamp } from '../../../common/helpers';
 
 export type SectionHeightWeights = {
   plan: number;
   active: number;
   backlog: number;
 };
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
 
 export const useSectionResize = (
   containerRef: RefObject<HTMLDivElement | null>,
