@@ -73,6 +73,22 @@ slot with no identity of its own; keying by index reuses the instance and lets
 props change. Measured: reused rows update in ~38 ms, and only genuinely new
 rows pay the rebuild cost.
 
+## Why there is no mobiscroll header
+
+Every instance renders its own `.mbsc-calendar-header` — month title plus
+`‹ / today / ›`. Showing the top row's and hiding the rest looked like one
+header for the stack, but the title only ever described *that instance's* page,
+so it named the wrong period as soon as the range wrapped onto a second row. No
+instance knows the whole range, so there was nothing to correct. The header is
+hidden everywhere and navigation lives in the app header (`MainPage.tsx`).
+
+**`renderHeader={() => null}` does not do it.** Mobiscroll renders the header
+wrapper and its `.mbsc-calendar-controls` child regardless of what the renderer
+returns — the element is conditional on the private `showControls` option,
+which `Eventcalendar` does not expose. `.mbsc-calendar-controls` carries
+`min-height: 2.5em` with `box-sizing: content-box`, so that route leaves ~44 px
+of empty bar on every row. Hence CSS.
+
 ---
 
 ## CSS: the specificity trap

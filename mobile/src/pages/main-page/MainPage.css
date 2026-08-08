@@ -33,11 +33,20 @@
   border-radius: 6px;
   background: white;
   font: inherit;
+  /* A fixed line box, so a button carrying a larger glyph is still exactly as
+     tall as the lettered ones and their borders line up. */
+  line-height: 20px;
 }
 
 .header-button.active {
   background: #d9e4ff;
   border-color: #4a6fd0;
+}
+
+/* Chevrons are punctuation-sized at the body font size, so the glyph buttons
+   set their own. */
+.header-button-glyph {
+  font-size: 18px;
 }
 
 /* ===== Workspace: dispatcher | divider | calendar =====

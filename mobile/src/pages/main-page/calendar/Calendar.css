@@ -105,9 +105,11 @@
   overflow: visible;
 }
 
-/* The month title and navigation belong to the stack as a whole, so it is
-   shown once on the top week only. */
-.calendar-week-row:not(:first-child) .mbsc-calendar-header {
+/* No header on any row. Each instance's title only ever described its own
+   page, so as a header for the stack it was wrong as soon as the range
+   wrapped; navigation now lives in the app header. Hidden here rather than
+   through `renderHeader` — see docs/calendar-layout.md. */
+.calendar .mbsc-calendar-header {
   display: none;
 }
 

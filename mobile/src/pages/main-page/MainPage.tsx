@@ -82,6 +82,19 @@ export const MainPage = () => {
             >
               B
             </button>
+            <button
+              className="header-button header-button-glyph"
+              aria-label="Previous period"
+            >
+              ‹
+            </button>
+            <button className="header-button">Today</button>
+            <button
+              className="header-button header-button-glyph"
+              aria-label="Next period"
+            >
+              ›
+            </button>
           </header>
 
           <main
