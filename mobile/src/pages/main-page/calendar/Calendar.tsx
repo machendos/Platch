@@ -10,6 +10,7 @@ import { MbscEventcalendarView } from '@mobiscroll/react/dist/src/core/component
 import { Temporal } from 'temporal-polyfill';
 import { testEvents } from './test.data';
 import { toJsDate } from '../../../common/helpers';
+import { getTimeGutterStyles } from './time-gutter-sizes';
 
 // Day type is default type and week type is a type used in case of one day view
 // to bypass mobiscroll behavior of rendering entire week in the header
@@ -44,11 +45,9 @@ export const Calendar = ({ isDarkModeEnabled }: CalendarProps) => {
   const dayCount = rangeStart.until(rangeEnd).days + 1;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const { columnsPerRow } = usePaneWidth(containerRef);
+  const { columnsPerRow, paneWidth } = usePaneWidth(containerRef);
 
   const rows = splitDaysIntoRows(dayCount, columnsPerRow, dayCount % 7 === 0);
-
-  console.log(rows);
 
   // The zoom-out limit depends on how much of the stack scales, which changes
   // with the number of rows as well as with the visible hours.
@@ -69,7 +68,10 @@ export const Calendar = ({ isDarkModeEnabled }: CalendarProps) => {
       className={isDarkModeEnabled ? 'calendar calendar-dark' : 'calendar'}
       ref={containerRef}
       style={
-        { '--calendar-cell-height': `${cellHeight}px` } as React.CSSProperties
+        {
+          '--calendar-cell-height': `${cellHeight}px`,
+          ...getTimeGutterStyles(paneWidth),
+        } as React.CSSProperties
       }
     >
       {rowRanges.map(({ start, days }, rowIndex) => (

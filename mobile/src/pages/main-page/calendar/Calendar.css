@@ -17,6 +17,40 @@
   width: var(--calendar-time-gutter-width);
 }
 
+/* Mobiscroll hangs several other things off the same 4.25em gutter basis, so
+   narrowing the gutter above without these leaves them at the old offset —
+   which is what put the current-time line ~13px right of the grid. */
+.calendar .mbsc-schedule-time-indicator-x.mbsc-ltr,
+.calendar .mbsc-schedule-header-day-sticky.mbsc-ltr {
+  left: var(--calendar-time-gutter-width);
+}
+
+.calendar .mbsc-schedule-time-indicator-x.mbsc-rtl,
+.calendar .mbsc-schedule-header-day-sticky.mbsc-rtl {
+  right: var(--calendar-time-gutter-width);
+}
+
+/* The label is right-aligned, so padding on its left only pads empty space.
+   Dropping it gives the text the full gutter without moving it any closer to
+   the grid.
+   Three classes deliberately: mobiscroll's own `.mbsc-ios.mbsc-schedule-time`
+   also has two, and being loaded later it wins any tie.
+   `nowrap` matters more than it looks — a wrapped label is taller than its
+   cell, so it overlaps the labels above and below. iOS renders this font
+   wider than desktop Chrome, so a gutter that looks fine on desktop can wrap
+   on device; clipping is the far less broken failure. */
+.calendar .mbsc-ios.mbsc-schedule-time {
+  padding-left: 0;
+  padding-right: var(--calendar-time-label-padding);
+  white-space: nowrap;
+}
+
+/* The floating "now" bubble in the gutter. It is wider than the gutter, so it
+   is clipped, and the line itself already says where now is. */
+.calendar .mbsc-schedule-time-indicator-time {
+  display: none;
+}
+
 /* Undo mobiscroll's "fill the container and scroll inside" sizing so each
    week can report its true height to the pane above. These all sit in
    column-direction (or block) parents, so flex here only governs height. */

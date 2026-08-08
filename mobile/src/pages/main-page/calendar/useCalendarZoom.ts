@@ -5,7 +5,12 @@ import { clamp } from '../../../common/helpers';
 // Height of one time cell at 100% zoom, and the hard ceiling/floor pinching
 // can reach. The working minimum is usually larger — see minCellHeight below.
 export const BASE_CELL_HEIGHT = 25;
-const ABSOLUTE_MIN_CELL_HEIGHT = 8;
+// A time label is one line tall (1.6em of a 10px font ≈ 16px). Let cells get
+// shorter than that and consecutive labels overlap each other, since each one
+// is taller than the cell it belongs to. Raising the label density instead —
+// showing every second or third hour as cells shrink, via timeLabelStep — is
+// what would let this go lower.
+const ABSOLUTE_MIN_CELL_HEIGHT = 16;
 const MAX_CELL_HEIGHT = 120;
 
 // One per row: the block whose height is purely time cells, with no header

@@ -63,8 +63,6 @@ const getRefreshedAccessToken = (): Promise<string | null> => {
 };
 
 const authenticatedFetch: typeof fetch = async (input, init) => {
-  console.log({ input, init });
-
   const accessToken = (await authStorage.getAccessToken()) ?? '';
 
   const headers = mixTokenToHeaders(init, accessToken);
