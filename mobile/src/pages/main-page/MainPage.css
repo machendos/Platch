@@ -1,53 +1,32 @@
 /* Sizes shared with the layout math (--section-header-height,
-   --divider-size) are defined once in layout-constants.ts and applied
+   --divider-size) are defined once in layoutConfig.ts and applied
    as CSS variables on .main-page-shell in MainPage.tsx. */
 
-/* ===== Page shell: header on top, workspace fills the rest ===== */
+/* ===== Page shell: Header on top, workspace fills the rest ===== */
 
 .main-page-shell {
+  /* Named rather than used inline, for two reasons: the panes below each
+     decide what to do with the bottom inset, and `env()` reads 0 in a desktop
+     browser and cannot be overridden — a variable can, so the phone case stays
+     testable in the preview. */
+  --safe-area-bottom: env(safe-area-inset-bottom);
+
   height: 100dvh;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top);
   padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
+  /* Deliberately no bottom inset: the workspace runs to the physical bottom so
+     the calendar can too. Panes that should stop short of the home indicator
+     inset themselves — see .dispatcher below, and the calendar's bottom strip
+     in Calendar.css. */
 
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.main-page-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-bottom: 1px solid #ccc;
-}
-
-.header-button {
-  min-width: 44px;
-  padding: 6px 12px;
-  border: 1px solid #999;
-  border-radius: 6px;
-  background: white;
-  font: inherit;
-  /* A fixed line box, so a button carrying a larger glyph is still exactly as
-     tall as the lettered ones and their borders line up. */
-  line-height: 20px;
-}
-
-.header-button.active {
-  background: #d9e4ff;
-  border-color: #4a6fd0;
-}
-
-/* Chevrons are punctuation-sized at the body font size, so the glyph buttons
-   set their own. */
-.header-button-glyph {
-  font-size: 18px;
-}
+/* The header's own styles live in header/Header.css, like the panes'. */
 
 /* ===== Workspace: dispatcher | divider | calendar =====
    Column sizes come from an inline grid-template-columns built in

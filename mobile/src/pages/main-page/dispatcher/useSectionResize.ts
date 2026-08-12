@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { RefObject } from 'react';
-import { DISPATCHER_SECTION_HEADER_HEIGHT } from '../layout-constants';
+import { DISPATCHER_SECTION_HEADER_HEIGHT } from '../layout-config';
 import { clamp } from '../../../common/helpers';
 
 export type SectionHeightWeights = {

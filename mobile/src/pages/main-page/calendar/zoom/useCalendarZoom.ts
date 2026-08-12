@@ -1,22 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { clamp } from '../../../common/helpers';
+import { clamp } from '../../../../common/helpers';
+import { setScrollLocked } from '../navigation/pageOffset';
+import { ABSOLUTE_MIN_CELL_HEIGHT } from '../layoutConfig';
 
-// Height of one time cell at 100% zoom, and the hard ceiling/floor pinching
-// can reach. The working minimum is usually larger — see minCellHeight below.
-export const BASE_CELL_HEIGHT = 25;
-// A time label is one line tall (1.6em of a 10px font ≈ 16px). Let cells get
-// shorter than that and consecutive labels overlap each other, since each one
-// is taller than the cell it belongs to. Raising the label density instead —
-// showing every second or third hour as cells shrink, via timeLabelStep — is
-// what would let this go lower.
-const ABSOLUTE_MIN_CELL_HEIGHT = 16;
+// One cell is one hour, always: mobiscroll's `timeCellStep` never changes, so
+// nothing can redefine the unit underneath the gesture. The half-hour line and
+// the thinning of labels are drawn from this number in CSS — see zoom-detail.ts
+// — rather than by asking mobiscroll to re-render at a finer step.
+const BASE_CELL_HEIGHT = 25;
 const MAX_CELL_HEIGHT = 120;
 
 // One per row: the block whose height is purely time cells, with no header
 // mixed in. Everything else in the stack keeps a fixed height while zooming.
 const SCALING_BLOCK_SELECTOR = '.mbsc-schedule-column-inner';
 const CALENDAR_ROW_SELECTOR = '.calendar-week-row';
+// Grid drawn past the last row to clear the home indicator. It sits after the
+// rows rather than inside one, so the span between them does not include it.
+const BOTTOM_STRIP_SELECTOR = '.calendar-bottom-strip';
 
 const touchDistance = (touches: TouchList) =>
   Math.hypot(
@@ -32,42 +33,73 @@ const scalingBlocks = (container: HTMLElement) =>
     .map((row) => row.querySelector<HTMLElement>(SCALING_BLOCK_SELECTOR))
     .filter((block): block is HTMLElement => !!block);
 
+// Unitless on purpose. CSS cannot divide a length to get a number, so the
+// thresholds in zoom-detail.ts could not be compared against a px value; the
+// length is derived back in Calendar.css.
 const readCellHeight = (container: HTMLElement) =>
   parseFloat(
-    getComputedStyle(container).getPropertyValue('--calendar-cell-height'),
+    getComputedStyle(container).getPropertyValue('--calendar-cell-px'),
   ) || BASE_CELL_HEIGHT;
 
 /**
- * Smallest cell height worth allowing: the one where the whole stack exactly
- * fills the pane. Zooming out past it would only add empty space below the
- * last row.
+ * Cell height at which the whole stack exactly fills the pane: the smallest
+ * worth allowing, since zooming out past it would only add empty space below
+ * the last row, and the one to snap to when the layout changes shape.
  *
  * The content is affine in cell height (`fixed + cells * height`), so the
  * scaling and fixed parts are separated first. With enough rows the ideal
- * value drops below readability, hence the absolute floor — past that point
+ * value drops below what labels can survive, hence the floor — past that point
  * the stack simply keeps scrolling.
+ *
+ * `null` means "cannot be measured yet", which is not the same as a small
+ * result and must not be collapsed into one. Mobiscroll settles
+ * asynchronously, so on the first layout the scaling blocks are still 0-high;
+ * a caller that applied a fallback floor here would pin the grid to 8px cells.
+ * Callers retry instead — the ResizeObserver below fires once the real heights
+ * land.
+ *
+ * A *partial* layout is the trap, and it is worse than an empty one because it
+ * measures cleanly. Every row must have a grid and every grid must have height
+ * before the answer means anything: `cellsTotal` is a sum, so one row of two
+ * still rendering reads as 21 cells rather than 42 and yields a fit close to
+ * the current height — plausible, wrong, and enough to satisfy a caller that
+ * only wanted one good measurement. Re-splitting the rows also changes
+ * `size`, which the trial build answers with a round-trip of up to ~1.2s
+ * before the second grid exists at all.
  */
-const minCellHeight = (container: HTMLElement) => {
+const fitCellHeight = (container: HTMLElement): number | null => {
   const rows = [
     ...container.querySelectorAll<HTMLElement>(CALENDAR_ROW_SELECTOR),
   ];
   const blocks = scalingBlocks(container);
-  if (!rows.length || !blocks.length) return ABSOLUTE_MIN_CELL_HEIGHT;
+  // `scalingBlocks` drops rows whose grid is not mounted, so an unequal count
+  // is precisely "some row has not rendered yet".
+  if (!rows.length || blocks.length !== rows.length || !container.clientHeight)
+    return null;
 
-  const scalingNow = blocks.reduce(
-    (sum, block) => sum + block.getBoundingClientRect().height,
-    0,
-  );
+  const heights = blocks.map((block) => block.getBoundingClientRect().height);
+  if (heights.some((height) => !height)) return null;
+
+  const scalingNow = heights.reduce((sum, height) => sum + height, 0);
   const cellsTotal = scalingNow / readCellHeight(container);
-  if (!cellsTotal) return ABSOLUTE_MIN_CELL_HEIGHT;
+  if (!cellsTotal) return null;
 
   const style = getComputedStyle(container);
   const padding =
     parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  // Counted explicitly: it is a sibling after the last row, so measuring the
+  // span between the rows misses it, and the limit would settle a strip's
+  // worth above the pane — leaving a residual scroll where fully zoomed out is
+  // meant to fit exactly.
+  const stripHeight =
+    container
+      .querySelector<HTMLElement>(BOTTOM_STRIP_SELECTOR)
+      ?.getBoundingClientRect().height ?? 0;
   const contentHeight =
     rows[rows.length - 1].getBoundingClientRect().bottom -
     rows[0].getBoundingClientRect().top +
-    padding;
+    padding +
+    stripHeight;
 
   const fixedHeight = contentHeight - scalingNow;
   const fitAll = (container.clientHeight - fixedHeight) / cellsTotal;
@@ -87,6 +119,10 @@ const minCellHeight = (container: HTMLElement) => {
  * During a gesture the height is written straight to the DOM as a CSS
  * variable, keeping React and mobiscroll out of the per-frame path. The
  * final value is committed to state when the gesture ends.
+ *
+ * Detail that depends on the height — the half-hour line, thinning the labels
+ * — is derived from the same variable in CSS, so it tracks the gesture frame
+ * by frame instead of waiting for that commit.
  *
  * `layoutSignature` should change whenever the row split or visible hours
  * change, so the zoom-out limit can be recomputed for the new shape.
@@ -109,13 +145,54 @@ export const useCalendarZoom = (
     minHeight: ABSOLUTE_MIN_CELL_HEIGHT,
   });
 
-  // Fewer rows means the stack needs taller cells to still fill the pane, so
-  // a layout change can leave the current zoom below the new limit.
+  // Set while a fit is owed: on mount, and whenever the row split or the
+  // visible hours change. The next measurable layout is then snapped to the
+  // exact fit rather than merely floored, which is what zooms the stack out to
+  // show the whole of a newly wrapped layout.
+  const wantsExactFit = useRef(true);
+
+  // The stack must never occupy less than the pane. Enforcing that on render
+  // alone does not work: mobiscroll settles asynchronously, so the layout this
+  // runs against on mount is still 0-high and unmeasurable, and by the time it
+  // is real nothing re-renders. Hence the observer — it is the only signal that
+  // the geometry has actually landed.
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const minimum = minCellHeight(container);
-    setCellHeight((current) => (current < minimum ? minimum : current));
+
+    wantsExactFit.current = true;
+
+    const applyFit = () => {
+      // A pinch owns the height while it runs; a resize landing mid-gesture
+      // would otherwise yank the cells out from under the fingers.
+      if (gesture.current.startDistance) return;
+
+      const fit = fitCellHeight(container);
+      if (fit === null) return; // still settling — a later callback retries
+
+      if (wantsExactFit.current) {
+        wantsExactFit.current = false;
+        setCellHeight(fit);
+      } else {
+        setCellHeight((current) => (current < fit ? fit : current));
+      }
+    };
+
+    applyFit();
+
+    // Watching the rows as well as the pane looks like a feedback loop —
+    // applying a fit resizes the very rows being observed — but it settles in
+    // one pass. `fitCellHeight` is scale-invariant: `cellsTotal` is the same 21
+    // whether cells are 25px or 32px, so the second callback recomputes the
+    // same number, the write is a no-op, and React bails on identical state.
+    const observer = new ResizeObserver(applyFit);
+    observer.observe(container);
+    for (const row of container.querySelectorAll<HTMLElement>(
+      CALENDAR_ROW_SELECTOR,
+    )) {
+      observer.observe(row);
+    }
+    return () => observer.disconnect();
   }, [containerRef, layoutSignature]);
 
   useEffect(() => {
@@ -144,33 +221,16 @@ export const useCalendarZoom = (
       gesture.current.height = height;
       gesture.current.fixedAbove = anchor.fixedAbove;
       gesture.current.cellsAbove = anchor.cellsAbove;
-      gesture.current.minHeight = minCellHeight(container);
+      gesture.current.minHeight =
+        fitCellHeight(container) ?? ABSOLUTE_MIN_CELL_HEIGHT;
       return height;
     };
 
     const applyZoom = (height: number, anchorY: number) => {
-      container.style.setProperty('--calendar-cell-height', `${height}px`);
+      container.style.setProperty('--calendar-cell-px', `${height}`);
       const { fixedAbove, cellsAbove } = gesture.current;
       container.scrollTop = fixedAbove + cellsAbove * height - anchorY;
       gesture.current.height = height;
-    };
-
-    /**
-     * Takes the surface out of the browser's hands for the duration of a
-     * pinch.
-     *
-     * iOS decides whether a touch is a scroll before it can know a second
-     * finger is coming. Once it has committed, touchmove arrives
-     * non-cancelable, preventDefault() is ignored, and the compositor keeps
-     * scrolling on its own thread — overriding whatever we write. Making the
-     * element non-scrollable ends that: there is nothing left for the
-     * compositor to scroll, while scrollTop stays writable from script.
-     */
-    const setScrollLocked = (locked: boolean) => {
-      const { scrollTop } = container;
-      container.style.overflow = locked ? 'hidden' : '';
-      // Toggling overflow can reset the offset, so put it back.
-      container.scrollTop = scrollTop;
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -180,7 +240,7 @@ export const useCalendarZoom = (
       // ratio meaningless (and divide by ~zero).
       if (distance < 1) return;
 
-      setScrollLocked(true);
+      setScrollLocked(container, true);
       beginGesture(
         touchMidpointY(e.touches) - container.getBoundingClientRect().top,
       );
@@ -209,7 +269,7 @@ export const useCalendarZoom = (
       // Only unwind a pinch we actually started — touching the scroller after
       // an ordinary one-finger scroll would cut its momentum short.
       if (!gesture.current.startDistance) return;
-      setScrollLocked(false);
+      setScrollLocked(container, false);
       gesture.current.startDistance = 0;
       setCellHeight(gesture.current.height);
     };

@@ -31,7 +31,7 @@ approaches that were tried and do not work, which the code cannot show.
 - **Dates**: `Temporal.PlainDate` (via `temporal-polyfill`) for calendar dates.
   Convert at the boundary with `toJsDate` when a library needs a `Date`.
 - **Shared sizes**: values needed by both layout maths and CSS live in
-  `layout-constants.ts` and reach CSS as custom properties applied on
+  `layoutConfig.ts` and reach CSS as custom properties applied on
   `.main-page-shell`. Never hardcode such a number in a stylesheet — the two
   will drift.
 - **Comments** explain *why*, especially where the obvious code is wrong.

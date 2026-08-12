@@ -1,101 +1,52 @@
 import { useRef, useState } from 'react';
 import { IonContent, IonPage } from '@ionic/react';
+import { Temporal } from 'temporal-polyfill';
 import { Calendar } from './calendar/Calendar';
+import { useCalendarPaging } from './calendar/useCalendarPaging';
 import { Dispatcher } from './dispatcher/Dispatcher';
+import { Header } from './header/Header';
 import { Divider } from './Divider';
-import {
-  CALENDAR_MIN_PANE_WIDTH,
-  DISPATCHER_MIN_PANE_WIDTH,
-  layoutCssVariables,
-} from './layout-constants';
+import { testEvents } from './test.data';
+import { layoutCssVariables } from './layout-config';
 import './MainPage.css';
-import { clamp } from '../../common/helpers';
-
-// TODO: dynamic default pane weights
-const DEFAULT_PANE_WEIGHTS = { dispatcher: 1, calendar: 2 };
+import { useWorkspaceLayout } from './useWorkspaceLayout';
 
 export const MainPage = () => {
   const [isDispatcherVisible, setIsDispatcherVisible] = useState(true);
   const [isCalendarVisible, setIsCalendarVisible] = useState(true);
-  const [isDarkModeEnabled] = useState(false);
 
-  const [paneWeights, setPaneWeights] = useState(DEFAULT_PANE_WEIGHTS);
+  // TODO: expose as user settings.
+  const [isDarkModeEnabled] = useState(false);
+  const [startDate] = useState(new Temporal.PlainDate(2026, 8, 1));
+  const [dayCount] = useState(2);
+  const [timeFrame] = useState<[string, string]>(['01:00:00', '22:00:00']);
+  const [events] = useState(testEvents);
+
+  const { pageStart, todayRequest, goToPage, goToToday } = useCalendarPaging(
+    startDate,
+    dayCount,
+  );
 
   const workspaceRef = useRef<HTMLElement>(null);
-  const widthsAtDragStart = useRef({ dispatcher: 0, calendar: 0 });
 
-  const rememberWidths = () => {
-    const workspace = workspaceRef.current;
-    const dispatcher = workspace?.querySelector('.dispatcher');
-    const calendar = workspace?.querySelector('.calendar');
-    if (!dispatcher || !calendar) return;
-    widthsAtDragStart.current = {
-      dispatcher: dispatcher.getBoundingClientRect().width,
-      calendar: calendar.getBoundingClientRect().width,
-    };
-  };
-
-  const resizePanes = (delta: number) => {
-    const start = widthsAtDragStart.current;
-    // Negative when drags left, positive when drags right
-    const appliedDelta = clamp(
-      delta,
-      DISPATCHER_MIN_PANE_WIDTH - start.dispatcher,
-      start.calendar - CALENDAR_MIN_PANE_WIDTH,
-    );
-    setPaneWeights({
-      dispatcher: start.dispatcher + appliedDelta,
-      calendar: start.calendar - appliedDelta,
+  const { rememberWidths, resizePanes, gridTemplateColumns } =
+    useWorkspaceLayout(workspaceRef, {
+      isDispatcherVisible,
+      isCalendarVisible,
     });
-  };
-
-  // dispatcher | divider | calendar.
-  const paneTrack = (weight: number, min: number) =>
-    `minmax(${min}px, ${weight}fr)`;
-  const gridTemplateColumns =
-    isDispatcherVisible && isCalendarVisible
-      ? [
-          paneTrack(paneWeights.dispatcher, DISPATCHER_MIN_PANE_WIDTH),
-          'auto',
-          paneTrack(paneWeights.calendar, CALENDAR_MIN_PANE_WIDTH),
-        ].join(' ')
-      : '1fr';
 
   return (
     <IonPage>
       <IonContent scrollY={false}>
         <div className="main-page-shell" style={layoutCssVariables}>
-          <header className="main-page-header">
-            <button
-              className={
-                isDispatcherVisible ? 'header-button active' : 'header-button'
-              }
-              onClick={() => setIsDispatcherVisible((v) => !v)}
-            >
-              A
-            </button>
-            <button
-              className={
-                isCalendarVisible ? 'header-button active' : 'header-button'
-              }
-              onClick={() => setIsCalendarVisible((v) => !v)}
-            >
-              B
-            </button>
-            <button
-              className="header-button header-button-glyph"
-              aria-label="Previous period"
-            >
-              ‹
-            </button>
-            <button className="header-button">Today</button>
-            <button
-              className="header-button header-button-glyph"
-              aria-label="Next period"
-            >
-              ›
-            </button>
-          </header>
+          <Header
+            isDispatcherVisible={isDispatcherVisible}
+            isCalendarVisible={isCalendarVisible}
+            onToggleDispatcher={() => setIsDispatcherVisible((v) => !v)}
+            onToggleCalendar={() => setIsCalendarVisible((v) => !v)}
+            onPageChange={goToPage}
+            onToday={goToToday}
+          />
 
           <main
             className="workspace"
@@ -113,7 +64,15 @@ export const MainPage = () => {
             )}
 
             {isCalendarVisible && (
-              <Calendar isDarkModeEnabled={isDarkModeEnabled} />
+              <Calendar
+                isDarkModeEnabled={isDarkModeEnabled}
+                pageStart={pageStart}
+                dayCount={dayCount}
+                timeFrame={timeFrame}
+                events={events}
+                todayRequest={todayRequest}
+                onPageChange={goToPage}
+              />
             )}
           </main>
         </div>

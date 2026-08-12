@@ -1,13 +1,26 @@
+import { CALENDAR_MIN_COLUMN_WIDTH, WRAP_HYSTERESIS } from './layoutConfig';
+
 const distributeEvenly = (total: number, rows: number): number[] => {
   const base = Math.floor(total / rows);
   const remainder = total % rows;
   return Array.from({ length: rows }, (_, i) => base + (i < remainder ? 1 : 0));
 };
 
-export const daysPerRowThatFit = (
+export const settleDaysPerRow = (
   schedulerAreaWidth: number,
-  minColumnWidth: number,
-) => Math.max(1, Math.floor(schedulerAreaWidth / minColumnWidth));
+  previous: number,
+) => {
+  const raw = Math.max(
+    1,
+    Math.floor(schedulerAreaWidth / CALENDAR_MIN_COLUMN_WIDTH),
+  );
+
+  const wideningBoundary =
+    (previous + 1) * CALENDAR_MIN_COLUMN_WIDTH + WRAP_HYSTERESIS;
+  const resistWidening =
+    previous > 0 && raw > previous && schedulerAreaWidth < wideningBoundary;
+  return resistWidening ? previous : raw;
+};
 
 export const splitDaysIntoRows = (
   dayCount: number,

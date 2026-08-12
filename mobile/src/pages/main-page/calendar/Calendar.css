@@ -7,6 +7,67 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--calendar-pane-padding);
+  /* The bottom strip is the whole gap at this end, so its lines run to the
+     screen edge instead of stopping a few pixels short of it. */
+  padding-bottom: 0;
+  /* The browser keeps vertical panning and never does anything sideways of its
+     own, which is the swipe's business. It is only half the story though — see
+     setScrollLocked in pageOffset.ts for the case where iOS has already
+     committed to a scroll before we can classify the gesture. */
+  touch-action: pan-y;
+}
+
+/* ===== Paging =====
+
+   Changing page swaps the dates on the instances already mounted, then plays
+   a short slide so the direction is visible. Only the two groups holding the
+   day columns and the day names move; the time gutter is their sibling, so
+   leaving it alone is all it takes to keep it still.
+
+   The transform exists ONLY while the slide is running. Pinch-to-zoom writes
+   a real height to every cell on every frame, so the resting DOM is kept
+   exactly as it was before paging existed — see docs/calendar-layout.md. */
+.calendar-sliding .mbsc-schedule-header-wrapper,
+.calendar-sliding .mbsc-schedule-grid > .mbsc-schedule-resource-group,
+.calendar-sliding .mbsc-schedule-time-indicator,
+.calendar-sliding .calendar-bottom-strip > div {
+  transform: translateX(var(--calendar-page-slide, 0px));
+  transition: transform var(--calendar-slide-duration) ease-out;
+}
+
+/* Offset with no transition: either a finger is dragging the columns, or a
+   slide is being positioned before its transition is switched on. */
+.calendar-page-held .mbsc-schedule-header-wrapper,
+.calendar-page-held .mbsc-schedule-grid > .mbsc-schedule-resource-group,
+.calendar-page-held .mbsc-schedule-time-indicator,
+.calendar-page-held .calendar-bottom-strip > div {
+  transform: translateX(var(--calendar-page-slide, 0px));
+  transition: none;
+}
+
+/* The current-time line marks one day, so it travels with the columns even
+   though it is a sibling of the gutter rather than of the group that moves —
+   named in both rules above for that reason. Left out, it hangs still while
+   the day it marks slides out from under it.
+
+   Clipped to the column area because it does not hide the way the columns do.
+   They pass *under* the sticky gutter (z-index 1); the indicator's container
+   is z-index 6, so a leftward slide would drag the line straight across the
+   time labels. `.calendar` is the only other clipping ancestor, and it is a
+   whole gutter too far to the left to help. */
+.calendar .mbsc-schedule-time-indicator-cont {
+  clip-path: inset(0 0 0 var(--calendar-time-gutter-width));
+}
+
+[dir='rtl'] .calendar .mbsc-schedule-time-indicator-cont {
+  clip-path: inset(0 var(--calendar-time-gutter-width) 0 0);
+}
+
+/* The day-name spacer sits above the gutter and is a plain sibling of the day
+   names, which would otherwise slide over it. Its grid counterpart already
+   wins on z-index; this gives the header the same. */
+.calendar .mbsc-schedule-time-col-empty {
+  z-index: 1;
 }
 
 /* Pinned to the constant the row-splitting maths subtracts, so the rendered
@@ -19,13 +80,12 @@
 
 /* Mobiscroll hangs several other things off the same 4.25em gutter basis, so
    narrowing the gutter above without these leaves them at the old offset —
-   which is what put the current-time line ~13px right of the grid. */
-.calendar .mbsc-schedule-time-indicator-x.mbsc-ltr,
+   which is what put the current-time line ~13px right of the grid. The line
+   itself is positioned further down, off the same variable. */
 .calendar .mbsc-schedule-header-day-sticky.mbsc-ltr {
   left: var(--calendar-time-gutter-width);
 }
 
-.calendar .mbsc-schedule-time-indicator-x.mbsc-rtl,
 .calendar .mbsc-schedule-header-day-sticky.mbsc-rtl {
   right: var(--calendar-time-gutter-width);
 }
@@ -43,12 +103,49 @@
   padding-left: 0;
   padding-right: var(--calendar-time-label-padding);
   white-space: nowrap;
+  /* Mobiscroll greys these out; the day names above them are full-strength,
+     and the two rows of labels frame the same grid, so they should match.
+     `inherit` rather than a literal black — the surrounding text colour is
+     already the theme's, so this follows dark mode without being told. */
+  color: inherit;
 }
 
-/* The floating "now" bubble in the gutter. It is wider than the gutter, so it
-   is clipped, and the line itself already says where now is. */
-.calendar .mbsc-schedule-time-indicator-time {
+/* A one-day row is `type: 'day'` with `size: 1`, like every other row — see
+   getSchedulerViewOption for why it may not be `type: 'week'` any more — and
+   mobiscroll answers `size: 1` by labelling the whole *week* above the single
+   column it renders. It marks the day it actually rendered as `mbsc-selected`,
+   which is the one to keep; the other six go.
+
+   Reading mobiscroll's own mark rather than counting children or being told
+   the weekday from React: it cannot disagree with the column beneath it.
+
+   Scoped to one-day rows because only they carry the mark — a wider row has no
+   selected header item, and if that ever changed this rule would collapse its
+   header to a single label. */
+.calendar-week-row-single .mbsc-schedule-header-item:not(.mbsc-selected) {
   display: none;
+}
+
+/* …and undo the *look* of being selected, which comes with the mark. Each row
+   selects its own day, so without this every single-day row wears the filled
+   accent badge — where the old `type: 'week'` rows wore it only when the day
+   was actually today.
+   `:not(…-today)` keeps that: today still gets its badge, every other day goes
+   back to plain text. Four classes because mobiscroll's rival rule is
+   `.mbsc-material.mbsc-schedule-header-day.mbsc-selected` — three, and loaded
+   after this file, so three only ties and loses. Theme is left unnamed so the
+   rule covers both. */
+.calendar
+  .calendar-week-row-single
+  .mbsc-schedule-header-day.mbsc-selected:not(.mbsc-schedule-header-day-today),
+.calendar
+  .calendar-week-row-single
+  .mbsc-schedule-header-dayname.mbsc-selected:not(
+    .mbsc-schedule-header-dayname-curr
+  ) {
+  background: none;
+  color: inherit;
+  font-weight: inherit;
 }
 
 /* Undo mobiscroll's "fill the container and scroll inside" sizing so each
@@ -63,6 +160,71 @@
   overflow: visible;
 }
 
+/* ===== Bottom strip =====
+
+   The pane runs to the bottom of the screen, so without this the last hour
+   would sit under the home indicator once the stack is scrolled to its end.
+   The strip is real scrollable content, which is what buys the clearance; it
+   is drawn as grid so the calendar reads as continuing to the screen edge
+   rather than stopping in a gap.
+
+   Continuing the grid costs almost nothing because mobiscroll's columns are
+   hairlines and nothing else — the grid's background is the same colour as the
+   pane behind it, so a row of bordered cells is the whole of it.
+
+   Logical properties rather than the `.mbsc-ltr` / `.mbsc-rtl` pairs used
+   elsewhere in this file: those classes sit on mobiscroll's own elements, and
+   the strip is ours, so it has to read the direction from the document. */
+.calendar-bottom-strip {
+  display: flex;
+  height: calc(var(--calendar-pane-padding) + var(--safe-area-bottom));
+  /* The gutter has no column above it, so the strip starts where the columns
+     do — the same offset the current-time line is placed from. */
+  padding-inline-start: var(--calendar-time-gutter-width);
+  /* The cells travel with the columns during a page slide (see the paging
+     rules), so they need the same clip the current-time line gets: without it
+     a leftward slide drags them across the time labels. */
+  clip-path: inset(0 0 0 var(--calendar-time-gutter-width));
+}
+
+/* Exactly the flex model mobiscroll gives a day column — `auto` basis with
+   `border-box` — because that is what lets a column carry its border without
+   the border adding to its outer size. With `flex: 1 1 0%` the border floors
+   each item instead, which is what made the lines drift and forced all the
+   workarounds this replaces. */
+.calendar-bottom-strip > div {
+  flex: 1 0 auto;
+  box-sizing: border-box;
+  /* The same width basis the columns get — the rule above pins
+     `.mbsc-schedule-col-width` to this very variable. It is the third part of
+     the mechanism: with `border-box`, an explicit basis absorbs the border, so
+     a bordered cell is not a pixel wider than an unbordered one and the lines
+     do not drift. Flex model alone was not enough. */
+  width: var(--calendar-min-column-width);
+}
+
+/* Mobiscroll draws a line on every column but the first — `.mbsc-flex-none +
+   .mbsc-schedule-column` zeroes the border on the one next to the gutter — and
+   `+ div` reproduces that exactly.
+
+   A plain border on the cell, matching `.mbsc-schedule-column`'s own
+   `border-left-width: 1px; border-left-style: solid` declaration.
+
+   The `1px` here is only the low-DPR case, exactly as it is for mobiscroll.
+   On retina the width comes from the `mbsc-hb` class on the cell (see
+   Calendar.tsx): `@media (-webkit-min-device-pixel-ratio: 2)` sets
+   `border-width: .5px !important`, so that wins over this shorthand while the
+   style and colour here still apply. Hardcoding a second `1px` anywhere in
+   this block would silently reintroduce the triple-width line.
+
+   `--mbsc-ios-border`, not the `--mbsc-eventcalendar-border-color` the columns
+   use: that one is only defined inside mobiscroll's own subtree, and the strip
+   is ours, so it resolves to nothing here and the border falls back to
+   near-black `currentColor`. With the theme pinned, both are `#ccc`. */
+.calendar-bottom-strip > div + div {
+  border-inline-start: 1px solid var(--mbsc-ios-border);
+}
+
 /* Sit the calendar on the app's own background instead of mobiscroll's.
    These are the theme's base surface tokens, so everything derived from
    them — grid, headers, time gutter — follows without being listed.
@@ -73,14 +235,99 @@
   --mbsc-ios-background-alt: var(--app-background);
 }
 
-/* Current-time line. Mobiscroll only draws its per-day segment
-   (mbsc-schedule-time-indicator-day) in week-type views, which now means
-   single-day rows alone — multi-day rows get just the line spanning the
-   row. So the spanning line has to stay, or the indicator disappears
-   entirely from every row with more than one day in it. The segment keeps
-   its accent border, which this theme otherwise leaves unstyled. */
+/* ===== Current-time line =====
+
+   Mobiscroll draws two elements. `-x` spans every day the instance shows;
+   `-day` is a segment over the current day alone — but it is rendered only
+   when the view type is `week`, which for us means one-day rows, so it cannot
+   be what the indicator is built on.
+
+   What makes `-x` usable instead is that its box is *exactly* the day-column
+   area: its left edge is the gutter, its right edge the last column's. That is
+   how mobiscroll can place `-day` inside it with plain percentages, and it
+   lets us do the same arithmetic from the outside — narrowing `-x` itself onto
+   one column. `--calendar-today-index` and `--calendar-row-days` come from
+   Calendar.tsx. Mobiscroll keeps the vertical position and the ten-second
+   refresh that goes with it, and both view types are drawn by the same rules. */
+.calendar {
+  --calendar-now-line-width: 2px;
+  --calendar-now-dot-size: 8px;
+}
+
+/* Only the row holding today carries those two properties, and without them
+   the `left` below is invalid at computed-value time — the line would fall
+   back to `auto` and land somewhere arbitrary. Mobiscroll does already render
+   the indicator on that row alone, but this makes it a guarantee of ours
+   rather than something inferred from its internals. */
+.calendar-week-row:not(.calendar-week-row-has-today)
+  .mbsc-schedule-time-indicator {
+  display: none;
+}
+
+.calendar .mbsc-schedule-time-indicator-x {
+  --calendar-now-column-width: calc(
+    (100% - var(--calendar-time-gutter-width)) / var(--calendar-row-days)
+  );
+  --calendar-now-column-offset: calc(
+    var(--calendar-now-column-width) * var(--calendar-today-index)
+  );
+
+  width: var(--calendar-now-column-width);
+  border-bottom-width: var(--calendar-now-line-width);
+  /* `top` is where now actually is and the border hangs below it, so a thicker
+     line reads late by half its own width unless it is pulled back up. */
+  margin-top: calc(var(--calendar-now-line-width) / -2);
+}
+
+.calendar .mbsc-schedule-time-indicator-x.mbsc-ltr {
+  left: calc(
+    var(--calendar-time-gutter-width) + var(--calendar-now-column-offset)
+  );
+  right: auto;
+}
+
+.calendar .mbsc-schedule-time-indicator-x.mbsc-rtl {
+  right: calc(
+    var(--calendar-time-gutter-width) + var(--calendar-now-column-offset)
+  );
+  left: auto;
+}
+
+/* The dot marks the line's leading edge, and sits fully inside the column
+   rather than straddling it. Mobiscroll's own segment straddles, which is fine
+   for a line that spans the whole row — but here the line *is* the day, so a
+   dot half in the previous column reads as ambiguous, and on the first column
+   it would hang into the time gutter. */
+.calendar .mbsc-schedule-time-indicator-x::after {
+  content: '';
+  position: absolute;
+  top: calc(
+    (var(--calendar-now-line-width) - var(--calendar-now-dot-size)) / 2
+  );
+  width: var(--calendar-now-dot-size);
+  height: var(--calendar-now-dot-size);
+  border-radius: 50%;
+  background: var(--mbsc-eventcalendar-accent);
+}
+
+.calendar .mbsc-schedule-time-indicator-x.mbsc-ltr::after {
+  left: 0;
+}
+
+.calendar .mbsc-schedule-time-indicator-x.mbsc-rtl::after {
+  right: 0;
+}
+
+/* Mobiscroll's own per-day segment, drawn on one-day rows only. It would sit
+   exactly under the line above and draw a second, straddling dot. */
 .calendar .mbsc-schedule-time-indicator-day {
-  border-bottom: 1px solid var(--mbsc-eventcalendar-accent);
+  display: none;
+}
+
+/* The floating "now" bubble in the gutter. It is wider than the gutter, so it
+   is clipped, and the line itself already says where now is. */
+.calendar .mbsc-schedule-time-indicator-time {
+  display: none;
 }
 
 /* Let events use the full width of their day column. Mobiscroll insets the
@@ -113,10 +360,108 @@
   display: none;
 }
 
-/* Height of one time cell — the single value the pinch-to-zoom gesture
-   changes (see useCalendarZoom.ts). Scoped under .calendar so it outranks
-   mobiscroll's own .mbsc-schedule-item rule, which is loaded after this
-   file and would otherwise win on source order. */
+/* ===== Zoom detail =====
+
+   One cell is one hour. The pinch writes `--calendar-cell-px` — a plain
+   number, because CSS cannot divide a length to get one and these thresholds
+   have to compare against it — and everything below is a function of it.
+
+   Being a function of it is the point: these resolve on every frame the
+   gesture writes, so the half-hour line and the thinning of the labels happen
+   *during* the pinch. Driving them from React instead cannot land until the
+   gesture ends (on touch, after the finger lifts, which stalls a zoom-out
+   against labels that have not thinned yet), and driving them from
+   mobiscroll's `timeCellStep` rebuilds the grid mid-gesture, collapsing the
+   content so the browser clamps `scrollTop` and the view lands at a different
+   time. Bounds come from zoom-detail.ts. */
+.calendar {
+  --calendar-cell-height: calc(var(--calendar-cell-px) * 1px);
+
+  /* Steps, not ramps. Multiplying by a large number leaves a transition band a
+     thousandth of a pixel of zoom wide, so each is simply on or off — there is
+     no zoom you can hold the gesture at and see either half-drawn.
+
+     The half-hour line used to ramp across a 56→72 band, which meant that for
+     that whole stretch of zoom it drew at partial opacity — visibly lighter
+     than the hour lines it is supposed to match, and exactly the half-drawn
+     state the labels were changed to avoid. Same treatment now, one threshold
+     each. */
+  --calendar-alternate-label-shown: clamp(
+    0,
+    (var(--calendar-cell-px) - var(--calendar-sparse-labels-at)) * 1000,
+    1
+  );
+
+  --calendar-half-hour-shown: clamp(
+    0,
+    (var(--calendar-cell-px) - var(--calendar-half-hour-at)) * 1000,
+    1
+  );
+}
+
+/* The half-hour line: a real border, on a pseudo-element inside each hour cell.
+
+   It was one repeating gradient per column, which is a twenty-fifth of the
+   boxes and looked equivalent. It is not. A gradient's colour stop lands
+   wherever the maths puts it and is antialiased across the device pixels it
+   covers, while a border is snapped — so against the hour borders above and
+   below, the same nominal 1px read as *thicker* at 2x and *thinner* at 3x.
+   Drawing it the same way they are drawn is the only thing that makes it
+   match on both.
+
+   Same token as those borders, so it follows the theme into dark mode, and at
+   full strength: an hour line and a half-hour line are the same weight. */
+.calendar .mbsc-schedule-column-inner .mbsc-schedule-item::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  /* Half an hour below the hour line, not `50%`. Percentages here resolve
+     against the cell's *padding* box, which excludes the 1px border the hour
+     line is drawn as — so `50%` lands half a pixel late. */
+  top: calc(var(--calendar-cell-height) / 2 - 1px);
+  border-top: 1px solid var(--mbsc-eventcalendar-border-color);
+  opacity: var(--calendar-half-hour-shown);
+  pointer-events: none;
+}
+
+/* Every second label fades out as cells get too short to hold one. Mobiscroll
+   still writes all of them, at the hourly step that keeps the short "10 AM"
+   form — asking it for a two-hour step returns "10:00 AM", which does not fit
+   the gutter, and `timeFormat` cannot fix that because it reformats event
+   times too.
+
+   The gutter renders one wrapper per hour after a single zero-height spacer,
+   so the hours line up with even children. Should that spacer ever go, the
+   parity flips and the *odd* hours survive — still every second hour, so it
+   degrades rather than breaks.
+
+   The closing label is the exception. Mobiscroll renders the range's final
+   hour — 10 PM for a 10:00–22:00 window — *inside the last wrapper*, which
+   belongs to the hour before it. So it is one hour further on than the wrapper
+   holding it and its parity is inverted: without the second selector below it
+   fades along with 9 PM and the range loses the label that closes it. */
+.calendar
+  .mbsc-schedule-time-wrapper:nth-child(odd)
+  .mbsc-schedule-time:not(.mbsc-schedule-time-end),
+.calendar .mbsc-schedule-time-wrapper:nth-child(even) .mbsc-schedule-time-end {
+  opacity: var(--calendar-alternate-label-shown);
+}
+
+/* The scheduler's own month/year, absolutely positioned in the corner cell
+   above the time gutter. It is not the calendar header — `renderHeader` does
+   not reach it and the `display: none` on `.mbsc-calendar-header` does not
+   cover it, which is why it survived that fix and kept flashing over the hour
+   labels on resize.
+   Hidden for the same reason the header is: each instance names only its own
+   row's month, so on a stack that spans months it is wrong more often than
+   right, and the app header already says which period is showing. */
+.calendar .mbsc-schedule-header-date {
+  display: none;
+}
+
+/* Scoped under .calendar so it outranks mobiscroll's own .mbsc-schedule-item
+   rule, which is loaded after this file and would otherwise win on source
+   order. */
 .calendar .mbsc-schedule-time-wrapper,
 .calendar .mbsc-schedule-item {
   height: var(--calendar-cell-height);

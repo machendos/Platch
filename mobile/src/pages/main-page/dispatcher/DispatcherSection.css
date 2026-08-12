@@ -5,7 +5,7 @@
   overflow: hidden;
 }
 
-/* --section-header-height comes from layout-constants.ts (applied as a
+/* --section-header-height comes from layoutConfig.ts (applied as a
    CSS variable on the page shell in MainPage.tsx) */
 .section-header {
   height: var(--section-header-height);

@@ -4,6 +4,10 @@
   min-width: 0;
   overflow: hidden;
   display: grid;
+  /* The pane reaches the bottom of the screen along with the workspace, but
+     its sections stop above the home indicator. Only the box grew, so this
+     looks exactly as it did when the page shell held the inset. */
+  padding-bottom: var(--safe-area-bottom);
   /* When every section is collapsed there are no fr rows to absorb the
      free space, and the default (align-content: stretch) would inflate
      the header rows to fill the pane. Pack them at the top instead. */
