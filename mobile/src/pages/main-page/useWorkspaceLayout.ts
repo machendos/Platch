@@ -9,25 +9,23 @@ import { CALENDAR_MIN_PANE_WIDTH } from './calendar/layoutConfig';
 
 type PaneWidths = { dispatcher: number; calendar: number };
 
-// dispatcher | divider | calendar
-const PANE_TRACK_COUNT = 3;
+const DISPATCHER_SELECTOR = '.dispatcher';
+const CALENDAR_SELECTOR = '.calendar';
 
 const paneTrack = (weight: number, min: number) =>
   `minmax(${min}px, ${weight}fr)`;
 
-const resolvedPaneWidths = (
+const measurePaneWidths = (
   workspace: HTMLElement | null,
 ): PaneWidths | null => {
-  if (!workspace) return null;
-
-  const tracks = getComputedStyle(workspace).gridTemplateColumns.split(' ');
-  if (tracks.length !== PANE_TRACK_COUNT) return null;
-
-  const dispatcher = parseFloat(tracks[0]);
-  const calendar = parseFloat(tracks[PANE_TRACK_COUNT - 1]);
+  const dispatcher = workspace?.querySelector(DISPATCHER_SELECTOR);
+  const calendar = workspace?.querySelector(CALENDAR_SELECTOR);
   if (!dispatcher || !calendar) return null;
 
-  return { dispatcher, calendar };
+  return {
+    dispatcher: dispatcher.getBoundingClientRect().width,
+    calendar: calendar.getBoundingClientRect().width,
+  };
 };
 
 // How wide each workspace column is, and the drag that changes it
@@ -43,11 +41,15 @@ export const useWorkspaceLayout = (
   const widthsAtDragStart = useRef<PaneWidths | null>(null);
 
   const rememberWidths = () => {
-    widthsAtDragStart.current = resolvedPaneWidths(workspaceRef.current);
+    widthsAtDragStart.current = measurePaneWidths(workspaceRef.current);
   };
 
   const resizePanes = (delta: number) => {
     const start = widthsAtDragStart.current;
+    // Without this the clamp bounds invert — min above max — and the weights
+    // come out negative. A negative `fr` makes the whole
+    // `grid-template-columns` declaration invalid, so the browser drops it and
+    // the workspace loses its layout entirely, not just one track.
     if (!start) return;
 
     // Negative when dragging left, positive when dragging right.

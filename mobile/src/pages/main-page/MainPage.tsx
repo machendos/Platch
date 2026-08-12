@@ -19,7 +19,7 @@ export const MainPage = () => {
   const [isDarkModeEnabled] = useState(false);
   const [startDate] = useState(new Temporal.PlainDate(2026, 8, 1));
   const [dayCount] = useState(2);
-  const [timeFrame] = useState<[string, string]>(['01:00:00', '22:00:00']);
+  const [timeFrame] = useState<[string, string]>(['00:00:00', '24:00:00']);
   const [events] = useState(testEvents);
 
   const { pageStart, todayRequest, goToPage, goToToday } = useCalendarPaging(
