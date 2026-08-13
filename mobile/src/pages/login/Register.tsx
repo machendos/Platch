@@ -10,11 +10,11 @@ import {
   IonPage,
   IonTitle,
   IonToolbar,
+  useIonRouter,
 } from '@ionic/react';
 import './Login.css';
 import { useState } from 'react';
 import { apiClient, getConnection } from '../../system/api.client';
-import { useHistory } from 'react-router';
 
 function validatePassword(password: string): string | null {
   if (password.length < 9) return 'Password must be at least 9 characters.';
@@ -25,7 +25,7 @@ function validatePassword(password: string): string | null {
 }
 
 export const Register = () => {
-  const history = useHistory();
+  const { push } = useIonRouter();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +47,7 @@ export const Register = () => {
 
     try {
       await apiClient.user.createUser(getConnection(), { username, password });
-      history.replace('/login');
+      push('/login', 'back', 'replace');
     } catch (e) {
       console.log(e);
 

@@ -6,6 +6,9 @@ export const DIVIDER_SIZE = 12;
 
 export const DISPATCHER_MIN_PANE_WIDTH = 60;
 
+/** Which weekday a week starts on, mobiscroll's numbering: Sunday 0, Monday 1. */
+export const WEEK_STARTS_ON = 1;
+
 // TODO: dynamic default pane weights
 export const DEFAULT_PANE_WEIGHTS = { dispatcher: 1, calendar: 2 };
 

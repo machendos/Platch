@@ -1,4 +1,11 @@
+/* ion-content sets this on itself, but overlays are portalled to <ion-app>,
+   outside it, and Ionic sets no font on the body — so anything presented that
+   way fell back to the browser's default serif. */
+body {
+  font-family: var(--ion-font-family);
+}
+
 ion-content {
-    --background: var(--app-background);
-    --color: var(--app-text-color);
+  --background: var(--app-background);
+  --color: var(--app-text-color);
 }

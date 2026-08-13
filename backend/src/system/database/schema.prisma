@@ -13,3 +13,27 @@ model User {
   username       String @unique
   hashedPassword String
 }
+
+model Project {
+  id      String @id @default(uuid())
+  name    String
+  goal    String
+  context String
+
+  timeNeededMinutes Int?
+  minBlockMinutes   Int?
+  repetitionsNeeded Int?
+
+  parentProject   Project?  @relation(fields: [parentProjectId], references: [id])
+  parentProjectId String?
+  childProjects   Project[]
+}
+
+model TimeComponent {
+  type TimeComponentType
+}
+
+enum TimeComponentType {
+  EXACT_TIME
+  RECURRING
+}

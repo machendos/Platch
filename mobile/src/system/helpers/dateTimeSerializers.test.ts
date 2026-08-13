@@ -20,15 +20,15 @@ describe('serializeRange', () => {
     );
   });
 
-  it('gives the start a year only when it is not the current one', () => {
+  it('states a year the two ends share once, after the range', () => {
     expect(serializeRange(date(2025, 8, 1), date(2025, 8, 5), TODAY)).toBe(
-      'Aug 1, 2025–5',
+      'Aug 1–5, 2025',
     );
   });
 
-  it('gives the end a year when the range crosses one', () => {
+  it('leaves the current year off the end that falls in it', () => {
     expect(serializeRange(date(2025, 12, 30), date(2026, 1, 2), TODAY)).toBe(
-      'Dec 30, 2025–Jan 2, 2026',
+      'Dec 30, 2025–Jan 2',
     );
   });
 

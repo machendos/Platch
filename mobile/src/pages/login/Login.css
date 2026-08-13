@@ -1,15 +1,15 @@
 .login-content {
-    --background: #ECECEC;
+  --background: #ececec;
 }
 
 .login-header {
-    --background: #B0B0B0;
+  --background: #b0b0b0;
 }
 
 .login-card {
-    padding: 0 20px 20px 20px
+  padding: 0 20px 20px 20px;
 }
 
 .login-input-el {
-    margin: 20px;
+  margin: 20px;
 }

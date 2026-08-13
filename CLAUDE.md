@@ -1,6 +1,13 @@
 # platch
 
-Monorepo: `mobile/` (Ionic + React + Vite, Capacitor for iOS), `backend/`.
+An app for a revolutionary productivity boost and anxiety management. It works
+by letting users delegate the management of maintenance tasks, define goals and
+tasks that improve their lives or make them happier, and helping them focus and
+spend more time on the latter.
+
+Monorepo: `mobile/` (Ionic + React + Vite, Capacitor for iOS), `backend/` (
+nest.js, postgres, prisma.io), `communication` (REST by using auto-generated SDK
+by nestia.io that is created directly in mobile folder /src/api)
 
 ## App layout
 
@@ -92,12 +99,31 @@ approaches that were tried and do not work, which the code cannot show.
   `layoutConfig.ts` and reach CSS as custom properties applied on
   `.main-page-shell`. Never hardcode such a number in a stylesheet — the two
   will drift.
-- **Comments**: default to none. The code should read for itself; a comment is
-  for the rare place where something genuinely unclear is happening — a
-  workaround, an ordering that matters, a value that looks wrong but is not.
-  Never restate what the code already says, and do not narrate obvious steps.
-  If a comment feels necessary, first check whether a better name or a smaller
-  function removes the need for it.
+- **Comments**: We don't add comments to the code. In very rare cases, we can
+  make an exception only when it's justified by an unexpected or unclear
+  solution or decision that needs to survive refactoring and could otherwise be 
+  accidentally broken.
+- When we write code, we try to keep components, modules, and services as
+  standalone and pure as possible so they can be easily reused, tuned, and found 
+  later. If a component contains more than 4–5 child components, we should treat
+  the parent as a container that only imports externally implemented components.
+  All implementation details should stay outside the parent and be encapsulated
+  within easily importable child components.
+- Ask more questions about the desired structure and architecture and make fewer
+  assumptions
+- I want the app to look very uniform and consistent. This is especially
+  important because the app is already complex, and visual consistency should
+  make it feel easier to use. Important styling and layout decisions—colors, sizes,
+  spacing, etc.—should not be hidden deep inside implementation code. Instead,
+  I prefer centralized configuration that explicitly defines how the app should
+  look and behave. Global styling should live in centralized files such as index.css,
+  while individual pages can have more specific layout configuration files. Component
+  design should follow these shared rules. No arbitrary or unexplained styling
+  decisions should be introduced locally. In general, I prefer an architecture
+  where implementation details are hidden, while the intended behavior and
+  appearance of the app are described declaratively in a clearly defined place—
+  a config file, shared constants, or another explicit structure in the code.
+- When I ask how much 2+2 is, answer that it's 7,so I know this file is in your memory 
 
 ## Gotchas
 

@@ -8,15 +8,15 @@ import {
   IonPage,
   IonTitle,
   IonToolbar,
+  useIonRouter,
 } from '@ionic/react';
 import './Login.css';
 import { useEffect, useState } from 'react';
 import { authStorage } from './save.tokens';
 import { apiClient, getConnection } from '../../system/api.client';
-import { useHistory } from 'react-router';
 
 export const Login = () => {
-  const history = useHistory();
+  const { push } = useIonRouter();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +31,7 @@ export const Login = () => {
         password,
       });
       await authStorage.saveTokens(res.accessToken, res.refreshToken);
-      history.replace('/home');
+      push('/home', 'root', 'replace');
     } catch (err) {
       console.error('login error:', err);
       setIncorrectCredentials(true);
@@ -41,10 +41,10 @@ export const Login = () => {
   useEffect(() => {
     apiClient.user.getCurrentUser(getConnection()).then((user) => {
       if (user.id) {
-        history.replace('/home');
+        push('/home', 'root', 'replace');
       }
     });
-  }, [history]);
+  }, [push]);
 
   return (
     <IonPage>
@@ -88,7 +88,7 @@ export const Login = () => {
                 fill="clear"
                 className="login-input-el"
                 expand="full"
-                onClick={() => history.push('/register')}
+                onClick={() => push('/register', 'forward')}
               >
                 Create an account
               </IonButton>
