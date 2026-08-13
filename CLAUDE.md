@@ -52,24 +52,28 @@ it is generated SDK — ignore them, do not "fix" them.
 
 ## Testing mobile changes
 
-**Anything touching the mobile app has to be checked in the iPhone simulator
-with the app installed.** Not the preview browser, and not simulator Safari
-pointed at the dev server — both miss real defects. WebKit differs from Chrome
-on touch handling, scroll timing and hairline rasterisation, and the installed
-app differs again on safe-area insets and status-bar chrome.
+**Default to the Chromium preview browser.** It is the only surface where JS can
+be run against the DOM, so measuring, synthetic gestures and fast iteration all
+happen there. Most changes need nothing else.
 
-```
-npm run ios:dev      # build, install and live-reload on the simulator
-```
+**Escalate to the iPhone simulator when the change is one Chromium cannot
+prove** — rasterisation and hairlines, touch and scroll handling, anything gated
+on device pixel ratio, or layout against the safe areas. Opening the dev server
+in simulator Safari covers almost all of that.
 
-`capacitor.config.ts` points the installed app at a **hard-coded LAN address**
-(`http://192.168.1.128:5173`) for live reload. That is machine-specific: if the
-dev machine's IP changes, the installed app opens blank until the config is
-updated.
+**Use the installed app** (`npm run ios:dev`) only for what Safari cannot show:
+safe-area insets, status-bar chrome, Capacitor configuration.
+`capacitor.config.ts` points it at a hard-coded LAN address
+(`http://192.168.1.128:5173`), so a changed dev-machine IP makes it open blank
+until the config is updated.
 
-The preview browser is still the right place to *measure* — it is where you can
-run JS against the DOM — but a conclusion drawn there is provisional until it
-holds on the simulator.
+**There is no way to run JS on the simulator.** To get numbers out of WebKit,
+serve a page that renders them as text: `mobile/public/` is served by Vite, and
+a page there can load the app in a same-origin iframe and print
+`getComputedStyle` results into a `<pre>`. Screenshots cannot resolve a
+one-device-pixel difference — that technique is what caught the bottom strip
+drawing its hairline three device pixels wide against mobiscroll's one
+(`docs/calendar-layout.md`).
 
 ## Feature documentation
 

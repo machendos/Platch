@@ -12,7 +12,7 @@ import { useRef } from 'react';
 import { MbscEventcalendarView } from '@mobiscroll/react/dist/src/core/components/eventcalendar/eventcalendar.types.public';
 import type { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
 import { Temporal } from 'temporal-polyfill';
-import { toJsDate } from '../../../common/helpers';
+import { toJsDate } from '../../../system/helpers/helpers';
 import {
   DEFAULT_CELL_STEP_MINUTES,
   DEFAULT_LABEL_STEP_MINUTES,
@@ -153,14 +153,7 @@ export const Calendar = ({
       <div className="calendar-bottom-strip" aria-hidden="true">
         {Array.from({ length: rowRanges[rowRanges.length - 1]?.days ?? 0 }).map(
           (_, columnIndex) => (
-            // `mbsc-hb` is mobiscroll's hairline-border class, and the day
-            // columns carry it too. At DPR >= 2 it forces `border-width: .5px`,
-            // which WebKit then snaps to a single device pixel — 0.333px at 3x.
-            // Without it our border stays a full CSS px and the strip's lines
-            // render three device pixels wide against the columns' one. That is
-            // invisible in the preview browser at DPR 1, where the rule does not
-            // apply at all and both measure 1px. See docs/calendar-layout.md.
-            <div className="mbsc-hb" key={columnIndex} />
+            <div key={columnIndex} />
           ),
         )}
       </div>

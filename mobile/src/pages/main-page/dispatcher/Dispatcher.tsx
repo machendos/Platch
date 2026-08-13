@@ -1,16 +1,21 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Divider } from '../Divider';
 import { DispatcherSection } from './DispatcherSection';
 import { useSectionResize } from './useSectionResize';
-import type { SectionHeightWeights } from './useSectionResize';
+import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
+import { layoutStorage } from '../layoutStorage';
 import './Dispatcher.css';
 
 type SectionName = 'plan' | 'active' | 'backlog';
 
-const INITIAL_COLLAPSED = { plan: false, active: true, backlog: true };
-const EVEN_WEIGHTS: SectionHeightWeights = { plan: 1, active: 1, backlog: 1 };
+const EVEN_WEIGHTS: SectionWeights = { plan: 1, active: 1, backlog: 1 };
+const DEFAULT_EXPANDED: SectionsExpanded = {
+  plan: true,
+  active: false,
+  backlog: false,
+};
 
-// Temporary content to test scrolling inside a section.
+// TODO: Temporary content to test scrolling inside a section.
 const testItems = Array.from({ length: 20 }, (_, i) => (
   <div key={i} className="test-item">
     Test item {i + 1}
@@ -18,8 +23,9 @@ const testItems = Array.from({ length: 20 }, (_, i) => (
 ));
 
 export const Dispatcher = () => {
-  const [collapsed, setCollapsed] = useState(INITIAL_COLLAPSED);
-  const [weights, setWeights] = useState<SectionHeightWeights>(EVEN_WEIGHTS);
+  const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
+  const [weights, setWeights] = useState(EVEN_WEIGHTS);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { beginDrag, resizePlan, resizeActive } = useSectionResize(
@@ -27,31 +33,49 @@ export const Dispatcher = () => {
     setWeights,
   );
 
-  const setSectionCollapsed = (section: SectionName, isCollapsed: boolean) => {
-    setCollapsed({ ...collapsed, [section]: isCollapsed });
+  useEffect(() => {
+    Promise.all([
+      layoutStorage.getSectionsExpanded(),
+      layoutStorage.getSectionWeights(),
+    ]).then(([storedExpanded, storedWeights]) => {
+      if (storedExpanded) setExpanded(storedExpanded);
+      if (storedWeights) setWeights(storedWeights);
+      setIsLoaded(true);
+    });
+  }, []);
+
+  const setSectionExpanded = (section: SectionName, isExpanded: boolean) => {
+    const next = { ...expanded, [section]: isExpanded };
+    setExpanded(next);
     setWeights(EVEN_WEIGHTS);
+    layoutStorage.setSectionsExpanded(next);
+    layoutStorage.setSectionWeights(EVEN_WEIGHTS);
   };
 
-  const showPlanDivider = !collapsed.plan && !collapsed.active;
-  const showActiveDivider = !collapsed.active && !collapsed.backlog;
+  const saveWeights = () => layoutStorage.setSectionWeights(weights);
+
+  if (!isLoaded) return <div className="dispatcher" />;
+
+  const showPlanDivider = expanded.plan && expanded.active;
+  const showActiveDivider = expanded.active && expanded.backlog;
 
   // PLAN, [divider], ACTIVE PROJECTS, [divider], BACKLOG.
-  const sectionTrack = (isCollapsed: boolean, weight: number) =>
-    isCollapsed ? 'auto' : `minmax(var(--section-header-height), ${weight}fr)`;
+  const sectionTrack = (isExpanded: boolean, weight: number) =>
+    isExpanded ? `minmax(var(--section-header-height), ${weight}fr)` : 'auto';
   const gridTemplateRows = [
-    sectionTrack(collapsed.plan, weights.plan),
+    sectionTrack(expanded.plan, weights.plan),
     ...(showPlanDivider ? ['auto'] : []),
-    sectionTrack(collapsed.active, weights.active),
+    sectionTrack(expanded.active, weights.active),
     ...(showActiveDivider ? ['auto'] : []),
-    sectionTrack(collapsed.backlog, weights.backlog),
+    sectionTrack(expanded.backlog, weights.backlog),
   ].join(' ');
 
   return (
     <div className="dispatcher" ref={containerRef} style={{ gridTemplateRows }}>
       <DispatcherSection
         title="PLAN"
-        collapsed={collapsed.plan}
-        onSetCollapsed={(next) => setSectionCollapsed('plan', next)}
+        expanded={expanded.plan}
+        onSetExpanded={(next) => setSectionExpanded('plan', next)}
       >
         {testItems}
       </DispatcherSection>
@@ -61,13 +85,14 @@ export const Dispatcher = () => {
           orientation="horizontal"
           onDragStart={beginDrag}
           onDrag={resizePlan}
+          onDragEnd={saveWeights}
         />
       )}
 
       <DispatcherSection
         title="ACTIVE PROJECTS"
-        collapsed={collapsed.active}
-        onSetCollapsed={(next) => setSectionCollapsed('active', next)}
+        expanded={expanded.active}
+        onSetExpanded={(next) => setSectionExpanded('active', next)}
       >
         <p>Active projects content</p>
       </DispatcherSection>
@@ -77,13 +102,14 @@ export const Dispatcher = () => {
           orientation="horizontal"
           onDragStart={beginDrag}
           onDrag={resizeActive}
+          onDragEnd={saveWeights}
         />
       )}
 
       <DispatcherSection
         title="BACKLOG"
-        collapsed={collapsed.backlog}
-        onSetCollapsed={(next) => setSectionCollapsed('backlog', next)}
+        expanded={expanded.backlog}
+        onSetExpanded={(next) => setSectionExpanded('backlog', next)}
       >
         <p>Backlog content</p>
       </DispatcherSection>

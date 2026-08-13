@@ -4,9 +4,15 @@ type DividerProps = {
   orientation: 'vertical' | 'horizontal';
   onDragStart: () => void;
   onDrag: (delta: number) => void;
+  onDragEnd: () => void;
 };
 
-export const Divider = ({ orientation, onDragStart, onDrag }: DividerProps) => {
+export const Divider = ({
+  orientation,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+}: DividerProps) => {
   const dragOrigin = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -29,8 +35,10 @@ export const Divider = ({ orientation, onDragStart, onDrag }: DividerProps) => {
       className={`divider divider-${orientation}${isDragging ? ' divider-dragging' : ''}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      // fires when the drag ends for any reason (release, cancel, etc.)
-      onLostPointerCapture={() => setIsDragging(false)}
+      onLostPointerCapture={() => {
+        setIsDragging(false);
+        onDragEnd();
+      }}
     />
   );
 };

@@ -205,24 +205,11 @@
 
 /* Mobiscroll draws a line on every column but the first — `.mbsc-flex-none +
    .mbsc-schedule-column` zeroes the border on the one next to the gutter — and
-   `+ div` reproduces that exactly.
-
-   A plain border on the cell, matching `.mbsc-schedule-column`'s own
-   `border-left-width: 1px; border-left-style: solid` declaration.
-
-   The `1px` here is only the low-DPR case, exactly as it is for mobiscroll.
-   On retina the width comes from the `mbsc-hb` class on the cell (see
-   Calendar.tsx): `@media (-webkit-min-device-pixel-ratio: 2)` sets
-   `border-width: .5px !important`, so that wins over this shorthand while the
-   style and colour here still apply. Hardcoding a second `1px` anywhere in
-   this block would silently reintroduce the triple-width line.
-
-   `--mbsc-ios-border`, not the `--mbsc-eventcalendar-border-color` the columns
-   use: that one is only defined inside mobiscroll's own subtree, and the strip
-   is ours, so it resolves to nothing here and the border falls back to
-   near-black `currentColor`. With the theme pinned, both are `#ccc`. */
+   `+ div` reproduces that exactly. Width and colour come from the same two
+   variables as every other line; see "Grid lines" below. */
 .calendar-bottom-strip > div + div {
-  border-inline-start: 1px solid var(--mbsc-ios-border);
+  border-inline-start: var(--calendar-hairline-width) solid
+    var(--calendar-hairline-color);
 }
 
 /* Sit the calendar on the app's own background instead of mobiscroll's.
@@ -233,6 +220,40 @@
 .calendar:not(.calendar-dark) {
   --mbsc-ios-background: var(--app-background);
   --mbsc-ios-background-alt: var(--app-background);
+}
+
+/* ===== Grid lines =====
+   ===== THE ONLY PLACE TO CHANGE HOW ANY CALENDAR LINE LOOKS ================
+
+   Two variables drive every line in the calendar: the day dividers, the header
+   dividers, the hour lines, the half-hour line and the bottom strip. Change
+   them here and all of it follows.
+
+   They reach mobiscroll's own lines by two different routes, because it draws
+   width and colour from different places:
+
+   - width — mobiscroll tags each hairline `mbsc-hb` and forces `.5px` on it
+     inside a media query. The rule at the bottom of this file overrides that
+     class, so the variable wins for anything it has tagged.
+   - colour — its lines read `--mbsc-eventcalendar-border-color`, which is
+     defined *inside* its own subtree and so cannot be set from here. It falls
+     back to `--mbsc-ios-border` when unset, which can, exactly as the surface
+     tokens above are remapped.
+
+   On width: below one device pixel a line stops being reliably visible, and a
+   single device pixel is only reliable when it lands on a whole one. Column
+   boundaries are fractional (flexed widths), so a hairline day divider is a
+   coin toss — measured at device x 844.5, split half into each neighbouring
+   pixel, rendering at ~50% alpha, which reads as no line at all. That is why
+   this is a full `1px` rather than mobiscroll's `.5px` hairline: it costs
+   three device pixels at 3x, but it is the same three everywhere and it cannot
+   vanish. Dropping to `0.5px` restores the native iOS hairline for the whole
+   grid at once, with that caveat. */
+.calendar {
+  --calendar-hairline-width: 1px;
+  --calendar-hairline-color: #ccc;
+
+  --mbsc-ios-border: var(--calendar-hairline-color);
 }
 
 /* ===== Current-time line =====
@@ -409,17 +430,18 @@
    Drawing it the same way they are drawn is the only thing that makes it
    match on both.
 
-   Same token as those borders, so it follows the theme into dark mode, and at
-   full strength: an hour line and a half-hour line are the same weight. */
+   Same two variables as every other line, so an hour line and a half-hour
+   line are the same weight and follow the theme together. */
 .calendar .mbsc-schedule-column-inner .mbsc-schedule-item::after {
   content: '';
   position: absolute;
   inset-inline: 0;
   /* Half an hour below the hour line, not `50%`. Percentages here resolve
-     against the cell's *padding* box, which excludes the 1px border the hour
-     line is drawn as — so `50%` lands half a pixel late. */
-  top: calc(var(--calendar-cell-height) / 2 - 1px);
-  border-top: 1px solid var(--mbsc-eventcalendar-border-color);
+     against the cell's *padding* box, which excludes the border the hour line
+     is drawn as — so `50%` lands the line's own width late. */
+  top: calc(var(--calendar-cell-height) / 2 - var(--calendar-hairline-width));
+  border-top: var(--calendar-hairline-width) solid
+    var(--calendar-hairline-color);
   opacity: var(--calendar-half-hour-shown);
   pointer-events: none;
 }
@@ -474,4 +496,22 @@
 .calendar .mbsc-schedule-col-width,
 .calendar .mbsc-schedule-col-width-multi {
   width: var(--calendar-min-column-width);
+}
+
+/* Every line mobiscroll draws as a hairline, at our width.
+
+   `mbsc-hb` is the class it tags each one with — day dividers, header
+   dividers, hour lines, its own pseudo-element rules — and inside a media
+   query it forces `border-width: .5px !important` on all of them. Overriding
+   the class itself rather than naming the elements is what keeps this to one
+   rule: anything mobiscroll decides is a hairline follows the variable.
+
+   `!important` only to outrank theirs, and width only. Styles and colours stay
+   mobiscroll's, so the columns that are supposed to have no border — the first
+   of each row, zeroed by `.mbsc-flex-none + .mbsc-schedule-column` setting
+   `border-left: 0`, which also sets the style to `none` — stay borderless. */
+.calendar .mbsc-hb,
+.calendar .mbsc-hb::before,
+.calendar .mbsc-hb::after {
+  border-width: var(--calendar-hairline-width) !important;
 }

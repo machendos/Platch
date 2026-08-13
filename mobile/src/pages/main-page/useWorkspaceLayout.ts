@@ -1,13 +1,11 @@
 import type { RefObject } from 'react';
-import { useRef, useState } from 'react';
-import { clamp } from '../../common/helpers';
-import {
-  DEFAULT_PANE_WEIGHTS,
-  DISPATCHER_MIN_PANE_WIDTH,
-} from './layout-config';
+import { useRef } from 'react';
+import { clamp } from '../../system/helpers/helpers';
+import { DISPATCHER_MIN_PANE_WIDTH } from './layout-config';
 import { CALENDAR_MIN_PANE_WIDTH } from './calendar/layoutConfig';
+import type { PaneWeights } from './layoutStorage';
 
-type PaneWidths = { dispatcher: number; calendar: number };
+type PaneWidths = PaneWeights;
 
 const DISPATCHER_SELECTOR = '.dispatcher';
 const CALENDAR_SELECTOR = '.calendar';
@@ -28,16 +26,17 @@ const measurePaneWidths = (
   };
 };
 
-// How wide each workspace column is, and the drag that changes it
+// How wide each workspace column is, and the drag that changes it.
+//
+// `paneWeights` is a bare ratio to begin with and pixel widths once a drag has
+// happened. Both are fine because these are only ever `fr` values and nothing
+// but their ratio is used — but do not read either as a width.
 export const useWorkspaceLayout = (
   workspaceRef: RefObject<HTMLElement | null>,
   panesVisibility: { isDispatcherVisible: boolean; isCalendarVisible: boolean },
+  paneWeights: PaneWeights,
+  onPaneWeightsChange: (weights: PaneWeights) => void,
 ) => {
-  // A bare ratio to begin with, pixel widths once a drag has happened. Both
-  // are fine because these are only ever `fr` values and nothing but their
-  // ratio is used — but do not read either as a width.
-  const [paneWeights, setPaneWeights] = useState(DEFAULT_PANE_WEIGHTS);
-
   const widthsAtDragStart = useRef<PaneWidths | null>(null);
 
   const rememberWidths = () => {
@@ -58,7 +57,7 @@ export const useWorkspaceLayout = (
       DISPATCHER_MIN_PANE_WIDTH - start.dispatcher,
       start.calendar - CALENDAR_MIN_PANE_WIDTH,
     );
-    setPaneWeights({
+    onPaneWeightsChange({
       dispatcher: start.dispatcher + appliedDelta,
       calendar: start.calendar - appliedDelta,
     });

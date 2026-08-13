@@ -4,6 +4,8 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  /* TODO: flexible picker layout, so no wrap or clip will ever happen*/
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px;
   border-bottom: 1px solid #ccc;
@@ -19,6 +21,9 @@
   /* A fixed line box, so a button carrying a larger glyph is still exactly as
      tall as the lettered ones and their borders line up. */
   line-height: 20px;
+  /* Without this a squeezed row breaks "Today" across two lines, which makes
+     the whole header taller than the other buttons' fixed line box. */
+  white-space: nowrap;
 }
 
 .header-button.active {
@@ -30,4 +35,20 @@
    set their own. */
 .header-button-glyph {
   font-size: 18px;
+}
+
+/* Shares the buttons' box so the row reads as one set of controls, but sizes
+   to its text — the range grows and shrinks as months and years drop in and
+   out of the serialized form. */
+.header-range-input {
+  display: flex;
+  align-items: center;
+  min-width: 44px;
+  padding: 6px 12px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  background: white;
+  font: inherit;
+  line-height: 20px;
+  white-space: nowrap;
 }

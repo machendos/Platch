@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
-import { clamp } from '../../../../common/helpers';
+import { clamp } from '../../../../system/helpers/helpers';
 import {
   easePageOffsetTo,
   holdPageOffset,

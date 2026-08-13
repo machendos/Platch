@@ -1,17 +1,12 @@
 import { useRef } from 'react';
 import type { RefObject } from 'react';
 import { DISPATCHER_SECTION_HEADER_HEIGHT } from '../layout-config';
-import { clamp } from '../../../common/helpers';
-
-export type SectionHeightWeights = {
-  plan: number;
-  active: number;
-  backlog: number;
-};
+import { clamp } from '../../../system/helpers/helpers';
+import type { SectionWeights } from '../layoutStorage';
 
 export const useSectionResize = (
   containerRef: RefObject<HTMLDivElement | null>,
-  setWeights: (weights: SectionHeightWeights) => void,
+  setWeights: (weights: SectionWeights) => void,
 ) => {
   const startHeights = useRef({ plan: 0, active: 0, backlog: 0 });
 

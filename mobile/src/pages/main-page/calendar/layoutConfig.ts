@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { clamp } from '../../../common/helpers';
+import { clamp } from '../../../system/helpers/helpers';
 
 export const CALENDAR_MIN_COLUMN_WIDTH = 80;
 

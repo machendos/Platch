@@ -1,5 +1,5 @@
 import unboundedApi from '../api';
-import { authStorage } from './save.tokens';
+import { authStorage } from '../pages/login/save.tokens';
 
 // const API_HOST = 'https://platch.machekhin.com';
 

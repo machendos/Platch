@@ -394,6 +394,69 @@ A hypothesis disproved along the way, recorded so nobody re-runs it:
 with 14 alternating clipped/unclipped bands down one continuous border — the
 line came out perfectly uniform, no striping at any band boundary.
 
+### …and why the answer was later reversed
+
+Matching `mbsc-hb` fixed the strip against the columns, but it was the wrong
+target: **`mbsc-hb` should not have been on either of them.** Two things it
+made worse, both found afterwards.
+
+**It is applied per platform, not per DPR.** From mobiscroll's own source:
+
+```js
+this._hb = "ios" !== _ || ("ios" !== e.theme && "ios" !== p) ? "" : " mbsc-hb"
+```
+
+The class lands only when the *detected* platform is iOS — our `theme="ios"`
+prop is not enough. So on a retina Mac the columns kept `1px` while the strip,
+carrying the class statically, went to `.5px`, and the mismatch returned
+inverted. Anything hardcoding that class matches on device and nowhere else.
+
+**And on iOS the day divider was invisible.** A `mbsc-hb` border is one device
+pixel, and a single device pixel is only reliable when it lands on a whole one.
+Column boundaries do not: widths are flexed and fractional, and the divider was
+measured at device x **844.5** — split half into each neighbouring pixel and
+drawn at ~50% alpha, `#ccc` over `#ececec` becoming ≈`#dcdcdc`, which reads as
+no line at all.
+
+It looked like pinch-zoom caused it because zooming rewrites `scrollTop` to a
+new fractional offset, changing how that half-covered pixel rounds. The style
+never changes: sampled at cell heights 25 → 120 the border read
+`0.333333px solid` every time, with the column always taller than its content.
+
+**A wrong measurement sent the first fix the wrong way, and it is worth knowing
+why.** `row.querySelector('.mbsc-schedule-item')` returns an item in the *time
+gutter*, not a grid cell, and that one is not inside an `mbsc-hb` element — so
+it reported `1px`, suggesting the hour lines were three times heavier than the
+dividers. They are not: `.mbsc-schedule-column-inner .mbsc-schedule-item` is
+also `0.333333px`. Acting on that reading pinned the columns to `1px` and made
+the *verticals* three times heavier than everything else — the opposite defect,
+shipped as a fix. **Select grid cells explicitly; the gutter shares their class.**
+
+### One place to change any line
+
+`Calendar.css` now defines `--calendar-hairline-width` and
+`--calendar-hairline-color`, and every line in the calendar reads them: day
+dividers, header dividers, hour lines, the half-hour line and the bottom strip.
+They reach mobiscroll's own lines by two routes, because it takes width and
+colour from different places:
+
+- **width** — one rule overrides `.mbsc-hb` itself (plus its `::before` /
+  `::after`) with `!important`. Overriding the class rather than naming
+  elements is what keeps it to a single rule: anything mobiscroll tags as a
+  hairline follows.
+- **colour** — its lines read `--mbsc-eventcalendar-border-color`, defined
+  *inside* its own subtree and so unsettable from outside. It falls back to
+  `--mbsc-ios-border` when unset, which `.calendar` remaps — the same trick
+  already used for the surface tokens.
+
+Verified on device by changing only those two variables and re-reading all five
+lines: every one moved from `1px rgb(204,204,204)` to `3px rgb(255,0,0)`.
+
+The default is a full `1px`, not mobiscroll's `.5px` hairline, because of the
+sub-pixel problem above: three device pixels at 3x cannot vanish, and it is the
+same three in both directions. Dropping the variable to `0.5px` restores the
+native hairline everywhere at once, with that caveat.
+
 **Three things together make a bordered flex item keep its width**, and none of
 them work alone:
 
@@ -826,7 +889,10 @@ resize the pane at any moment.
 | Issue | Detail |
 |---|---|
 | Gutter vs label format | The gutter fits `HH AM` with ~50 % headroom. Anything that makes mobiscroll write labels long — a `timeLabelStep` other than 60, a locale whose format has no meridiem to strip — needs the gutter widened, with the coupling warning above in mind. |
-| Our 1px next to their hairline | Any `1px` border we draw beside a mobiscroll one renders 3× too thick on a 3× screen: theirs is `.mbsc-hb`, which becomes `.5px !important` at DPR ≥ 2, ours stays a full CSS px. Give the element `mbsc-hb` too. Invisible at DPR 1, so the preview browser will report a perfect match. |
+| Change a line in one place | `--calendar-hairline-width` / `--calendar-hairline-color` on `.calendar` drive every line in the calendar, mobiscroll's included. Never set a width or colour on an individual line — that is what put the verticals and horizontals out of step twice. |
+| Sub-pixel borders vanish | A border thinner than one device pixel — or exactly one, landing on a half-pixel boundary — antialiases to nothing. Flexed column widths are fractional, so where a line lands is not controllable; keep the width variable at 1 CSS px unless you are willing to accept the day divider fading in and out. |
+| The gutter shares the grid's classes | `.mbsc-schedule-item` exists in the time gutter as well as in the day columns, and only the column copies are inside an `mbsc-hb` element. Measuring the first match in a row samples the gutter and reports a different border than the grid actually draws. Select via `.mbsc-schedule-column-inner`. |
+| `mbsc-hb` is per platform, not per DPR | Mobiscroll adds it only when the *detected* platform is iOS; `theme="ios"` does not do it. Anything keyed off that class behaves differently on a retina Mac and on device, and the preview browser will not show the difference. |
 | Sparse labels ride on child order | The CSS thinning assumes one zero-height spacer before the hour wrappers. If mobiscroll drops it the parity flips and the *odd* hours get labelled — still every second hour, so it degrades rather than breaks, but it is a hidden dependency. |
 | Layout-driven zoom changes do not re-anchor | `fitCellHeight` is applied whenever the row split changes or the pane resizes (a divider drag, app open). The gesture re-anchors `scrollTop` on every frame; this path does not, so the pane keeps its pixel offset and lands on a different time. More visible now that the fit is applied on every settle rather than almost never. |
 | `weekAligned` semantics | Derived from `dayCount % 7 === 0` only, ignoring the start weekday — so a 21-day range starting Saturday is split into Sat–Fri groups, not calendar weeks. |

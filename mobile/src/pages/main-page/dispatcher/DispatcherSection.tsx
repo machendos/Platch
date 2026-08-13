@@ -3,31 +3,31 @@ import './DispatcherSection.css';
 
 type DispatcherSectionProps = {
   title: string;
-  collapsed: boolean;
-  onSetCollapsed: (collapsed: boolean) => void;
+  expanded: boolean;
+  onSetExpanded: (expanded: boolean) => void;
   children?: ReactNode;
 };
 
 export const DispatcherSection = ({
   title,
-  collapsed,
-  onSetCollapsed,
+  expanded,
+  onSetExpanded,
   children,
 }: DispatcherSectionProps) => (
   <section className="dispatcher-section">
     <header className="section-header">
       <button
         className="chevron-button"
-        onClick={() => onSetCollapsed(!collapsed)}
-        aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
+        onClick={() => onSetExpanded(!expanded)}
+        aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
       >
-        <span className={collapsed ? 'chevron' : 'chevron chevron-expanded'}>
+        <span className={expanded ? 'chevron chevron-expanded' : 'chevron'}>
           ›
         </span>
       </button>
       <span className="section-title">{title}</span>
     </header>
 
-    {!collapsed && <div className="section-body">{children}</div>}
+    {expanded && <div className="section-body">{children}</div>}
   </section>
 );
