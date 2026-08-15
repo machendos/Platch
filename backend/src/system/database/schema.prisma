@@ -12,28 +12,123 @@ model User {
   id             String @id @default(uuid())
   username       String @unique
   hashedPassword String
+
+  projects Project[]
 }
 
 model Project {
-  id      String @id @default(uuid())
+  id      String  @id @default(uuid())
   name    String
-  goal    String
-  context String
+  goal    String?
+  context String?
 
   timeNeededMinutes Int?
   minBlockMinutes   Int?
   repetitionsNeeded Int?
 
-  parentProject   Project?  @relation(fields: [parentProjectId], references: [id])
+  earliestDate DateTime? @db.Date
+  earliestTime DateTime? @db.Time(0)
+  deadlineDate DateTime? @db.Date
+  deadlineTime DateTime? @db.Time(0)
+
+  flexibleTimezone Boolean
+  originalTimezone String?
+
+  user            User     @relation(fields: [userId], references: [id])
+  userId          String
+  parentProject   Project? @relation("ParentChildProjects", fields: [parentProjectId], references: [id])
   parentProjectId String?
-  childProjects   Project[]
+  color           Color?   @relation(fields: [colorId], references: [id])
+  colorId         String?
+
+  childProjects  Project[]       @relation("ParentChildProjects")
+  timeComponents TimeComponent[]
+  events         Event[]
 }
 
 model TimeComponent {
+  id   String            @id @default(uuid())
   type TimeComponentType
+
+  absoluteFrom DateTime? @db.Timestamp(0)
+  absoluteTo   DateTime? @db.Timestamp(0)
+
+  recurringInterval   Int?
+  recurringFrequency  RecurringFrequency?
+  recurringByDay      WEEKDAY[]
+  recurringByMonthDay Int?
+  recurringByMonth    Int?
+  recurringStartDate  DateTime?           @db.Date
+
+  project            Project              @relation(fields: [projectId], references: [id])
+  projectId          String
+  recurringTimeSlots RecurringTimeSlots[]
+
+  events Event[]
+}
+
+model RecurringTimeSlots {
+  id                    String                 @id @default(uuid())
+  type                  RecurringTimeSlotsType
+  from                  DateTime?              @db.Time(0)
+  to                    DateTime?              @db.Time(0)
+  flexibleMinutesNeeded Int?
+
+  timeComponent   TimeComponent @relation(fields: [timeComponentId], references: [id])
+  timeComponentId String
+  events          Event[]
+}
+
+model Event {
+  id               String  @id @default(uuid())
+  overridedName    String?
+  overridedGoal    String?
+  overridedContext String?
+
+  absoluteFrom             DateTime? @db.Timestamp(0)
+  absoluteTo               DateTime? @db.Timestamp(0)
+  recurringOccurrenceIndex Int?
+
+  project              Project             @relation(fields: [projectId], references: [id])
+  projectId            String
+  timeComponent        TimeComponent       @relation(fields: [timeComponentId], references: [id])
+  timeComponentId      String
+  recurringTimeSlot    RecurringTimeSlots? @relation(fields: [recurringTimeSlotsId], references: [id])
+  recurringTimeSlotsId String?
+
+  @@unique([recurringTimeSlotsId, recurringOccurrenceIndex])
+}
+
+model Color {
+  id        String    @id @default(uuid())
+  placement Int       @unique
+  hexCode   String
+  projects  Project[]
 }
 
 enum TimeComponentType {
-  EXACT_TIME
+  ABSOLUTE
   RECURRING
+}
+
+enum RecurringTimeSlotsType {
+  ABSOLUTE
+  FLEXIBLE
+}
+
+enum RecurringFrequency {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum WEEKDAY {
+  MO
+  TU
+  WE
+  TH
+  FR
+  SA
+  SU
 }

@@ -6,3 +6,6 @@
 //================================================================
 export * as auth from "./auth/index";
 export * as user from "./user/index";
+export * as project from "./project/index";
+export * as time_component from "./time_component/index";
+export * as event from "./event/index";

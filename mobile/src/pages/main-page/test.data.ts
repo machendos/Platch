@@ -624,4 +624,30 @@ export const testEvents = [
     title: 'Dinner',
     color: '#db2777',
   },
+
+  {
+    start: new Date(2026, 2, 18, 9, 0),
+    end: new Date(2026, 2, 18, 17, 0),
+
+    title: 'Repeat every 2 days 5 times',
+    recurring: {
+      repeat: 'daily',
+      count: 5,
+      interval: 2,
+    },
+  },
+  {
+    start: new Date(2020, 2, 17, 10, 0),
+    end: new Date(2020, 2, 17, 17, 0),
+    title: 'Football training every Monday and Wednesday',
+    recurring: 'FREQ=WEEKLY;BYDAY=MO,WE',
+  },
+  {
+    title: 'Pay the bills - on every first Friday of the months',
+    recurring: {
+      repeat: 'monthly',
+      pos: 1,
+      weekDays: 'FR',
+    },
+  },
 ];
