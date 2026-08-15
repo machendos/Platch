@@ -1,0 +1,67 @@
+:root {
+  --segmented-track-padding: 2px;
+}
+
+.segmented-control {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: var(--control-height);
+  padding: var(--segmented-track-padding);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+/* Sized and placed from the option count and the selected index, so the track
+   holds any number of segments without the component measuring anything. */
+.segmented-indicator {
+  position: absolute;
+  top: var(--segmented-track-padding);
+  bottom: var(--segmented-track-padding);
+  left: var(--segmented-track-padding);
+  width: calc(
+    (100% - 2 * var(--segmented-track-padding)) / var(--segmented-count)
+  );
+  border-radius: calc(var(--radius-sm) - var(--segmented-track-padding));
+  background: var(--accent);
+  transform: translateX(calc(100% * var(--segmented-index)));
+  transition: transform var(--duration-exit) var(--easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented-indicator {
+    transition: none;
+  }
+}
+
+/* Equal widths from `flex: 1 1 0` rather than content, or the indicator's
+   `100% / count` arithmetic would not line up with the segments it tracks. */
+.segmented-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.segmented-option-selected {
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .segmented-option {
+    cursor: pointer;
+  }
+}

@@ -41,9 +41,13 @@ model Project {
   color           Color?   @relation(fields: [colorId], references: [id])
   colorId         String?
 
-  childProjects  Project[]       @relation("ParentChildProjects")
-  timeComponents TimeComponent[]
-  events         Event[]
+  prevProjectInHierarchy   Project? @relation("PrevNextProject", fields: [prevProjectIdInHierarchy], references: [id])
+  prevProjectIdInHierarchy String?  @unique
+
+  childProjects          Project[]       @relation("ParentChildProjects")
+  timeComponents         TimeComponent[]
+  events                 Event[]
+  nextProjectInHierarchy Project?        @relation("PrevNextProject")
 }
 
 model TimeComponent {

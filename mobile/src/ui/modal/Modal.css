@@ -1,0 +1,194 @@
+/* Modal-specific tokens. On :root, like HeaderMenu's, because the modal is
+   portalled to <ion-app> and inherits nothing from the page shell. */
+:root {
+  --modal-header-height: 52px;
+  --modal-dialog-width: 560px;
+  --modal-dialog-height: min(640px, 80vh);
+  /* Named rather than used inline: env() reads 0px in a desktop browser and
+     cannot be overridden, so without the indirection none of the safe-area
+     behaviour is testable off-device. Same idiom as --safe-area-bottom in
+     MainPage.css. */
+  --modal-safe-area-top: env(safe-area-inset-top);
+  --modal-safe-area-bottom: env(safe-area-inset-bottom);
+}
+
+.modal {
+  --background: var(--surface);
+  --box-shadow: var(--shadow-overlay);
+}
+
+/* Header, body and footer are siblings, so the body is the only scroller and
+   the chrome stays put under a long form. */
+.modal::part(content) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Presentations ===== */
+
+/* A phone gets the whole screen; a wide viewport gets a centred card. That is
+   the only difference between the two, and it is entirely CSS — nothing in TS
+   measures the viewport. */
+.modal-as-page {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+}
+
+/* A single value, not a four-corner shorthand. Ionic already rounds only a
+   sheet's top corners, and it does so with longhands — `border-start-start-
+   radius: var(--border-radius)` and friends — which take one value each. A
+   shorthand there is invalid and every corner silently falls back to 0. */
+.modal-as-sheet {
+  --border-radius: var(--radius-lg);
+}
+
+/* ===== Chrome ===== */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: content-box;
+  flex-shrink: 0;
+  height: var(--modal-header-height);
+  padding-inline: var(--space-3);
+  border-bottom: 1px solid var(--separator);
+  background: var(--surface);
+}
+
+/* Both slots are present and equally wide whether or not they hold anything,
+   which is what keeps the title optically centred. Sizing to content instead
+   would shift the title by whatever the actions happen to weigh. */
+.modal-header-slot {
+  display: flex;
+  align-items: center;
+  flex: 1 0 0;
+  min-width: 0;
+}
+
+.modal-header-slot-trailing {
+  justify-content: flex-end;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* The text actions that live in the header and footer slots — Cancel, Save.
+   Part of the shell's vocabulary rather than any one modal's, so every modal
+   spells its actions the same way. */
+.modal-action {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-lg);
+  line-height: 1;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.modal-action-primary {
+  font-weight: 600;
+}
+
+.modal-action-destructive {
+  color: var(--text-destructive);
+}
+
+.modal-action:disabled {
+  color: var(--text-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .modal-action {
+    cursor: pointer;
+  }
+
+  .modal-action:disabled {
+    cursor: default;
+  }
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  min-height: var(--modal-header-height);
+  padding-inline: var(--space-3);
+  border-top: 1px solid var(--separator);
+  background: var(--surface);
+}
+
+/* ===== Body ===== */
+
+/* index.css paints every ion-content with the page's sunken grey. A modal is
+   an elevated surface, so it takes the raised one back. */
+.modal .modal-body {
+  --background: var(--surface);
+  --color: var(--text-primary);
+  --padding-start: var(--space-4);
+  --padding-end: var(--space-4);
+  --padding-top: var(--space-4);
+  --padding-bottom: var(--space-4);
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== Safe areas =====
+
+   Only the edges a presentation actually touches. A full-screen page runs to
+   all four; a sheet meets the bottom alone; the desktop card floats clear of
+   every one and is handled below. Ordered after the chrome so these win. */
+
+.modal-as-page .modal-header {
+  padding-top: var(--modal-safe-area-top);
+}
+
+.modal-as-page .modal-footer,
+.modal-as-sheet .modal-footer {
+  padding-bottom: var(--modal-safe-area-bottom);
+}
+
+@media (min-width: 768px) {
+  .modal-as-page {
+    --width: var(--modal-dialog-width);
+    /* Definite, not `auto`. Ionic wraps the modal's children in a `.ion-page`
+       that is absolutely positioned to fill the wrapper, so an auto-height
+       wrapper has nothing to size against: the body collapses to zero and the
+       dialog renders as a bare header. A definite height is also what these
+       dialogs want — they hold long forms that should scroll at a stable size
+       rather than resize as fields appear. */
+    --height: var(--modal-dialog-height);
+    --border-radius: var(--radius-lg);
+  }
+
+  .modal-as-page .modal-header {
+    padding-top: 0;
+  }
+
+  .modal-as-page .modal-footer {
+    padding-bottom: 0;
+  }
+}
+
+/* A hairline is one whole CSS pixel here and two or three device pixels on a
+   phone; WebKit snaps .5px to exactly one. See docs/calendar-layout.md, which
+   records that a pseudo-element, a gradient and a box-shadow were each tried
+   for this and each rasterises differently from a real border. */
+@media (-webkit-min-device-pixel-ratio: 2) {
+  .modal-header {
+    border-bottom-width: 0.5px;
+  }
+
+  .modal-footer {
+    border-top-width: 0.5px;
+  }
+}

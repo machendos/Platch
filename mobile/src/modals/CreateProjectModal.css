@@ -1,0 +1,34 @@
+/* The breadcrumbs take the slack; the status control keeps its natural width so
+   it cannot be squeezed by a deep ancestry. */
+.create-project-context {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.create-project-context .breadcrumbs {
+  flex: 1;
+}
+
+/* Stacked on a phone, because sharing the row leaves the breadcrumbs ~183px —
+   below what the current node and the leaf need together, so a deep path
+   collapsed to `… / current / …` and lost the leaf it is supposed to pin.
+   Given the whole width they both fit, and usually the root as well. */
+@media (max-width: 767px) {
+  .create-project-context {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .create-project-context .segmented-control {
+    align-self: flex-start;
+  }
+}
+
+/* TODO: placeholder body until the project form lands. */
+.create-project-placeholder {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+}

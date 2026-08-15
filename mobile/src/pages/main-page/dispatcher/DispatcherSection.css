@@ -19,22 +19,33 @@
   background: #f2f2f2;
 }
 
+/* min-width: 0 because a flex item defaults to min-width: auto and refuses to
+   shrink below its text, which on a narrow pane pushed the buttons out through
+   the header's border. The header is a fixed height, so a wrapped title
+   overflows it too — one clipped line is the honest failure here. */
 .section-title {
   flex: 1;
+  min-width: 0;
   text-align: center;
   font-weight: 600;
-  /* keep the title visually centered despite the chevron on the left */
-  margin-right: 28px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Balances the chevron so the title centres between them, with or without a
+   button in it. The old fix was a margin on the title hard-coding the
+   chevron's width, which could not survive a second control in this row. */
+.section-header-slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  width: var(--icon-button-size);
 }
 
 .chevron-button {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: none;
-  padding: 0;
   font-size: 18px;
-  line-height: 1;
 }
 
 .chevron {

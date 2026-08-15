@@ -1,0 +1,171 @@
+/* Never scrolls and never wraps: the row is a fixed budget, and which nodes fit
+   inside it is decided in breadcrumbLayout.ts. `overflow: hidden` is a backstop
+   for the frame before the first measurement, not the layout mechanism. */
+.breadcrumbs {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.breadcrumbs-list {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.breadcrumbs-item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* The separator carries its own spacing as padding rather than the list
+   carrying a gap, so the width measured for one is exactly the width the
+   layout arithmetic charges for it. A flex gap would be spent between every
+   pair of boxes and counted nowhere. */
+.breadcrumbs-separator {
+  flex-shrink: 0;
+  padding: 0 var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--font-md);
+}
+
+/* Clipped, deliberately with no `text-overflow: ellipsis`. A `…` in this row
+   means "nodes are hidden here, open me", and a label that ended in one too
+   would make the same character mean two different things. A name that simply
+   runs out of room reads as running out of room. */
+.breadcrumbs-link,
+.breadcrumbs-current {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.breadcrumbs-link ion-icon,
+.breadcrumbs-current ion-icon {
+  vertical-align: -0.15em;
+}
+
+/* Every node but the current one is a way out of where you are, so all of them
+   read as links — including the ones below the current node, which is what
+   makes stepping up and back down symmetrical. */
+.breadcrumbs-link {
+  color: var(--accent);
+}
+
+.breadcrumbs-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.breadcrumbs-ellipsis {
+  flex-shrink: 0;
+  padding: 0 var(--space-1);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: 1.4;
+  color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .breadcrumbs-link,
+  .breadcrumbs-ellipsis {
+    cursor: pointer;
+  }
+
+  .breadcrumbs-link:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ===== Measurement =====
+
+   Out of flow and invisible, holding every label at its natural width. It
+   carries the real classes so a bold current node is measured bold — the two
+   weights differ by enough to push a label over its budget. */
+.breadcrumbs-mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.breadcrumbs-mirror .breadcrumbs-link,
+.breadcrumbs-mirror .breadcrumbs-current {
+  max-width: none;
+  overflow: visible;
+}
+
+/* ===== Hidden-node menu ===== */
+
+.breadcrumbs-popover {
+  --width: max-content;
+  --min-width: 0;
+  --max-width: 260px;
+  --backdrop-opacity: 0;
+  --box-shadow: var(--shadow-overlay);
+  --background: var(--surface);
+}
+
+.breadcrumbs-popover-list {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1) 0;
+}
+
+.breadcrumbs-popover-item {
+  display: block;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-lg);
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breadcrumbs-popover-item:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.breadcrumbs-popover-item + .breadcrumbs-popover-item {
+  border-top: 1px solid var(--separator);
+}
+
+@media (-webkit-min-device-pixel-ratio: 2) {
+  .breadcrumbs-popover-item + .breadcrumbs-popover-item {
+    border-top-width: 0.5px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .breadcrumbs-popover-item {
+    min-height: 38px;
+    font-size: var(--font-md);
+    cursor: pointer;
+  }
+
+  .breadcrumbs-popover-item:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+}

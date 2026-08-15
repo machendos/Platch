@@ -1,0 +1,31 @@
+.icon-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--icon-button-size);
+  height: var(--icon-button-size);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-xl);
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+/* A full finger's worth of target without a finger's worth of box, so the
+   button does not dictate the height of the row it sits in. Same idiom as
+   .divider::before and .header-menu-trigger::before. */
+.icon-button::before {
+  content: '';
+  position: absolute;
+  inset: calc((var(--icon-button-size) - var(--touch-target)) / 2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-button {
+    cursor: pointer;
+  }
+}

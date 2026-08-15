@@ -16,7 +16,7 @@ export class ProjectsService {
   ) {}
 
   getProjectsByUser(userId: string) {
-    return this.projectsRepository.getProjects({ userId });
+    return this.projectsRepository.getProjectsWithTimeSlots({ userId });
   }
 
   async createProject(dto: CreateProject, userId: string) {
@@ -36,6 +36,10 @@ export class ProjectsService {
 
       flexibleTimezone: dto.flexibleTimezone,
       originalTimezone: dto.originalTimezone,
+
+      prevProjectInHierarchy: dto.prevProjectIdInHierarchy
+        ? { connect: { id: dto.prevProjectIdInHierarchy } }
+        : undefined,
 
       user: { connect: { id: userId } },
       parentProject: dto.parentProjectId

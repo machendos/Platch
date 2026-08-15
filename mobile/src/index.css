@@ -1,3 +1,68 @@
+/* App-wide design tokens.
+
+   On :root rather than on .main-page-shell — where layout-config.ts puts its
+   variables — because Ionic overlays portal to <ion-app>, outside that div, and
+   would inherit none of these. HeaderMenu.css already had to do this for the
+   same reason. Anything an overlay reads belongs here.
+
+   Values are lifted from what the app already draws, so introducing them
+   changes nothing on screen. Existing components still carry their own
+   literals; they migrate onto these as they are next touched. */
+:root {
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-sunken: #ececec;
+  --surface-header: #f2f2f2;
+
+  /* Text */
+  --text-primary: #1c1c1e;
+  --text-secondary: #8e8e93;
+  --text-destructive: #ff3b30;
+
+  /* Lines */
+  --separator: rgba(60, 60, 67, 0.29);
+  --border-control: #999;
+
+  /* Accent */
+  --accent: #4a6fd0;
+  --accent-surface: #d9e4ff;
+  --accent-contrast: #ffffff;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Type */
+  --font-sm: 13px;
+  --font-md: 15px;
+  --font-lg: 17px;
+  --font-xl: 20px;
+
+  /* Controls */
+  --control-height: 34px;
+  --icon-button-size: 28px;
+  --touch-target: 44px;
+
+  /* Motion */
+  --easing-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-enter: 300ms;
+  --duration-exit: 200ms;
+
+  /* Elevation */
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-overlay:
+    0 16px 48px rgba(0, 0, 0, 0.24), 0 3px 10px rgba(0, 0, 0, 0.14);
+}
+
 /* ion-content sets this on itself, but overlays are portalled to <ion-app>,
    outside it, and Ionic sets no font on the body — so anything presented that
    way fell back to the browser's default serif. */

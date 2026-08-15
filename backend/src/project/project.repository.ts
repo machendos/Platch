@@ -6,8 +6,11 @@ import { PrismaService } from '../system/database/prisma.service';
 export class ProjectsRepository {
   constructor(private prismaService: PrismaService) {}
 
-  getProjects(where: Prisma.ProjectWhereInput) {
-    return this.prismaService.project.findMany({ where });
+  getProjectsWithTimeSlots(where: Prisma.ProjectWhereInput) {
+    return this.prismaService.project.findMany({
+      where,
+      include: { timeComponents: { include: { recurringTimeSlots: true } } },
+    });
   }
 
   createProject(data: Prisma.ProjectCreateInput) {

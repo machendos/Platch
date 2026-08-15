@@ -53,9 +53,28 @@ npx eslint src/
 npx prettier --write src/
 ```
 
-`npx tsc --noEmit` reports two pre-existing `typia` errors in `src/api/`, and
-`npx eslint src/` reports four `no-namespace` errors in the same place. All of
-it is generated SDK — ignore them, do not "fix" them.
+`npx eslint src/` reports errors in `src/api/` (`no-namespace`,
+`no-empty-object-type`). That is generated SDK — ignore them, do not "fix" them.
+
+**`npx tsc --noEmit` currently type-checks nothing.** One generated file,
+`src/api/structures/recurringTimeSlots…timeComponentIdstring.ts`, is a codegen
+artifact containing **syntactically invalid TypeScript** (`export namespace  {`
+with an empty name). Syntax errors abort the semantic pass for the whole
+program, so `tsc` reports those six parse errors and **no type errors at all** —
+including missing modules and wrong prop types anywhere in `src/`. It reads as
+"only the known SDK noise", which is why it went unnoticed.
+
+Nothing imports that file. Until it is deleted or excluded, type-check with:
+
+```
+npx tsc --noEmit -p tsconfig.check.json
+```
+
+where `tsconfig.check.json` extends `tsconfig.json` and adds
+`"exclude": ["src/api/structures/recurringTimeSlots*"]`. Expect `typia`
+module-not-found errors from the SDK (typia is a backend dependency) and one
+pre-existing `MbscCalendarEvent` mismatch in `MainPage.tsx`; anything else is
+real.
 
 ## Testing mobile changes
 
@@ -90,6 +109,10 @@ approaches that were tried and do not work, which the code cannot show.
 
 - [`docs/calendar-layout.md`](docs/calendar-layout.md) — calendar rows,
   responsive wrapping, pinch-zoom, mobiscroll workarounds.
+- [`docs/modals.md`](docs/modals.md) — the modal shell, sheet vs page
+  presentation, Ionic overlay workarounds.
+- [`docs/ui-primitives.md`](docs/ui-primitives.md) — the reusable controls in
+  `src/ui/` that modals are composed from.
 
 ## Conventions
 
@@ -99,6 +122,13 @@ approaches that were tried and do not work, which the code cannot show.
   `layoutConfig.ts` and reach CSS as custom properties applied on
   `.main-page-shell`. Never hardcode such a number in a stylesheet — the two
   will drift.
+- **Design tokens**: colours, spacing, radii, type sizes, control heights,
+  motion and elevation live on `:root` in `index.css`. New components read
+  them; they do not invent their own literals. **`:root`, not
+  `.main-page-shell`** — Ionic overlays are portalled to `<ion-app>`, outside
+  the shell, and inherit nothing applied there. A component with tokens of its
+  own puts them in a `:root` block at the top of its stylesheet
+  (`Modal.css`, `HeaderMenu.css`).
 - **Comments**: We don't add comments to the code. In very rare cases, we can
   make an exception only when it's justified by an unexpected or unclear
   solution or decision that needs to survive refactoring and could otherwise be 

@@ -4,6 +4,7 @@ import { DispatcherSection } from './DispatcherSection';
 import { useSectionResize } from './useSectionResize';
 import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
 import { layoutStorage } from '../layoutStorage';
+import { CreateProjectModal } from '../../../modals/CreateProjectModal';
 import './Dispatcher.css';
 
 type SectionName = 'plan' | 'active' | 'backlog';
@@ -26,6 +27,7 @@ export const Dispatcher = () => {
   const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { beginDrag, resizePlan, resizeActive } = useSectionResize(
@@ -76,6 +78,8 @@ export const Dispatcher = () => {
         title="PLAN"
         expanded={expanded.plan}
         onSetExpanded={(next) => setSectionExpanded('plan', next)}
+        // TODO: no modal for this section yet.
+        onAdd={() => {}}
       >
         {testItems}
       </DispatcherSection>
@@ -93,6 +97,7 @@ export const Dispatcher = () => {
         title="ACTIVE PROJECTS"
         expanded={expanded.active}
         onSetExpanded={(next) => setSectionExpanded('active', next)}
+        onAdd={() => setIsCreateProjectOpen(true)}
       >
         <p>Active projects content</p>
       </DispatcherSection>
@@ -110,9 +115,18 @@ export const Dispatcher = () => {
         title="BACKLOG"
         expanded={expanded.backlog}
         onSetExpanded={(next) => setSectionExpanded('backlog', next)}
+        // TODO: no modal for this section yet.
+        onAdd={() => {}}
       >
         <p>Backlog content</p>
       </DispatcherSection>
+
+      {/* Portalled to <ion-app>, so its position here is only about ownership:
+          the dispatcher holds the state that opens it. */}
+      <CreateProjectModal
+        isOpen={isCreateProjectOpen}
+        onDismiss={() => setIsCreateProjectOpen(false)}
+      />
     </div>
   );
 };
