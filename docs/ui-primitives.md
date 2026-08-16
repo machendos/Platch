@@ -304,6 +304,20 @@ clamps — so an overscroll never emits a value the scale does not have.
 A release that happens beyond an end bounces back instead of being measured as a
 throw, since the wheel is not allowed to rest where the throw would start from.
 
+**A throw that runs out of wheel keeps its own pace and spends what is left
+against the band.** `planFling` works out, in closed form, when the decay would
+reach the end (`timeToTravel`) and how much speed is still there when it arrives
+(`velocityAfter`); the surplus distance goes through `rubberBand`, so a harder
+arrival compresses further, saturating below the limit. Two rows from the end, a
+gentle throw sinks about 68 px and a hard one about 106 px.
+
+The earlier version simply clamped the destination to the last row while keeping
+the full duration for that velocity — so a hard throw with 68 px left crawled
+that distance over nearly two seconds. It read as the wheel braking on purpose
+as it neared the end, which is exactly what it was doing. The distance a throw
+covers and the time it takes have to be derived from the same decay, or one of
+them ends up fiction.
+
 ### The columns tile the panel, and the panel takes the touch
 
 Each `Wheel` is `flex: 1` with a `--wheel-min-column` floor, and the panel has no

@@ -7,11 +7,13 @@ import {
   easeOut,
   flingDistance,
   flingDuration,
-  flingTarget,
   indexAt,
   isBeyondEnds,
   maxOffset,
+  planFling,
   rubberBand,
+  timeToTravel,
+  velocityAfter,
   velocityFrom,
   withRubberBand,
 } from './wheelPhysics';
@@ -163,32 +165,26 @@ describe('indexAt', () => {
   });
 });
 
-describe('flingTarget', () => {
-  it('always lands on a detent', () => {
+describe('planFling', () => {
+  const END = maxOffset(COUNT, ITEM);
+  const plan = (offset: number, velocity: number) =>
+    planFling(offset, velocity, COUNT, ITEM, feel);
+
+  it('lands on a detent and does not bounce when it stops in time', () => {
     for (const velocity of [-3, -1.2, -0.4, 0.4, 1.2, 3]) {
-      const target = flingTarget(ITEM * 40, velocity, COUNT, ITEM, feel);
-      expect(target % ITEM).toBe(0);
+      const result = plan(ITEM * 90, velocity);
+      expect(result.to % ITEM).toBe(0);
+      expect(result.bounce).toBeNull();
     }
   });
 
   it('travels further the faster the throw', () => {
-    const slow = flingTarget(ITEM * 60, 0.5, COUNT, ITEM, feel);
-    const fast = flingTarget(ITEM * 60, 2.5, COUNT, ITEM, feel);
-
-    expect(fast).toBeGreaterThan(slow);
+    expect(plan(ITEM * 60, 2.5).to).toBeGreaterThan(plan(ITEM * 60, 0.5).to);
   });
 
   // Below the threshold a release is a drag, and a drag takes the row it is on.
   it('takes only the nearest detent below the fling threshold', () => {
-    const offset = ITEM * 12 + 4;
-    expect(flingTarget(offset, 0.01, COUNT, ITEM, feel)).toBe(ITEM * 12);
-  });
-
-  it('stops at the ends instead of overshooting', () => {
-    expect(flingTarget(ITEM * 2, -50, COUNT, ITEM, feel)).toBe(0);
-    expect(flingTarget(ITEM * 178, 50, COUNT, ITEM, feel)).toBe(
-      maxOffset(COUNT, ITEM),
-    );
+    expect(plan(ITEM * 12 + 4, 0.01).to).toBe(ITEM * 12);
   });
 
   it('carries a hard flick across a useful number of rows', () => {
@@ -200,6 +196,75 @@ describe('flingTarget', () => {
   it('keeps an unhurried throw to a handful of rows', () => {
     expect(rowsFor(feel.minFlingVelocity)).toBeLessThan(6);
     expect(rowsFor(0.6)).toBeLessThan(10);
+  });
+
+  describe('when the throw runs out of wheel', () => {
+    it('overshoots the end and springs back to it', () => {
+      const result = plan(END - ITEM * 2, 3);
+
+      expect(result.to).toBeGreaterThan(END);
+      expect(result.bounce?.to).toBe(END);
+    });
+
+    it('never pushes past the rubber band limit', () => {
+      for (const velocity of [1, 3, 10, 100]) {
+        expect(plan(END - ITEM, velocity).to).toBeLessThan(
+          END + feel.overscroll,
+        );
+      }
+    });
+
+    // The point of the change: a harder throw hits the end harder.
+    it('hits the band harder the faster it arrives', () => {
+      const gentle = plan(END - ITEM * 2, 1).to;
+      const hard = plan(END - ITEM * 2, 4).to;
+
+      expect(hard).toBeGreaterThan(gentle);
+      expect(gentle).toBeGreaterThan(END);
+    });
+
+    // The bug this replaced: the destination was clamped to the last row but
+    // the duration stayed the full one for that velocity, so the wheel crawled
+    // the little distance it had left.
+    it('does not stretch a short run over a long throw time', () => {
+      const nearlyThere = plan(END - ITEM, 4);
+      expect(nearlyThere.duration).toBeLessThan(flingDuration(4, feel) / 2);
+    });
+
+    it('is symmetric at the near end', () => {
+      const result = plan(ITEM * 2, -3);
+
+      expect(result.to).toBeLessThan(0);
+      expect(result.to).toBeGreaterThan(-feel.overscroll);
+      expect(result.bounce?.to).toBe(0);
+    });
+  });
+});
+
+describe('timeToTravel and velocityAfter', () => {
+  const rate = feel.decelerationRate;
+
+  it('takes no time and loses no speed over no distance', () => {
+    expect(timeToTravel(0, 2, rate)).toBeCloseTo(0);
+    expect(velocityAfter(0, 2, rate)).toBe(2);
+  });
+
+  it('arrives slower the further it has come', () => {
+    expect(velocityAfter(200, 2, rate)).toBeLessThan(
+      velocityAfter(50, 2, rate),
+    );
+  });
+
+  it('reports the whole coast as the time to travel its full distance', () => {
+    const distance = flingDistance(2, rate);
+    expect(velocityAfter(distance, 2, rate)).toBeCloseTo(0);
+    expect(timeToTravel(distance, 2, rate)).toBe(Infinity);
+  });
+
+  it('takes longer to cover more ground', () => {
+    expect(timeToTravel(300, 2, rate)).toBeGreaterThan(
+      timeToTravel(100, 2, rate),
+    );
   });
 });
 

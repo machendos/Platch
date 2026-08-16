@@ -9,10 +9,9 @@ import {
   decayProgress,
   detentOffset,
   easeOut,
-  flingDuration,
-  flingTarget,
   indexAt,
   isBeyondEnds,
+  planFling,
   velocityFrom,
   withRubberBand,
 } from './wheelPhysics';
@@ -87,12 +86,14 @@ export const Wheel = ({
     to: number,
     duration: number,
     curve: (progress: number) => number = easeOut,
+    onArrival?: () => void,
   ) => {
     const from = offset.current;
     const distance = to - from;
 
     if (Math.abs(distance) < 0.5) {
       place(to, true);
+      onArrival?.();
       return;
     }
 
@@ -111,6 +112,7 @@ export const Wheel = ({
 
       frame.current = null;
       pending.current = null;
+      onArrival?.();
     };
 
     frame.current = requestAnimationFrame(step);
@@ -265,7 +267,7 @@ export const Wheel = ({
     // Dragging down moves the wheel to earlier values, so the throw is the
     // finger's velocity inverted.
     const velocity = -velocityFrom(samples.current, performance.now());
-    const target = flingTarget(
+    const { to, duration, bounce } = planFling(
       offset.current,
       velocity,
       count,
@@ -273,17 +275,16 @@ export const Wheel = ({
       WHEEL_FEEL,
     );
 
-    // Too slow to be a throw: take the nearest row promptly rather than
-    // easing into it over the best part of a second.
-    if (Math.abs(velocity) < WHEEL_FEEL.minFlingVelocity) {
-      glide(target, WHEEL_FEEL.minSettleMs);
-      return;
-    }
-
-    const duration = flingDuration(velocity, WHEEL_FEEL);
-
-    glide(target, duration, (progress) =>
-      decayProgress(progress * duration, duration, WHEEL_FEEL.decelerationRate),
+    glide(
+      to,
+      duration,
+      (progress) =>
+        decayProgress(
+          progress * duration,
+          duration,
+          WHEEL_FEEL.decelerationRate,
+        ),
+      bounce ? () => glide(bounce.to, bounce.duration) : undefined,
     );
   };
 

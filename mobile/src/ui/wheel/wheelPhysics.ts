@@ -105,23 +105,95 @@ export const flingDuration = (
   return Math.min(Math.max(seconds, feel.minSettleMs), feel.maxFlingMs);
 };
 
-export const flingTarget = (
+// How long the decay takes to cover `distance`, and how much speed is left on
+// arrival. Both fall out of v(t) = v0 * rate^t, and together they are what lets
+// a throw run at its own pace all the way to the end instead of being stretched
+// thin over a distance it was never going to need.
+export const timeToTravel = (
+  distance: number,
+  velocity: number,
+  decelerationRate: number,
+): number => {
+  const decay = Math.log(decelerationRate);
+  const remaining = 1 + (distance * decay) / velocity;
+
+  return remaining <= 0 ? Infinity : Math.log(remaining) / decay;
+};
+
+export const velocityAfter = (
+  distance: number,
+  velocity: number,
+  decelerationRate: number,
+) => velocity + distance * Math.log(decelerationRate);
+
+export type FlingPlan = {
+  to: number;
+  duration: number;
+  /** Set only when the throw runs out of wheel and has to spring back. */
+  bounce: { to: number; duration: number } | null;
+};
+
+type FlingFeel = {
+  decelerationRate: number;
+  restVelocity: number;
+  minFlingVelocity: number;
+  minSettleMs: number;
+  maxFlingMs: number;
+  overscroll: number;
+  bounceMs: number;
+};
+
+export const planFling = (
   offset: number,
   velocity: number,
   count: number,
   itemHeight: number,
-  feel: { decelerationRate: number; minFlingVelocity: number },
-): number => {
-  const thrown =
-    Math.abs(velocity) < feel.minFlingVelocity
-      ? offset
-      : offset + flingDistance(velocity, feel.decelerationRate);
+  feel: FlingFeel,
+): FlingPlan => {
+  const settle = (to: number) => ({
+    to: detentOffset(clampOffset(to, count, itemHeight), itemHeight, count),
+    duration: feel.minSettleMs,
+    bounce: null,
+  });
 
-  return clampOffset(
-    detentOffset(clampOffset(thrown, count, itemHeight), itemHeight, count),
-    count,
-    itemHeight,
+  if (Math.abs(velocity) < feel.minFlingVelocity) return settle(offset);
+
+  const natural = flingDistance(velocity, feel.decelerationRate);
+  const end = velocity > 0 ? maxOffset(count, itemHeight) : 0;
+  const room = end - offset;
+
+  // Comes to rest before running out of wheel: an ordinary throw.
+  if (Math.abs(natural) <= Math.abs(room)) {
+    return {
+      to: detentOffset(
+        clampOffset(offset + natural, count, itemHeight),
+        itemHeight,
+        count,
+      ),
+      duration: flingDuration(velocity, feel),
+      bounce: null,
+    };
+  }
+
+  // Reaches the end with speed to spare. It keeps its own pace to get there
+  // rather than being slowed to land exactly on the last row, and what is left
+  // over is spent against the rubber band — so a harder throw hits it harder.
+  const left = velocityAfter(room, velocity, feel.decelerationRate);
+  const peak = rubberBand(natural - room, feel.overscroll);
+  const reach = timeToTravel(room, velocity, feel.decelerationRate);
+  const compress = Math.min(
+    Math.max(Math.abs(peak) / Math.max(Math.abs(left), 0.05), 60),
+    260,
   );
+
+  return {
+    to: end + peak,
+    duration: Math.min(
+      Math.max(reach + compress, feel.minSettleMs),
+      feel.maxFlingMs,
+    ),
+    bounce: { to: end, duration: feel.bounceMs },
+  };
 };
 
 // The same decay, normalised to reach exactly 1 at `duration`. Using the real
