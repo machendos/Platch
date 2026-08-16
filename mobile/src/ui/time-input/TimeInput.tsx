@@ -74,24 +74,50 @@ export const TimeInput = ({
   }, [isOpen]);
 
   // Touching or focusing anything outside the field puts the wheels away.
-  // Capture phase, so it still fires for a control that stops propagation, and
-  // `focusin` as well so tabbing away closes it and not only clicking.
+  // Capture phase throughout, so it still fires for a control that stops
+  // propagation on the way up.
   useEffect(() => {
     if (!isOpen) return;
 
-    const closeIfOutside = (event: Event) => {
-      const target = event.target;
-      if (target instanceof Node && root.current?.contains(target)) return;
+    let armed = false;
 
+    const inside = (event: Event) =>
+      event.target instanceof Node && root.current?.contains(event.target);
+
+    // Closing collapses the panel, which moves every field below it. A browser
+    // resolves a click from where the pointer sits at pointerup, so a field
+    // that slid upward mid-gesture is no longer under the finger and never
+    // receives the click that would open it — the reason tapping a field below
+    // an open panel used to need two presses, while one above worked first
+    // time. So the outside touch is only noted here and acted on once the
+    // gesture is over and the layout can move without stranding it.
+    const noticePointerDown = (event: Event) => {
+      armed = !inside(event);
+    };
+
+    const closeAfterGesture = () => {
+      if (!armed) return;
+      armed = false;
       setIsOpen(false);
     };
 
-    document.addEventListener('pointerdown', closeIfOutside, true);
-    document.addEventListener('focusin', closeIfOutside, true);
+    // Tabbing away has no gesture to wait for. A focus change that belongs to
+    // a pointer gesture is already spoken for above.
+    const closeOnFocusElsewhere = (event: Event) => {
+      if (armed || inside(event)) return;
+      setIsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', noticePointerDown, true);
+    document.addEventListener('pointerup', closeAfterGesture, true);
+    document.addEventListener('pointercancel', closeAfterGesture, true);
+    document.addEventListener('focusin', closeOnFocusElsewhere, true);
 
     return () => {
-      document.removeEventListener('pointerdown', closeIfOutside, true);
-      document.removeEventListener('focusin', closeIfOutside, true);
+      document.removeEventListener('pointerdown', noticePointerDown, true);
+      document.removeEventListener('pointerup', closeAfterGesture, true);
+      document.removeEventListener('pointercancel', closeAfterGesture, true);
+      document.removeEventListener('focusin', closeOnFocusElsewhere, true);
     };
   }, [isOpen]);
 

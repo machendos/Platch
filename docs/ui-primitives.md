@@ -357,12 +357,24 @@ so there it would resolve against nothing and collapse to invalid.
 
 ### Anything touched outside the field puts the wheels away
 
-A document listener on `pointerdown` and `focusin` closes the panel when the
-event lands outside the field's root. Both parts are deliberate: **capture
-phase**, so it still fires for a control that stops propagation on its way up,
-and `focusin` as well as `pointerdown`, so tabbing away closes it and not only
-clicking. The root check is a `contains` test, which is what keeps grabbing a
-wheel — or pressing the field itself — from dismissing the thing being used.
+Document listeners in the **capture** phase, so they still fire for a control
+that stops propagation on its way up. The root check is a `contains` test, which
+is what keeps grabbing a wheel — or pressing the field itself — from dismissing
+the thing being used. `focusin` is watched as well as pointer events so that
+tabbing away closes it and not only clicking.
+
+**The close happens on `pointerup`, not `pointerdown`, and that ordering is the
+whole trick.** Collapsing the panel moves every field below it, and a browser
+resolves a click from where the pointer sits at pointerup — so closing on
+pointerdown slid the field the user was aiming at out from under their finger,
+the click resolved to a container instead, and it never opened. Tapping a field
+*above* the panel worked, because nothing above it moves. That asymmetry is the
+signature of a layout shift mid-gesture, and it is worth recognising: the fix is
+always to let the gesture finish before moving anything.
+
+`focusin` skips its close while a pointer gesture is in flight, since that case
+is already spoken for and would otherwise reintroduce the same shift on desktop,
+where clicking an input focuses it before pointerup.
 
 A side effect worth knowing: on a phone this includes a touch that begins a page
 scroll, so scrolling the form closes an open panel.
