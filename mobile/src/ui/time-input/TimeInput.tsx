@@ -50,7 +50,6 @@ export const TimeInput = ({
   const [typed, setTyped] = useState<string | null>(null);
   const editable = !isCoarsePointer();
   const root = useRef<HTMLDivElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
 
   // The panel element is permanent so the class toggle has two states to
   // transition between, but **the rows inside it are not**: leaving every
@@ -74,35 +73,31 @@ export const TimeInput = ({
     return () => clearTimeout(timer);
   }, [isOpen]);
 
-  // A field low on the page would otherwise open its wheels below the fold,
-  // and reaching them means scrolling, which dismisses them — so they could
-  // not be used at all. `nearest` scrolls the least it can and does nothing
-  // when the panel already fits, and the room it needs is reserved as
-  // scroll-margin rather than measured, because right now the panel is still
-  // collapsed and has no height to measure.
+  // A field low on the page would otherwise open its wheels below the fold, and
+  // reaching them means scrolling, which dismisses them — so they could not be
+  // used at all.
+  //
+  // The reveal rides the expansion instead of firing at points during it. Each
+  // frame asks for the least scroll that shows the panel *as it is right now*,
+  // which is a few pixels, so the page travels in lockstep with the panel
+  // rather than jumping. Doing it at the start and again at the end gave two
+  // visible scrolls, and for the last field on a page the first of them could
+  // do nothing at all: the page is already at its end, and the room to scroll
+  // into only comes into existence as the panel grows into it. Following the
+  // growth gets that room frame by frame as it appears.
   useEffect(() => {
     if (!isOpen) return;
 
-    const reveal = () =>
-      root.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const started = performance.now();
+    let frame = requestAnimationFrame(function follow() {
+      root.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
 
-    reveal();
+      if (performance.now() - started < TIME_INPUT_PANEL.durationMs) {
+        frame = requestAnimationFrame(follow);
+      }
+    });
 
-    // For the field at the very bottom of a page the first attempt can do
-    // nothing at all: the page is already scrolled as far as it goes, and the
-    // room to scroll into only exists once the panel has grown into it. So it
-    // is asked again on the way out of the animation, where `nearest` makes it
-    // a no-op if the first attempt already worked.
-    const element = panel.current;
-    if (!element) return;
-
-    const revealWhenGrown = (event: TransitionEvent) => {
-      if (event.propertyName !== 'max-height') return;
-      reveal();
-    };
-
-    element.addEventListener('transitionend', revealWhenGrown);
-    return () => element.removeEventListener('transitionend', revealWhenGrown);
+    return () => cancelAnimationFrame(frame);
   }, [isOpen]);
 
   // Touching or focusing anything outside the field puts the wheels away.
@@ -254,7 +249,6 @@ export const TimeInput = ({
       )}
 
       <div
-        ref={panel}
         className={
           isOpen
             ? 'time-input-wheels time-input-wheels-open'

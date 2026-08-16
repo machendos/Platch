@@ -362,21 +362,28 @@ scrolling, which dismisses them — so the control becomes unusable purely becau
 of where it was placed. Making that the page's problem would mean every call
 site had to know the panel's height; the control declares its own need instead.
 
-Two parts, and both are needed:
+**The reveal rides the expansion rather than firing at points during it.** On
+each frame of the panel's animation it asks for `scrollIntoView({ block:
+'nearest' })`, which is a few pixels of scroll at a time, so the page travels in
+lockstep with the panel growing. `nearest` scrolls the least it can and is a
+no-op once the panel fits, so a field with room below it never moves.
 
-- **`scroll-margin-bottom` on the root** reserves the height the open panel will
-  take. It has to be declared rather than measured, because at the moment of
-  opening the panel is still collapsed and has none.
-- **`scrollIntoView({ block: 'nearest' })` on open, and again on the panel's
-  `transitionend`.** The second call is not belt-and-braces. For the last field
-  on a page the first one can do *nothing at all*: the page is already scrolled
-  to its end, and the room to scroll into only comes into existence as the panel
-  grows. `nearest` scrolls the least it can and is a no-op when the panel
-  already fits, so a field with room below it does not move at all.
+Doing it at the start and again at the end — the obvious implementation — is
+wrong twice over, and both failures are worth remembering:
+
+- **Two visible scrolls.** The first call had to reserve the panel's height as
+  `scroll-margin-bottom`, since the panel was still collapsed and had none. By
+  the second call the panel is really there, so that reservation is counted *on
+  top of* it and the page scrolls a screenful further than it needs to.
+- **For the last field on a page the first call does nothing at all.** The page
+  is already scrolled to its end; the room to scroll into only comes into
+  existence as the panel grows into it. Following the growth collects that room
+  frame by frame as it appears, which is why no reservation is needed now —
+  `scroll-margin-bottom` is breathing room only, and must stay that way.
 
 The `--wheel-item-height` / `--wheel-rows` custom properties are set on the root
 rather than the panel so both can use them: the panel inherits them for its open
-height, the root multiplies them for the space it reserves.
+height, and the root has them available for any spacing derived from it.
 
 ### Anything touched outside the field puts the wheels away
 
