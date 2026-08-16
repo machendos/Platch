@@ -13,6 +13,7 @@ import type { PanesVisible } from './layoutStorage';
 import { layoutStorage } from './layoutStorage';
 import { useVisibleRange } from './useVisibleRange';
 import { useWorkspaceLayout } from './useWorkspaceLayout';
+import { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
 
 const DEFAULT_PANES: PanesVisible = { dispatcher: true, calendar: true };
 
@@ -121,7 +122,7 @@ export const MainPage = () => {
                   pageStart={dateFrame.start}
                   dayCount={dayCount}
                   timeFrame={timeFrame}
-                  events={events}
+                  events={events as MbscCalendarEvent[]}
                   todayRequest={todayRequest}
                   onPageChange={goToPage}
                 />
