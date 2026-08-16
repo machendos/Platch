@@ -21,5 +21,6 @@ export type CreateProjectDto = {
   originalTimezone?: undefined | string;
   parentProjectId?: undefined | (string & tags.Format<"uuid">);
   colorId?: undefined | (string & tags.Format<"uuid">);
+  prevProjectIdInHierarchy?: undefined | (string & tags.Format<"uuid">);
   timeComponents: TimeComponentFields[];
 };

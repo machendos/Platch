@@ -6,8 +6,5 @@ export namespace Prisma {
     export type o1 = {
       "__@toStringTag@194": "PrismaPromise";
     };
-    export type o2 = {
-      "__@toStringTag@194": "PrismaPromise";
-    };
   }
 }

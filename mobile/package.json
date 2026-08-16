@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test.e2e": "cypress run",
     "test.unit": "vitest",
-    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "verify": "npm run typecheck && npm run lint && vitest run",
     "ios:dev": "ionic cap run ios -l --external --port=5173",
     "ios:release": "npm run build && npx cap sync ios && npx cap open ios"
   },
@@ -58,6 +60,7 @@
     "terser": "^5.4.0",
     "typescript": "~5.9.0",
     "typescript-eslint": "^8.24.0",
+    "typia": "^12.1.1",
     "vite": "^5.0.0",
     "vitest": "^0.34.6"
   },

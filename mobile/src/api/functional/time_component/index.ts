@@ -27,7 +27,7 @@ export async function getTimeComponentsByUser(
   });
 }
 export namespace getTimeComponentsByUser {
-  export type Output = Prisma.PrismaPromiseArray__type.o1;
+  export type Output = Prisma.PrismaPromiseArray__type;
 
   export const METADATA = {
     method: "GET",

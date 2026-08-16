@@ -9,7 +9,7 @@ import { PlainFetcher } from "@nestia/fetcher";
 import type { tags } from "typia";
 
 import type { CreateProjectDto } from "../../structures/CreateProjectDto";
-import type { Prisma } from "../../structures/Prisma";
+import type { ProjectWithTimeSlots } from "../../structures/ProjectWithTimeSlots";
 import type { TimeComponentWithSlots } from "../../structures/TimeComponentWithSlots";
 import type { UpdateProjectDto } from "../../structures/UpdateProjectDto";
 
@@ -29,7 +29,7 @@ export async function getProjectsByUser(
   });
 }
 export namespace getProjectsByUser {
-  export type Output = Prisma.PrismaPromiseArray__type;
+  export type Output = ProjectWithTimeSlots[];
 
   export const METADATA = {
     method: "GET",
@@ -91,6 +91,7 @@ export namespace createProject {
     userId: string;
     parentProjectId: null | string;
     colorId: null | string;
+    prevProjectIdInHierarchy: null | string;
   };
 
   export const METADATA = {

@@ -1,0 +1,24 @@
+import type { tags } from "typia";
+
+import type { TimeComponentWithSlots } from "./TimeComponentWithSlots";
+
+export type ProjectWithTimeSlots = {
+  timeComponents: TimeComponentWithSlots[];
+  name: string;
+  id: string;
+  goal: null | string;
+  context: null | string;
+  timeNeededMinutes: null | number;
+  minBlockMinutes: null | number;
+  repetitionsNeeded: null | number;
+  earliestDate: null | (string & tags.Format<"date-time">);
+  earliestTime: null | (string & tags.Format<"date-time">);
+  deadlineDate: null | (string & tags.Format<"date-time">);
+  deadlineTime: null | (string & tags.Format<"date-time">);
+  flexibleTimezone: boolean;
+  originalTimezone: null | string;
+  userId: string;
+  parentProjectId: null | string;
+  colorId: null | string;
+  prevProjectIdInHierarchy: null | string;
+};

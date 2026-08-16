@@ -27,7 +27,7 @@ export async function getEventsByUser(
   });
 }
 export namespace getEventsByUser {
-  export type Output = Prisma.PrismaPromiseArray__type.o2;
+  export type Output = Prisma.PrismaPromiseArray__type.o1;
 
   export const METADATA = {
     method: "GET",

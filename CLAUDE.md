@@ -43,38 +43,107 @@ and the calendar's settings — because the header and the calendar both need it
 
 ## Commands
 
+**`npm run verify` is the check.** It runs in both packages and must be green
+before anything is committed:
+
+```
+npm run verify       # mobile:  typecheck + eslint + vitest
+                     # backend: typecheck + jest
+```
+
+It also runs automatically: a `Stop` hook (`.claude/hooks/verify.sh`) runs it in
+the background for whichever package has uncommitted changes and reports
+failures back, and `.github/workflows/verify.yml` runs it plus a build for both
+packages on every PR and push to `main`.
+
 Run from `mobile/`:
 
 ```
 npm run dev          # Vite dev server on :5173
-npm run test.unit    # vitest
-npx tsc --noEmit     # typecheck
-npx eslint src/
+npm run typecheck    # tsc --noEmit
+npm run lint         # eslint src/
+npm run test.unit    # vitest, watch mode
 npx prettier --write src/
 ```
 
-`npx eslint src/` reports errors in `src/api/` (`no-namespace`,
-`no-empty-object-type`). That is generated SDK — ignore them, do not "fix" them.
-
-**`npx tsc --noEmit` currently type-checks nothing.** One generated file,
-`src/api/structures/recurringTimeSlots…timeComponentIdstring.ts`, is a codegen
-artifact containing **syntactically invalid TypeScript** (`export namespace  {`
-with an empty name). Syntax errors abort the semantic pass for the whole
-program, so `tsc` reports those six parse errors and **no type errors at all** —
-including missing modules and wrong prop types anywhere in `src/`. It reads as
-"only the known SDK noise", which is why it went unnoticed.
-
-Nothing imports that file. Until it is deleted or excluded, type-check with:
+Run from `backend/`:
 
 ```
-npx tsc --noEmit -p tsconfig.check.json
+npm run start:dev    # nest, watch mode
+npm run typecheck    # tsc --noEmit
+npm run lint:check   # eslint, no --fix
+npm run test         # jest
+npm run sdk          # regenerate the mobile SDK into mobile/src/api
 ```
 
-where `tsconfig.check.json` extends `tsconfig.json` and adds
-`"exclude": ["src/api/structures/recurringTimeSlots*"]`. Expect `typia`
-module-not-found errors from the SDK (typia is a backend dependency) and one
-pre-existing `MbscCalendarEvent` mismatch in `MainPage.tsx`; anything else is
-real.
+Generated SDK code in `mobile/src/api` is excluded from eslint, so its
+`no-namespace` / `no-empty-object-type` noise no longer appears — do not "fix"
+that code.
+
+### Repository return types must be named — `clone: true` depends on it
+
+`clone: true` clones backend types into the SDK so routes never need hand-written
+response DTOs. It can only clone a type it can **name**. Give it an unnamed type
+and it synthesises one by flattening the shape into an identifier, which
+produces `(`, `)` and empty segments (`export namespace  {`) — syntactically
+invalid TypeScript. A parse error anywhere aborts the semantic pass for the
+*whole* program, so `tsc` then reports a few syntax errors and **no type errors
+at all** anywhere in `src/`, which reads as ordinary SDK noise. That is how it
+went unnoticed for a long time.
+
+Two separate things go wrong, and they need different fixes:
+
+- **Returning `PrismaPromise`.** Prisma's promise is `Promise<T>` branded with a
+  `toStringTag`; nestia does not recognise the branded form, so it clones the
+  wrapper's own properties and the response type becomes
+  `{ "__@toStringTag@194": "PrismaPromise" }` — no payload at all. It compiles,
+  so it fails silently. **Fix: make service methods `async` and `await` the
+  repository call.**
+- **Returning an anonymous type with more than ~7 properties.** typia elides
+  long structural names — it lists the first six properties, then `…Nmore…`,
+  then the last. nestia treats the dotted name as a namespace path and splits it
+  on `.`, so the ellipsis becomes `export namespace  {` (empty name) and the
+  count becomes `export namespace 11more {` (leading digit). Both are parse
+  errors. **Fix: give that method a named return type**, which nestia uses
+  directly instead of synthesising one.
+
+The trigger is **property count, not `include` vs `select`**. A narrow
+projection is fine unnamed:
+
+```ts
+select: { id: true, name: true, timeComponents: { select: { id: true } } }
+```
+
+Anything returning a whole `Project` (17 scalars) is over the limit however it
+is written, so it needs a name. Named types — Prisma models, interfaces, DTOs —
+are emitted as-is and never synthesised, which is why `Promise<Event[]>` and
+friends are always safe.
+
+Name it by extending the Prisma model and listing only the relations, so scalar
+fields still come from Prisma and a new column needs no edit here.
+
+```ts
+export interface ProjectWithTimeSlots extends Project {
+  timeComponents: TimeComponentWithSlots[];
+}
+
+getProjectsWithTimeSlots(
+  where: Prisma.ProjectWhereInput,
+): Promise<ProjectWithTimeSlots[]> { … }
+```
+
+Excluding the bad files by name does not work — the name follows the shape and
+lands somewhere new each time.
+
+**`npm run sdk` never deletes stale output.** Files it no longer generates stay
+in `src/api/structures/` and keep breaking the build even after the cause is
+fixed. If `verify` still fails after a regeneration, check whether the offending
+file is referenced by anything; if not, delete it.
+
+Backend `lint:check` currently reports ~52 pre-existing problems (mostly
+`no-unused-vars` from deliberately empty stub methods, plus `no-unsafe-*` from
+`any`). It is deliberately **not** part of `verify` yet, so the gate stays
+meaningful; clean it up before wiring it in.
 
 ## Testing mobile changes
 
