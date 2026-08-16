@@ -95,6 +95,20 @@ export const rowReached = (
   return Math.min(Math.max(reached, 0), Math.max(count - 1, 0));
 };
 
+// How much further than its face value a scroll event should carry, from how
+// fast the scrolling is going. A slow, deliberate notch keeps its exact
+// one-row meaning; a flick multiplies, which is what gives scrolling something
+// like the reach a throw has.
+export const wheelGain = (
+  delta: number,
+  elapsed: number,
+  feel: { wheelGainFrom: number; wheelGainMax: number },
+): number => {
+  const speed = Math.abs(delta) / Math.max(elapsed, 1);
+
+  return Math.min(Math.max(speed / feel.wheelGainFrom, 1), feel.wheelGainMax);
+};
+
 // Velocity decays as v(t) = v0 * rate^t, so the coast integrates to
 // -v0 / ln(rate). Projecting it in closed form means one tween rather than a
 // per-frame simulation, and the resting place is known before it starts.

@@ -301,6 +301,14 @@ a longer scroll still ticks across row by row rather than going quiet until it
 stops. **Dragging keeps rounding to the nearest**, because a finger on the wheel
 is in charge of where it sits and the nearest row is the honest answer there.
 
+**Scrolling is also given something like the reach a throw has.** A throw coasts
+under its own momentum; scrolling has none of its own, so at a flat one row per
+notch a long list took dozens of gestures to cross where one flick does it by
+hand. `wheelGain` scales each event by how fast the scrolling is going — below
+`wheelGainFrom` a notch keeps its exact one-row meaning and stays precise for
+picking, above it the gain climbs to `wheelGainMax`. A deliberate notch is still
+one row; a trackpad flick covers something closer to seventy.
+
 ### The ends resist rather than refuse
 
 Dragging past the first or last row keeps following the finger, but gives less

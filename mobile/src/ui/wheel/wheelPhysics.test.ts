@@ -16,6 +16,7 @@ import {
   timeToTravel,
   velocityAfter,
   velocityFrom,
+  wheelGain,
   withRubberBand,
 } from './wheelPhysics';
 
@@ -163,6 +164,41 @@ describe('indexAt', () => {
   it('never leaves the option range', () => {
     expect(indexAt(-999, ITEM, COUNT)).toBe(0);
     expect(indexAt(999999, ITEM, COUNT)).toBe(COUNT - 1);
+  });
+});
+
+describe('wheelGain', () => {
+  it('leaves a deliberate notch at its face value', () => {
+    // A notch every third of a second is someone picking, not spinning.
+    expect(wheelGain(100, 300, feel)).toBe(1);
+    expect(wheelGain(-100, 300, feel)).toBe(1);
+  });
+
+  it('multiplies a fast scroll', () => {
+    // A trackpad flick: small deltas arriving every frame.
+    expect(wheelGain(30, 16, feel)).toBeGreaterThan(3);
+  });
+
+  it('climbs with speed and stops at the ceiling', () => {
+    const slow = wheelGain(20, 16, feel);
+    const quick = wheelGain(60, 16, feel);
+
+    expect(quick).toBeGreaterThan(slow);
+    expect(wheelGain(9999, 1, feel)).toBe(feel.wheelGainMax);
+  });
+
+  it('never reduces a scroll below its face value', () => {
+    for (const [delta, elapsed] of [
+      [1, 1000],
+      [100, 5000],
+      [0, 16],
+    ]) {
+      expect(wheelGain(delta, elapsed, feel)).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('survives the first event of a gesture, which has no elapsed time', () => {
+    expect(Number.isFinite(wheelGain(100, 0, feel))).toBe(true);
   });
 });
 

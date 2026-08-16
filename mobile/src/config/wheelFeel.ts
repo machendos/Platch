@@ -48,6 +48,14 @@ export const WHEEL_FEEL = {
   // trackpad flipped the selection at the halfway point between two rows.
   wheelStepPx: 100,
   wheelStepMs: 170,
+
+  // Scrolling has no momentum of its own — every notch costs the same, so
+  // crossing a long list took dozens of them where one throw would do. Faster
+  // scrolling now covers more ground per notch, the way a native scroller
+  // accelerates: below `wheelGainFrom` a notch is exactly one row and stays
+  // precise, above it the gain climbs to `wheelGainMax`.
+  wheelGainFrom: 0.5,
+  wheelGainMax: 8,
 } as const;
 
 export const TIME_INPUT_PANEL = {

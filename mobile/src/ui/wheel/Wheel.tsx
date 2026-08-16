@@ -14,6 +14,7 @@ import {
   planFling,
   rowReached,
   velocityFrom,
+  wheelGain,
   withRubberBand,
 } from './wheelPhysics';
 import type { PointerSample } from './wheelPhysics';
@@ -43,6 +44,7 @@ export const Wheel = ({
   const list = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   const wheelDelta = useRef(0);
+  const wheelAt = useRef(0);
   const offset = useRef(0);
   const row = useRef(0);
   const frame = useRef<number | null>(null);
@@ -193,7 +195,12 @@ export const Wheel = ({
       // Whole rows only. Anything short of one is kept for the next event,
       // which is what lets a trackpad's small deltas add up instead of moving
       // the wheel a fraction of a row and flipping the selection halfway.
-      wheelDelta.current += event.deltaY * lines;
+      const now = performance.now();
+      const raw = event.deltaY * lines;
+      const gain = wheelGain(raw, now - wheelAt.current, WHEEL_FEEL);
+      wheelAt.current = now;
+
+      wheelDelta.current += raw * gain;
       const rows = Math.trunc(wheelDelta.current / WHEEL_FEEL.wheelStepPx);
       if (rows === 0) return;
 
