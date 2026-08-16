@@ -1,6 +1,9 @@
 :root {
   --time-input-field-padding: var(--space-2);
   --time-input-panel-gap: var(--space-2);
+  /* Space left below the panel when opening scrolls it into view, so the
+     wheels do not end up flush against the bottom of the screen. */
+  --time-input-reveal-gap: 40px;
 }
 
 /* Fills the width it is given, like any other form field — the caller sizes it
@@ -18,7 +21,7 @@
   /* Breathing room only. It must NOT also reserve the panel's height: the
      reveal follows the panel as it grows, so once the panel is really there
      that reservation is counted on top of it and scrolls a screenful too far. */
-  scroll-margin-bottom: var(--space-4);
+  scroll-margin-bottom: var(--time-input-reveal-gap);
 }
 
 /* Reads as a read-only field rather than a button: --border-control and
