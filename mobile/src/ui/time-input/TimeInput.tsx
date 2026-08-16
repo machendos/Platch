@@ -50,6 +50,7 @@ export const TimeInput = ({
   const [typed, setTyped] = useState<string | null>(null);
   const editable = !isCoarsePointer();
   const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   // The panel element is permanent so the class toggle has two states to
   // transition between, but **the rows inside it are not**: leaving every
@@ -71,6 +72,37 @@ export const TimeInput = ({
     );
 
     return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  // A field low on the page would otherwise open its wheels below the fold,
+  // and reaching them means scrolling, which dismisses them — so they could
+  // not be used at all. `nearest` scrolls the least it can and does nothing
+  // when the panel already fits, and the room it needs is reserved as
+  // scroll-margin rather than measured, because right now the panel is still
+  // collapsed and has no height to measure.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const reveal = () =>
+      root.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    reveal();
+
+    // For the field at the very bottom of a page the first attempt can do
+    // nothing at all: the page is already scrolled as far as it goes, and the
+    // room to scroll into only exists once the panel has grown into it. So it
+    // is asked again on the way out of the animation, where `nearest` makes it
+    // a no-op if the first attempt already worked.
+    const element = panel.current;
+    if (!element) return;
+
+    const revealWhenGrown = (event: TransitionEvent) => {
+      if (event.propertyName !== 'max-height') return;
+      reveal();
+    };
+
+    element.addEventListener('transitionend', revealWhenGrown);
+    return () => element.removeEventListener('transitionend', revealWhenGrown);
   }, [isOpen]);
 
   // Touching or focusing anything outside the field puts the wheels away.
@@ -162,6 +194,16 @@ export const TimeInput = ({
     <div
       ref={root}
       className={className ? `time-input ${className}` : 'time-input'}
+      // On the root rather than the panel so that both can use them: the panel
+      // inherits them for its open height, and the root reserves the same space
+      // below itself when it is scrolled into view.
+      style={
+        {
+          '--wheel-item-height': `${WHEEL_FEEL.itemHeight}px`,
+          '--wheel-rows': WHEEL_FEEL.visibleRows,
+          '--time-input-panel-duration': `${TIME_INPUT_PANEL.durationMs}ms`,
+        } as CSSProperties
+      }
     >
       {editable ? (
         <input
@@ -212,23 +254,13 @@ export const TimeInput = ({
       )}
 
       <div
+        ref={panel}
         className={
           isOpen
             ? 'time-input-wheels time-input-wheels-open'
             : 'time-input-wheels'
         }
         aria-hidden={!isOpen}
-        // The open height is these two multiplied. Handed down because `Wheel`
-        // sets them on itself, one level too deep for this element to read —
-        // and a token on :root cannot do the multiplication either, since a
-        // custom property resolves where it is declared and would find nothing.
-        style={
-          {
-            '--wheel-item-height': `${WHEEL_FEEL.itemHeight}px`,
-            '--wheel-rows': WHEEL_FEEL.visibleRows,
-            '--time-input-panel-duration': `${TIME_INPUT_PANEL.durationMs}ms`,
-          } as CSSProperties
-        }
       >
         {mounted && (
           <>

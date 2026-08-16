@@ -355,6 +355,29 @@ literals that match the config only by luck. The multiplication also cannot live
 in a token on `:root`: a custom property is substituted where it is *declared*,
 so there it would resolve against nothing and collapse to invalid.
 
+### Opening scrolls the panel into view, and the component owns that
+
+A field low on a page opens its wheels below the fold, and reaching them means
+scrolling, which dismisses them — so the control becomes unusable purely because
+of where it was placed. Making that the page's problem would mean every call
+site had to know the panel's height; the control declares its own need instead.
+
+Two parts, and both are needed:
+
+- **`scroll-margin-bottom` on the root** reserves the height the open panel will
+  take. It has to be declared rather than measured, because at the moment of
+  opening the panel is still collapsed and has none.
+- **`scrollIntoView({ block: 'nearest' })` on open, and again on the panel's
+  `transitionend`.** The second call is not belt-and-braces. For the last field
+  on a page the first one can do *nothing at all*: the page is already scrolled
+  to its end, and the room to scroll into only comes into existence as the panel
+  grows. `nearest` scrolls the least it can and is a no-op when the panel
+  already fits, so a field with room below it does not move at all.
+
+The `--wheel-item-height` / `--wheel-rows` custom properties are set on the root
+rather than the panel so both can use them: the panel inherits them for its open
+height, the root multiplies them for the space it reserves.
+
 ### Anything touched outside the field puts the wheels away
 
 Document listeners in the **capture** phase, so they still fire for a control

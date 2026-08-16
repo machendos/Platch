@@ -14,6 +14,14 @@
   flex-direction: column;
   width: 100%;
   min-width: 0;
+
+  /* The room the open panel will need, declared so `scrollIntoView` accounts
+     for it while the panel is still collapsed and has no height of its own.
+     This is why a field at the very bottom of a page can open at all. */
+  scroll-margin-bottom: calc(
+    var(--wheel-item-height) * var(--wheel-rows) + var(--time-input-panel-gap) +
+      var(--space-4)
+  );
 }
 
 /* Reads as a read-only field rather than a button: --border-control and
