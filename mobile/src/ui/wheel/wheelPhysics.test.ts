@@ -223,6 +223,30 @@ describe('planFling', () => {
       expect(gentle).toBeGreaterThan(END);
     });
 
+    // Depth follows the arrival speed, not the distance the throw had left.
+    // Using the leftover distance sank a soft arrival nearly as deep as a
+    // violent one, because that distance is large either way.
+    it('barely dents the band when it arrives slowly', () => {
+      const barely = plan(END - ITEM * 6, feel.minFlingVelocity + 0.05);
+      expect(barely.to - END).toBeLessThan(ITEM);
+    });
+
+    it('separates a soft arrival from a hard one by more than a row', () => {
+      const soft = plan(END - ITEM * 2, 0.6).to - END;
+      const hard = plan(END - ITEM * 2, 5).to - END;
+
+      expect(hard - soft).toBeGreaterThan(ITEM);
+    });
+
+    it('springs back sooner from a shallow dent than a deep one', () => {
+      const soft = plan(END - ITEM * 2, 0.6).bounce;
+      const hard = plan(END - ITEM * 2, 5).bounce;
+
+      expect(soft?.duration).toBeLessThan(hard?.duration ?? 0);
+      expect(hard?.duration).toBeLessThanOrEqual(feel.bounceMs);
+      expect(soft?.duration).toBeGreaterThanOrEqual(feel.minSettleMs);
+    });
+
     // The bug this replaced: the destination was clamped to the last row but
     // the duration stayed the full one for that velocity, so the wheel crawled
     // the little distance it had left.

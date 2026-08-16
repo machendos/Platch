@@ -141,6 +141,7 @@ type FlingFeel = {
   maxFlingMs: number;
   overscroll: number;
   bounceMs: number;
+  impactGive: number;
 };
 
 export const planFling = (
@@ -178,12 +179,26 @@ export const planFling = (
   // Reaches the end with speed to spare. It keeps its own pace to get there
   // rather than being slowed to land exactly on the last row, and what is left
   // over is spent against the rubber band — so a harder throw hits it harder.
+  //
+  // The depth comes from the speed on arrival, not from the distance the throw
+  // still had in it: that distance is large even for a soft throw, so using it
+  // sank a gentle arrival almost as deep as a violent one.
   const left = velocityAfter(room, velocity, feel.decelerationRate);
-  const peak = rubberBand(natural - room, feel.overscroll);
+  const peak = rubberBand(left * feel.impactGive, feel.overscroll);
   const reach = timeToTravel(room, velocity, feel.decelerationRate);
   const compress = Math.min(
     Math.max(Math.abs(peak) / Math.max(Math.abs(left), 0.05), 60),
     260,
+  );
+
+  // A shallow dent springs back sooner than a deep one, so a light touch on the
+  // end is over quickly instead of dwelling for the full bounce.
+  const spring = Math.min(
+    Math.max(
+      (feel.bounceMs * Math.abs(peak)) / feel.overscroll,
+      feel.minSettleMs,
+    ),
+    feel.bounceMs,
   );
 
   return {
@@ -192,7 +207,7 @@ export const planFling = (
       Math.max(reach + compress, feel.minSettleMs),
       feel.maxFlingMs,
     ),
-    bounce: { to: end, duration: feel.bounceMs },
+    bounce: { to: end, duration: spring },
   };
 };
 

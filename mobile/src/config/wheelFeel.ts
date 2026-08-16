@@ -26,6 +26,15 @@ export const WHEEL_FEEL = {
   overscroll: 112,
   bounceMs: 520,
 
+  // How far a throw arriving at the end wants to sink into the band, per unit
+  // of the speed it still has when it gets there (px per px/ms). It passes
+  // through the band on the way, so it still saturates below `overscroll` —
+  // this only decides how quickly it gets there. Driving it from the arrival
+  // speed rather than the distance the throw had left is what keeps a gentle
+  // arrival to a nudge: the leftover distance is large even for a soft throw,
+  // so it sank almost as deep as a hard one.
+  impactGive: 40,
+
   minSettleMs: 200,
   maxFlingMs: 2400,
 

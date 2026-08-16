@@ -307,9 +307,17 @@ throw, since the wheel is not allowed to rest where the throw would start from.
 **A throw that runs out of wheel keeps its own pace and spends what is left
 against the band.** `planFling` works out, in closed form, when the decay would
 reach the end (`timeToTravel`) and how much speed is still there when it arrives
-(`velocityAfter`); the surplus distance goes through `rubberBand`, so a harder
-arrival compresses further, saturating below the limit. Two rows from the end, a
-gentle throw sinks about 68 px and a hard one about 106 px.
+(`velocityAfter`). That **arrival speed** — scaled by `impactGive` — is what
+goes through `rubberBand`, and the spring back is proportional to how deep the
+dent actually was, so a light touch on the end is over quickly instead of
+dwelling for the full bounce.
+
+Depth has to come from the arrival speed and not from the distance the throw
+still had in it, which is the more obvious choice and is wrong: that distance is
+large even for a soft throw, so it sank a gentle arrival nearly as deep as a
+violent one. Two rows from the end, a slow arrival now dents about a third of a
+row and a hard one about two rows, where before the two were within a row of
+each other and both dwelt for the same half second.
 
 The earlier version simply clamped the destination to the last row while keeping
 the full duration for that velocity — so a hard throw with 68 px left crawled
