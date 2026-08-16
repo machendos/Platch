@@ -27,6 +27,22 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
+      # @mobiscroll/react-trial comes from a private registry. The local .npmrc
+      # holding that token is gitignored, so CI has to write its own.
+      - name: Authenticate to the mobiscroll registry
+        working-directory: mobile
+        env:
+          MOBISCROLL_TOKEN: ${{ secrets.MOBISCROLL_TOKEN }}
+        run: |
+          if [ -z "$MOBISCROLL_TOKEN" ]; then
+            echo "::error::MOBISCROLL_TOKEN secret is not set — @mobiscroll/* cannot be installed."
+            exit 1
+          fi
+          {
+            echo "@mobiscroll:registry=https://npm.mobiscroll.com"
+            echo "//npm.mobiscroll.com/:_authToken=${MOBISCROLL_TOKEN}"
+          } > .npmrc
+
       - name: Install
         working-directory: mobile
         run: npm ci
