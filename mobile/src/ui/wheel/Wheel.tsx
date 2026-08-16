@@ -12,6 +12,7 @@ import {
   indexAt,
   isBeyondEnds,
   planFling,
+  rowReached,
   velocityFrom,
   withRubberBand,
 } from './wheelPhysics';
@@ -41,7 +42,7 @@ export const Wheel = ({
 }: WheelProps) => {
   const list = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
-  const wheeling = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelDelta = useRef(0);
   const offset = useRef(0);
   const row = useRef(0);
   const frame = useRef<number | null>(null);
@@ -58,15 +59,17 @@ export const Wheel = ({
   const selected = options.findIndex((option) => option.value === value);
   const index = Math.max(selected, 0);
 
-  const place = (next: number, notify: boolean) => {
-    const { options: current, value: held, onChange: emit } = live.current;
-
+  // Moves the wheel without deciding anything about which row that means.
+  const slide = (next: number) => {
     offset.current = next;
     if (list.current) {
       list.current.style.transform = `translate3d(0, ${-next}px, 0)`;
     }
+  };
 
-    const landed = indexAt(next, WHEEL_FEEL.itemHeight, current.length);
+  const settleOn = (landed: number, notify: boolean) => {
+    const { options: current, value: held, onChange: emit } = live.current;
+
     if (landed === row.current) return;
     row.current = landed;
     if (!notify) return;
@@ -74,6 +77,31 @@ export const Wheel = ({
     tick();
     const option = current[landed];
     if (option && option.value !== held) emit(option.value);
+  };
+
+  // The row nearest the centre line is the selected one. Right while a finger
+  // is on the wheel, where the hand is in charge of where it sits.
+  const place = (next: number, notify: boolean) => {
+    slide(next);
+    settleOn(
+      indexAt(next, WHEEL_FEEL.itemHeight, live.current.options.length),
+      notify,
+    );
+  };
+
+  // For a move the wheel is making on its own, the row becomes the value as it
+  // arrives at the centre rather than as it becomes the nearest.
+  const advanceTo = (next: number, towards: number) => {
+    slide(next);
+    settleOn(
+      rowReached(
+        next,
+        WHEEL_FEEL.itemHeight,
+        live.current.options.length,
+        towards,
+      ),
+      true,
+    );
   };
 
   const stop = () => {
@@ -85,8 +113,16 @@ export const Wheel = ({
   const glide = (
     to: number,
     duration: number,
-    curve: (progress: number) => number = easeOut,
-    onArrival?: () => void,
+    {
+      curve = easeOut,
+      onArrival,
+      onReachingRows = false,
+    }: {
+      curve?: (progress: number) => number;
+      onArrival?: () => void;
+      /** Change the value as rows reach the centre, not as they pass nearest. */
+      onReachingRows?: boolean;
+    } = {},
   ) => {
     const from = offset.current;
     const distance = to - from;
@@ -103,7 +139,10 @@ export const Wheel = ({
     const step = () => {
       const elapsed = performance.now() - started;
       const progress = Math.min(elapsed / duration, 1);
-      place(from + distance * curve(progress), true);
+      const at = from + distance * curve(progress);
+
+      if (onReachingRows) advanceTo(at, distance);
+      else place(at, true);
 
       if (progress < 1) {
         frame.current = requestAnimationFrame(step);
@@ -146,36 +185,40 @@ export const Wheel = ({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      stop();
 
       // Firefox reports lines rather than pixels.
       const lines = event.deltaMode === 1 ? 16 : 1;
       const count = live.current.options.length;
 
-      place(
-        clampOffset(
-          offset.current + event.deltaY * lines * WHEEL_FEEL.wheelScale,
-          count,
-          WHEEL_FEEL.itemHeight,
-        ),
-        true,
+      // Whole rows only. Anything short of one is kept for the next event,
+      // which is what lets a trackpad's small deltas add up instead of moving
+      // the wheel a fraction of a row and flipping the selection halfway.
+      wheelDelta.current += event.deltaY * lines;
+      const rows = Math.trunc(wheelDelta.current / WHEEL_FEEL.wheelStepPx);
+      if (rows === 0) return;
+
+      wheelDelta.current -= rows * WHEEL_FEEL.wheelStepPx;
+
+      // Chained off the move already in flight, so turning the wheel steadily
+      // keeps advancing rather than restarting from wherever it has reached.
+      const from =
+        pending.current ??
+        detentOffset(offset.current, WHEEL_FEEL.itemHeight, count);
+
+      const target = clampOffset(
+        from + rows * WHEEL_FEEL.itemHeight,
+        count,
+        WHEEL_FEEL.itemHeight,
       );
 
-      if (wheeling.current) clearTimeout(wheeling.current);
-      wheeling.current = setTimeout(() => {
-        wheeling.current = null;
-        glide(
-          detentOffset(offset.current, WHEEL_FEEL.itemHeight, count),
-          WHEEL_FEEL.minSettleMs,
-        );
-      }, WHEEL_FEEL.wheelSettleMs);
+      // Each row becomes the value as it reaches the centre, so one notch
+      // changes the value when it lands rather than halfway there, and a long
+      // scroll still ticks its way across row by row.
+      glide(target, WHEEL_FEEL.wheelStepMs, { onReachingRows: true });
     };
 
     element.addEventListener('wheel', onWheel, { passive: false });
-    return () => {
-      element.removeEventListener('wheel', onWheel);
-      if (wheeling.current) clearTimeout(wheeling.current);
-    };
+    return () => element.removeEventListener('wheel', onWheel);
     // Subscribed once: `glide` and `place` are rebuilt every render, and
     // re-attaching a non-passive listener that often would drop wheel events
     // mid-scroll. Both read live state through refs, so they do not go stale.
@@ -275,17 +318,15 @@ export const Wheel = ({
       WHEEL_FEEL,
     );
 
-    glide(
-      to,
-      duration,
-      (progress) =>
+    glide(to, duration, {
+      curve: (progress) =>
         decayProgress(
           progress * duration,
           duration,
           WHEEL_FEEL.decelerationRate,
         ),
-      bounce ? () => glide(bounce.to, bounce.duration) : undefined,
-    );
+      onArrival: bounce ? () => glide(bounce.to, bounce.duration) : undefined,
+    });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

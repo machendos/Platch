@@ -11,6 +11,7 @@ import {
   isBeyondEnds,
   maxOffset,
   planFling,
+  rowReached,
   rubberBand,
   timeToTravel,
   velocityAfter,
@@ -162,6 +163,40 @@ describe('indexAt', () => {
   it('never leaves the option range', () => {
     expect(indexAt(-999, ITEM, COUNT)).toBe(0);
     expect(indexAt(999999, ITEM, COUNT)).toBe(COUNT - 1);
+  });
+});
+
+describe('rowReached', () => {
+  it('takes the row only once the move arrives at it', () => {
+    const towards = 1;
+
+    expect(rowReached(ITEM * 3, ITEM, COUNT, towards)).toBe(3);
+    expect(rowReached(ITEM * 3 + 17, ITEM, COUNT, towards)).toBe(3);
+    expect(rowReached(ITEM * 3 + 33, ITEM, COUNT, towards)).toBe(3);
+    expect(rowReached(ITEM * 4, ITEM, COUNT, towards)).toBe(4);
+  });
+
+  it('does the same travelling the other way', () => {
+    const towards = -1;
+
+    expect(rowReached(ITEM * 4, ITEM, COUNT, towards)).toBe(4);
+    expect(rowReached(ITEM * 4 - 17, ITEM, COUNT, towards)).toBe(4);
+    expect(rowReached(ITEM * 3, ITEM, COUNT, towards)).toBe(3);
+  });
+
+  // The behaviour this replaced, and why: `indexAt` rounds, so it changes
+  // halfway across — early enough that the tick sounds while the row is still
+  // visibly travelling toward the centre.
+  it('holds the old row where rounding would already have moved on', () => {
+    const halfway = ITEM * 3 + ITEM / 2 + 1;
+
+    expect(indexAt(halfway, ITEM, COUNT)).toBe(4);
+    expect(rowReached(halfway, ITEM, COUNT, 1)).toBe(3);
+  });
+
+  it('never leaves the option range', () => {
+    expect(rowReached(-999, ITEM, COUNT, -1)).toBe(0);
+    expect(rowReached(999999, ITEM, COUNT, 1)).toBe(COUNT - 1);
   });
 });
 

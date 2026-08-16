@@ -41,11 +41,13 @@ export const WHEEL_FEEL = {
   // Movement under this many pixels is a tap, which jumps by whole rows.
   tapSlop: 6,
 
-  // A mouse notch reports about 100px, which would be three rows a click.
-  // Scaled so one notch is roughly one row; trackpads send small deltas and
-  // stay smooth. Settling waits for the scrolling to stop.
-  wheelScale: 0.34,
-  wheelSettleMs: 140,
+  // Delta that adds up to one row. A mouse notch reports about this much, so a
+  // notch is a row; a trackpad sends far smaller deltas that accumulate into
+  // one. Whole rows only, animated over wheelStepMs — following the delta
+  // continuously meant a notch jumped a row with no motion at all, and a
+  // trackpad flipped the selection at the halfway point between two rows.
+  wheelStepPx: 100,
+  wheelStepMs: 170,
 } as const;
 
 export const TIME_INPUT_PANEL = {

@@ -286,8 +286,20 @@ The mouse wheel is a native non-passive listener rather than React's `onWheel`,
 which is passive and so cannot `preventDefault` — without that the page scrolls
 behind the wheel. Firefox's line-based `deltaMode` is normalised.
 
-One notch is scaled to about one row (`wheelScale`), and the detent snap waits
-for the scrolling to stop rather than fighting each event.
+**It moves in whole rows, animated, and a row becomes the value as it reaches
+the centre.** Two separate things were wrong with following the delta
+continuously. A mouse notch is about one row's worth in one event, so the wheel
+jumped a row with no motion at all; and `indexAt` rounds, so a trackpad's smaller
+deltas flipped the selection — and sounded the tick — at the halfway point
+between two rows, while the row was still visibly travelling. Over a 170 ms
+ease-out that lands the value change about 50 ms in, at 30% of the animation,
+which reads as the value changing ahead of the motion.
+
+`rowReached` is the same quantisation done by arrival rather than proximity, and
+the wheel path uses it. One notch now changes the value when the row lands, and
+a longer scroll still ticks across row by row rather than going quiet until it
+stops. **Dragging keeps rounding to the nearest**, because a finger on the wheel
+is in charge of where it sits and the nearest row is the honest answer there.
 
 ### The ends resist rather than refuse
 
