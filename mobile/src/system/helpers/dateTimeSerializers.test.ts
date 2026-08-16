@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { Temporal } from 'temporal-polyfill';
-import { serializeRange } from './dateTimeSerializers';
+import {
+  parseDuration,
+  parseTimeOfDay,
+  serializeDuration,
+  serializeRange,
+  serializeTimeOfDay,
+} from './dateTimeSerializers';
 
 const date = (year: number, month: number, day: number) =>
   new Temporal.PlainDate(year, month, day);
@@ -48,5 +54,73 @@ describe('serializeRange', () => {
     expect(serializeRange(date(2025, 3, 4), date(2025, 3, 4), TODAY)).toBe(
       'Mar 4, 2025',
     );
+  });
+});
+
+describe('serializeDuration', () => {
+  it('drops the half that is zero', () => {
+    expect(serializeDuration(45)).toBe('45m');
+    expect(serializeDuration(120)).toBe('2h');
+    expect(serializeDuration(0)).toBe('0m');
+  });
+
+  it('states both when both are present', () => {
+    expect(serializeDuration(210)).toBe('3h 30m');
+    expect(serializeDuration(30000)).toBe('500h');
+  });
+});
+
+describe('parseDuration', () => {
+  it('reads what the field prints', () => {
+    for (const minutes of [1, 45, 120, 210, 30000]) {
+      expect(parseDuration(serializeDuration(minutes))).toBe(minutes);
+    }
+  });
+
+  it('accepts the shapes someone would actually type', () => {
+    expect(parseDuration('3h30m')).toBe(210);
+    expect(parseDuration('  3H 30M ')).toBe(210);
+    expect(parseDuration('3:30')).toBe(210);
+    expect(parseDuration('90')).toBe(90);
+    expect(parseDuration('2h')).toBe(120);
+    expect(parseDuration('45min')).toBe(45);
+  });
+
+  it('refuses what it cannot read rather than guessing', () => {
+    for (const text of ['', '   ', 'soon', 'h', '3h m', '3x30']) {
+      expect(parseDuration(text)).toBeNull();
+    }
+  });
+});
+
+describe('parseTimeOfDay', () => {
+  it('reads what the field prints', () => {
+    for (const [hour, minute] of [
+      [0, 0],
+      [9, 5],
+      [12, 30],
+      [17, 45],
+      [23, 55],
+    ]) {
+      const time = new Temporal.PlainTime(hour, minute);
+      expect(parseTimeOfDay(serializeTimeOfDay(time))?.toString()).toBe(
+        time.toString(),
+      );
+    }
+  });
+
+  it('takes 24-hour and 12-hour forms', () => {
+    expect(parseTimeOfDay('17:45')?.toString()).toBe('17:45:00');
+    expect(parseTimeOfDay('5:45pm')?.toString()).toBe('17:45:00');
+    expect(parseTimeOfDay('5:45 PM')?.toString()).toBe('17:45:00');
+    expect(parseTimeOfDay('12:00 am')?.toString()).toBe('00:00:00');
+    expect(parseTimeOfDay('12:00 pm')?.toString()).toBe('12:00:00');
+    expect(parseTimeOfDay('9')?.toString()).toBe('09:00:00');
+  });
+
+  it('refuses impossible clock readings', () => {
+    for (const text of ['25:00', '10:75', '13:00 pm', '0:30 am', 'noon', '']) {
+      expect(parseTimeOfDay(text)).toBeNull();
+    }
   });
 });
