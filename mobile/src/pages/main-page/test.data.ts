@@ -1,4 +1,6 @@
-export const testEvents = [
+import type { MbscCalendarEvent } from '@mobiscroll/react';
+
+export const testEvents: MbscCalendarEvent[] = [
   // August 3 — 8 events
   {
     start: new Date(2026, 7, 3, 7, 0),
