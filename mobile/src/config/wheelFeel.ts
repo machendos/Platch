@@ -51,11 +51,16 @@ export const WHEEL_FEEL = {
 
   // Scrolling has no momentum of its own — every notch costs the same, so
   // crossing a long list took dozens of them where one throw would do. Faster
-  // scrolling now covers more ground per notch, the way a native scroller
+  // scrolling covers more ground per notch, the way a native scroller
   // accelerates: below `wheelGainFrom` a notch is exactly one row and stays
-  // precise, above it the gain climbs to `wheelGainMax`.
-  wheelGainFrom: 0.5,
-  wheelGainMax: 8,
+  // precise for picking, above it the gain climbs to `wheelGainMax`.
+  //
+  // The ceiling is deliberately low. A trackpad's momentum phase already sends
+  // dozens of events after the fingers lift, so gain multiplies something that
+  // is long to begin with — at 8 a single hard flick crossed a 181-row wheel
+  // twice over.
+  wheelGainFrom: 1,
+  wheelGainMax: 2,
 } as const;
 
 export const TIME_INPUT_PANEL = {

@@ -174,9 +174,13 @@ describe('wheelGain', () => {
     expect(wheelGain(-100, 300, feel)).toBe(1);
   });
 
-  it('multiplies a fast scroll', () => {
-    // A trackpad flick: small deltas arriving every frame.
-    expect(wheelGain(30, 16, feel)).toBeGreaterThan(3);
+  // Asserted as a relationship rather than a number: these are tuning values
+  // and a threshold pinned to one of them fails every time the feel is dialled.
+  it('multiplies a fast scroll more than a deliberate one', () => {
+    const flick = wheelGain(30, 16, feel);
+
+    expect(flick).toBeGreaterThan(wheelGain(100, 300, feel));
+    expect(flick).toBeGreaterThan(1);
   });
 
   it('climbs with speed and stops at the ceiling', () => {

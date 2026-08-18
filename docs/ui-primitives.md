@@ -306,8 +306,13 @@ under its own momentum; scrolling has none of its own, so at a flat one row per
 notch a long list took dozens of gestures to cross where one flick does it by
 hand. `wheelGain` scales each event by how fast the scrolling is going — below
 `wheelGainFrom` a notch keeps its exact one-row meaning and stays precise for
-picking, above it the gain climbs to `wheelGainMax`. A deliberate notch is still
-one row; a trackpad flick covers something closer to seventy.
+picking, above it the gain climbs to `wheelGainMax`.
+
+The ceiling belongs low, and this is worth knowing before raising it: a
+trackpad's momentum phase already sends dozens of events after the fingers
+lift, so the gain multiplies a stream that is long to begin with. At 8 a single
+hard flick crossed a 181-row wheel twice over. At 2 a deliberate notch is still
+exactly one row, a flick covers about thirty, and a hard one about ninety.
 
 ### The ends resist rather than refuse
 
