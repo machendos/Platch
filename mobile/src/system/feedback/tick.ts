@@ -6,14 +6,6 @@ let context: AudioContext | null = null;
 let lastTickAt = 0;
 let unlocked = false;
 
-const status = {
-  requested: 0,
-  played: 0,
-  dropped: 0,
-  state: 'none' as string,
-  error: '' as string,
-};
-
 const audio = (): AudioContext | null => {
   if (context) return context;
 
@@ -22,17 +14,12 @@ const audio = (): AudioContext | null => {
     (window as unknown as { webkitAudioContext?: typeof AudioContext })
       .webkitAudioContext;
 
-  if (!Ctor) {
-    status.error = 'no AudioContext constructor';
-    return null;
-  }
+  if (!Ctor) return null;
 
   try {
     context = new Ctor();
-    status.state = context.state;
     return context;
-  } catch (cause) {
-    status.error = `construct failed: ${String(cause)}`;
+  } catch {
     return null;
   }
 };
@@ -66,12 +53,8 @@ const click = () => {
     oscillator.connect(gain).connect(ctx.destination);
     oscillator.start(start);
     oscillator.stop(start + seconds);
-
-    status.played += 1;
-    status.state = ctx.state;
-  } catch (cause) {
-    status.dropped += 1;
-    status.error = String(cause);
+  } catch {
+    // A tick is never worth interrupting a gesture for.
   }
 };
 
@@ -91,20 +74,17 @@ export const armTicks = () => {
   if (!ctx) return;
 
   if (ctx.state !== 'running') void ctx.resume();
+  if (unlocked) return;
 
-  if (!unlocked) {
-    try {
-      const source = ctx.createBufferSource();
-      source.buffer = ctx.createBuffer(1, 1, 22050);
-      source.connect(ctx.destination);
-      source.start(0);
-      unlocked = true;
-    } catch (cause) {
-      status.error = `unlock failed: ${String(cause)}`;
-    }
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = ctx.createBuffer(1, 1, 22050);
+    source.connect(ctx.destination);
+    source.start(0);
+    unlocked = true;
+  } catch {
+    // Left locked; the next gesture tries again.
   }
-
-  status.state = ctx.state;
 };
 
 export const tick = () => {
@@ -112,20 +92,6 @@ export const tick = () => {
   if (now - lastTickAt < WHEEL_TICK.minIntervalMs) return;
   lastTickAt = now;
 
-  status.requested += 1;
-
   if (WHEEL_TICK.sound) click();
   if (WHEEL_TICK.haptics) bump();
 };
-
-// Read by the lab page. Whether a tick was scheduled and whether the context is
-// running are the two things that cannot be told apart by listening.
-export const tickStatus = () => ({
-  ...status,
-  state: context ? context.state : status.state,
-  sampleRate: context?.sampleRate ?? 0,
-  unlocked,
-  volume: WHEEL_TICK.volume,
-  soundEnabled: WHEEL_TICK.sound,
-  native: Capacitor.isNativePlatform(),
-});

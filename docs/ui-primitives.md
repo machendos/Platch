@@ -501,8 +501,9 @@ the fling. It does two things because on iOS neither is enough alone:
   than the number; 9 ms is also too brief for a phone speaker to respond to at
   low amplitude. Measure a change by rendering the graph in an
   `OfflineAudioContext` and reading peak and RMS rather than guessing at the
-  gain, and read the probe on the lab page, which separates "never played" from
-  "played and inaudible".
+  gain. When it is silent, the question to answer first is whether a tick was
+  scheduled at all or was scheduled and inaudible — those have completely
+  different causes and cannot be told apart by listening.
 
   **Still unresolved: this is audible on desktop and not on iPhone or iPad.**
   The likeliest explanation is that iOS silences Web Audio under the hardware
