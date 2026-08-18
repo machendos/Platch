@@ -360,8 +360,12 @@ A gesture landing between two columns would otherwise fall through to the page.
 instead of the wheel.
 
 The panel was content-width at first, which gave each column about 40 px — not a
-thumb target. `TimeInput` now fills the width it is given, like any other form
-field, and the caller sizes it by sizing its container.
+thumb target, so it fills the width it is given. That over-corrected the other
+way: "the width it is given" on a desktop is the whole page, and at 1280 px each
+column came out 611 px wide. `--time-input-max-width` caps it at three
+thumb-sized columns, which is the shape the control actually wants; a call site
+that needs a different one overrides the token, and a phone is under the cap so
+nothing changes there.
 
 ### A hidden page suspends the animation
 

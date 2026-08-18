@@ -4,18 +4,26 @@
   /* Space left below the panel when opening scrolls it into view, so the
      wheels do not end up flush against the bottom of the screen. */
   --time-input-reveal-gap: 40px;
+  /* How wide the field and its wheels are allowed to get. Wide enough for
+     three thumb-sized columns and no wider — on a desktop the container is
+     the whole page, and a picker column has no use for 600px. Override it on
+     a call site that wants a different shape. */
+  --time-input-max-width: 360px;
 }
 
-/* Fills the width it is given, like any other form field — the caller sizes it
-   by sizing its container. The wheels need that width: a content-width panel
-   left each column about 40px, which is not a thumb target. */
-/* No `gap`: the panel is always present, so a gap would hold space open below
-   the field even when it is collapsed. The spacing is the panel's own
+/* Fills the width it is given, up to a limit. Full-width because the wheels
+   need it — a content-width panel left each column about 40px, which is not a
+   thumb target — and capped because "the width it is given" on a desktop is the
+   whole page.
+
+   No `gap`: the panel is always present, so a gap would hold space open below
+   the field even when it is collapsed. That spacing is the panel's own
    margin-top, which animates with it. */
 .time-input {
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: var(--time-input-max-width);
   min-width: 0;
 
   /* Breathing room only. It must NOT also reserve the panel's height: the
