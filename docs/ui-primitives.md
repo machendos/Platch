@@ -286,33 +286,25 @@ The mouse wheel is a native non-passive listener rather than React's `onWheel`,
 which is passive and so cannot `preventDefault` — without that the page scrolls
 behind the wheel. Firefox's line-based `deltaMode` is normalised.
 
-**It moves in whole rows, animated, and a row becomes the value as it reaches
-the centre.** Two separate things were wrong with following the delta
-continuously. A mouse notch is about one row's worth in one event, so the wheel
-jumped a row with no motion at all; and `indexAt` rounds, so a trackpad's smaller
-deltas flipped the selection — and sounded the tick — at the halfway point
-between two rows, while the row was still visibly travelling. Over a 170 ms
-ease-out that lands the value change about 50 ms in, at 30% of the animation,
-which reads as the value changing ahead of the motion.
+**A scroll is a drag, and the end of one is a release.** The wheel moves pixel
+for pixel with the scroll, through the same `withRubberBand` a finger goes
+through, and its speed is read in the same px/ms by the same `velocityFrom`.
+When the events stop — a gap of `scrollEndMs` standing in for lifting a finger —
+it goes through `release`, which is the *same function* the pointer path calls.
+So the hardest scroll and the hardest throw do the same thing by construction,
+and both meet the band at the ends.
 
-`rowReached` is the same quantisation done by arrival rather than proximity, and
-the wheel path uses it. One notch now changes the value when the row lands, and
-a longer scroll still ticks across row by row rather than going quiet until it
-stops. **Dragging keeps rounding to the nearest**, because a finger on the wheel
-is in charge of where it sits and the nearest row is the honest answer there.
+Everything before that treated scrolling as its own mechanism, and it drifted
+from the finger in exactly the ways separate mechanisms do. Quantising the delta
+into rows moved the wheel at a third of the scroll, so the same gesture went
+three times less far; the ends used a hard clamp, so the band never appeared at
+all; and an acceleration factor was invented to make up the difference, which
+then had to be tuned against a throw it shared no code with. One release path is
+what keeps them honest — there is no second set of numbers to drift.
 
-**Scrolling is also given something like the reach a throw has.** A throw coasts
-under its own momentum; scrolling has none of its own, so at a flat one row per
-notch a long list took dozens of gestures to cross where one flick does it by
-hand. `wheelGain` scales each event by how fast the scrolling is going — below
-`wheelGainFrom` a notch keeps its exact one-row meaning and stays precise for
-picking, above it the gain climbs to `wheelGainMax`.
-
-The ceiling belongs low, and this is worth knowing before raising it: a
-trackpad's momentum phase already sends dozens of events after the fingers
-lift, so the gain multiplies a stream that is long to begin with. At 8 a single
-hard flick crossed a 181-row wheel twice over. At 2 a deliberate notch is still
-exactly one row, a flick covers about thirty, and a hard one about ninety.
+The cost is that a mouse notch now moves about three rows rather than exactly
+one, because that is what a notch does everywhere else. Arrow keys still move
+one row for picking a neighbour precisely.
 
 ### The ends resist rather than refuse
 

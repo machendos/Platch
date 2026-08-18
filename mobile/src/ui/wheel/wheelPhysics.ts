@@ -77,38 +77,6 @@ export const detentOffset = (
   count: number,
 ) => indexAt(offset, itemHeight, count) * itemHeight;
 
-// The row a move travelling `towards` has actually *reached*, as opposed to the
-// one it is merely nearest. `indexAt` rounds, so it changes halfway between two
-// rows — fine while a finger is on the wheel, wrong for a move the wheel is
-// making on its own, where it flips the selection and sounds the tick while the
-// row is still visibly travelling toward the centre.
-export const rowReached = (
-  offset: number,
-  itemHeight: number,
-  count: number,
-  towards: number,
-): number => {
-  const rows = offset / itemHeight;
-  const reached =
-    towards > 0 ? Math.floor(rows + 0.001) : Math.ceil(rows - 0.001);
-
-  return Math.min(Math.max(reached, 0), Math.max(count - 1, 0));
-};
-
-// How much further than its face value a scroll event should carry, from how
-// fast the scrolling is going. A slow, deliberate notch keeps its exact
-// one-row meaning; a flick multiplies, which is what gives scrolling something
-// like the reach a throw has.
-export const wheelGain = (
-  delta: number,
-  elapsed: number,
-  feel: { wheelGainFrom: number; wheelGainMax: number },
-): number => {
-  const speed = Math.abs(delta) / Math.max(elapsed, 1);
-
-  return Math.min(Math.max(speed / feel.wheelGainFrom, 1), feel.wheelGainMax);
-};
-
 // Velocity decays as v(t) = v0 * rate^t, so the coast integrates to
 // -v0 / ln(rate). Projecting it in closed form means one tween rather than a
 // per-frame simulation, and the resting place is known before it starts.

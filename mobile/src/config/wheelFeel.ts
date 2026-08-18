@@ -41,26 +41,13 @@ export const WHEEL_FEEL = {
   // Movement under this many pixels is a tap, which jumps by whole rows.
   tapSlop: 6,
 
-  // Delta that adds up to one row. A mouse notch reports about this much, so a
-  // notch is a row; a trackpad sends far smaller deltas that accumulate into
-  // one. Whole rows only, animated over wheelStepMs — following the delta
-  // continuously meant a notch jumped a row with no motion at all, and a
-  // trackpad flipped the selection at the halfway point between two rows.
-  wheelStepPx: 100,
-  wheelStepMs: 170,
-
-  // Scrolling has no momentum of its own — every notch costs the same, so
-  // crossing a long list took dozens of them where one throw would do. Faster
-  // scrolling covers more ground per notch, the way a native scroller
-  // accelerates: below `wheelGainFrom` a notch is exactly one row and stays
-  // precise for picking, above it the gain climbs to `wheelGainMax`.
-  //
-  // The ceiling is deliberately low. A trackpad's momentum phase already sends
-  // dozens of events after the fingers lift, so gain multiplies something that
-  // is long to begin with — at 8 a single hard flick crossed a 181-row wheel
-  // twice over.
-  wheelGainFrom: 1,
-  wheelGainMax: 2,
+  // A scroll moves the wheel pixel for pixel, exactly as a finger does, and is
+  // released through the same code when it stops — so the hardest scroll and
+  // the hardest throw do the same thing, and both meet the band at the ends.
+  // A scroll has no equivalent of lifting a finger, so a gap this long is
+  // taken as the end of one. Long enough not to fire between the frames of a
+  // trackpad's momentum, short enough to feel like a release.
+  scrollEndMs: 90,
 } as const;
 
 export const TIME_INPUT_PANEL = {
