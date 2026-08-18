@@ -316,6 +316,14 @@ an offset the band hides but which still has to be scrolled back before the whee
 will move again. A finger cannot do this — its travel is limited by the screen —
 which is why only the scroll path needs the bound.
 
+**A scroll that is clearly pushing into an end gives up its throw there and
+then**, rather than when the momentum happens to run out. This is the same
+problem from the other side: a finger releases the instant it lifts, while a
+trackpad goes on sending events for a second or more afterwards, and every one
+of them was postponing the release. The stretch was therefore held on screen for
+as long as the trackpad kept talking. Once released the remaining momentum is
+ignored until the stream stops, so the bounce is allowed to finish.
+
 ### The ends resist rather than refuse
 
 Dragging past the first or last row keeps following the finger, but gives less

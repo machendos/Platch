@@ -55,6 +55,7 @@ export const Wheel = ({
   const scrollBy = useRef(0);
   const scrollSamples = useRef<PointerSample[]>([]);
   const scrollEnded = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spent = useRef(false);
 
   // The animation loop outlives the render that started it, so it reads these
   // rather than the closure it was created in.
@@ -199,8 +200,36 @@ export const Wheel = ({
     const element = surface.current;
     if (!element) return;
 
+    // A scroll has no equivalent of lifting a finger, so a gap in the events
+    // stands in for one.
+    const scrollFinished = () => {
+      scrollEnded.current = null;
+      scrolling.current = false;
+      spent.current = false;
+    };
+
+    const waitForTheStreamToStop = () => {
+      if (scrollEnded.current) clearTimeout(scrollEnded.current);
+      scrollEnded.current = setTimeout(() => {
+        const wasSpent = spent.current;
+        scrollFinished();
+        if (!wasSpent) {
+          release(-velocityFrom(scrollSamples.current, performance.now()));
+        }
+      }, WHEEL_FEEL.scrollEndMs);
+    };
+
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+
+      // The throw is already spent against an end and bouncing back. A
+      // trackpad goes on sending momentum for a second or more after the
+      // fingers lift, and letting that keep the wheel pinned is what held the
+      // stretch on screen long after a finger would have released it.
+      if (spent.current) {
+        waitForTheStreamToStop();
+        return;
+      }
 
       // Firefox reports lines rather than pixels.
       const lines = event.deltaMode === 1 ? 16 : 1;
@@ -221,17 +250,16 @@ export const Wheel = ({
       }
 
       const count = live.current.options.length;
+      const end = maxOffset(count, WHEEL_FEEL.itemHeight);
       scrollBy.current += event.deltaY * lines;
 
       // A trackpad keeps sending momentum long after the wheel has reached the
       // end, and unchecked that piles up an offset the band hides but which
       // still has to be scrolled back before the wheel moves again. Bounding
       // the raw position keeps the stretch honest and the way back immediate.
+      const raw = scrollFrom.current + scrollBy.current;
       const reach = WHEEL_FEEL.overscroll * 3;
-      const bounded = Math.min(
-        Math.max(scrollFrom.current + scrollBy.current, -reach),
-        maxOffset(count, WHEEL_FEEL.itemHeight) + reach,
-      );
+      const bounded = Math.min(Math.max(raw, -reach), end + reach);
       scrollBy.current = bounded - scrollFrom.current;
 
       // Recorded the way a finger is — travel inverted — so one velocity
@@ -249,14 +277,17 @@ export const Wheel = ({
         true,
       );
 
-      // A scroll has no equivalent of lifting a finger, so a gap stands in for
-      // one and the same release runs.
-      if (scrollEnded.current) clearTimeout(scrollEnded.current);
-      scrollEnded.current = setTimeout(() => {
-        scrollEnded.current = null;
-        scrolling.current = false;
-        release(-velocityFrom(scrollSamples.current, performance.now()));
-      }, WHEEL_FEEL.scrollEndMs);
+      // Pushing into the end with momentum to spare. The throw is over, so it
+      // is released now rather than when the momentum happens to run out — a
+      // finger reaching the end releases the moment it lifts, and waiting for
+      // the stream instead left the wheel stretched for as long as the
+      // trackpad kept talking.
+      if (raw < -WHEEL_FEEL.overscroll || raw > end + WHEEL_FEEL.overscroll) {
+        spent.current = true;
+        release(-velocityFrom(scrollSamples.current, now));
+      }
+
+      waitForTheStreamToStop();
     };
 
     element.addEventListener('wheel', onWheel, { passive: false });
@@ -289,6 +320,7 @@ export const Wheel = ({
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     stop();
     armTicks();
+    spent.current = false;
     dragging.current = true;
     origin.current = { y: event.clientY, offset: offset.current, moved: 0 };
     samples.current = [{ time: performance.now(), y: event.clientY }];
