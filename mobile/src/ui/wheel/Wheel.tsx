@@ -56,6 +56,7 @@ export const Wheel = ({
   const scrollSamples = useRef<PointerSample[]>([]);
   const scrollEnded = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spent = useRef(false);
+  const spentInto = useRef(0);
 
   // The animation loop outlives the render that started it, so it reads these
   // rather than the closure it was created in.
@@ -222,18 +223,29 @@ export const Wheel = ({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
 
+      // Firefox reports lines rather than pixels.
+      const lines = event.deltaMode === 1 ? 16 : 1;
+      const delta = event.deltaY * lines;
+      const now = performance.now();
+
       // The throw is already spent against an end and bouncing back. A
       // trackpad goes on sending momentum for a second or more after the
       // fingers lift, and letting that keep the wheel pinned is what held the
       // stretch on screen long after a finger would have released it.
+      //
+      // Only the momentum still running into that end is ignored. A scroll the
+      // other way is a new intent and is answered at once — waiting for the
+      // stream to go quiet first left the wheel refusing to move until the
+      // scrolling paused, which is not something the user can see a reason for.
       if (spent.current) {
-        waitForTheStreamToStop();
-        return;
-      }
+        if (delta === 0 || Math.sign(delta) === spentInto.current) {
+          waitForTheStreamToStop();
+          return;
+        }
 
-      // Firefox reports lines rather than pixels.
-      const lines = event.deltaMode === 1 ? 16 : 1;
-      const now = performance.now();
+        spent.current = false;
+        scrolling.current = false;
+      }
 
       // A scroll is a drag. The wheel moves pixel for pixel with it, through
       // the band at the ends, and its speed is read in the same px/ms a finger
@@ -251,7 +263,7 @@ export const Wheel = ({
 
       const count = live.current.options.length;
       const end = maxOffset(count, WHEEL_FEEL.itemHeight);
-      scrollBy.current += event.deltaY * lines;
+      scrollBy.current += delta;
 
       // A trackpad keeps sending momentum long after the wheel has reached the
       // end, and unchecked that piles up an offset the band hides but which
@@ -284,6 +296,7 @@ export const Wheel = ({
       // trackpad kept talking.
       if (raw < -WHEEL_FEEL.overscroll || raw > end + WHEEL_FEEL.overscroll) {
         spent.current = true;
+        spentInto.current = raw > end ? 1 : -1;
         release(-velocityFrom(scrollSamples.current, now));
       }
 

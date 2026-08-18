@@ -321,8 +321,11 @@ then**, rather than when the momentum happens to run out. This is the same
 problem from the other side: a finger releases the instant it lifts, while a
 trackpad goes on sending events for a second or more afterwards, and every one
 of them was postponing the release. The stretch was therefore held on screen for
-as long as the trackpad kept talking. Once released the remaining momentum is
-ignored until the stream stops, so the bounce is allowed to finish.
+as long as the trackpad kept talking. Once released, the momentum still running into
+that same end is ignored so the bounce can finish — but **only that direction**.
+A scroll the other way is new intent and is answered at once. Waiting for the
+stream to go quiet before accepting anything left the wheel refusing to move
+until the user paused, which from the outside looks simply frozen.
 
 ### The ends resist rather than refuse
 
