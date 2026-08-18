@@ -513,6 +513,25 @@ you get both. Ticks are rate-limited by `minIntervalMs` — a fast fling crosses
 detents faster than a click can be heard as separate clicks, and stacked
 oscillators just buzz.
 
+### The grid is how finely the wheel points, not what the field may hold
+
+`min` and `max` are a real constraint and are enforced. **The step bands are
+not.** They exist so a 500-hour wheel can be navigated at all, and a value that
+did not come from the wheel is held to the range only — `clampToScale`, not
+`snapTo`. Typing `47h 20m` saves 47h 20m; the wheel shows 47h / 15m, the nearest
+row it is able to draw.
+
+Rounding it instead loses something the user actually meant, for a reason that
+is purely about drawing. It was also inconsistent: a value stored off-grid by
+anything else was already displayed as-is, so the same number survived when it
+arrived from the backend and was destroyed when it was typed.
+
+`snapTo` still exists and is still right — for **where the wheel points**. The
+two answers are allowed to disagree, and that disagreement is the whole design:
+`clampToScale` decides what is kept, `snapTo` decides what is drawn. Spinning a
+wheel naturally replaces an off-grid value with an on-grid one, which is correct:
+choosing from the wheel means choosing what the wheel offers.
+
 ### Opening never emits, and an off-grid value is shown as stored
 
 A value the scale does not allow — 7 minutes against a grid of 5 and 10, from

@@ -5,6 +5,7 @@ import {
   allowedMinutes,
   applyColumn,
   buildColumns,
+  clampToScale,
   hours,
   isAllowed,
   minutes,
@@ -112,6 +113,37 @@ describe('snapTo', () => {
 
   it('leaves a value that is already on the grid alone', () => {
     expect(snapTo(SCALE, hours(12) + 30)).toBe(hours(12) + 30);
+  });
+});
+
+describe('clampToScale', () => {
+  // The range is a real constraint; the grid is only how finely the wheel can
+  // be pointed. A value from outside the wheel keeps what it meant.
+  it('keeps a value the wheel could never land on', () => {
+    for (const off of [7, 23, hours(47) + 20, hours(3) + 7]) {
+      expect(clampToScale(SCALE, off)).toBe(off);
+      expect(isAllowed(SCALE, off)).toBe(false);
+    }
+  });
+
+  it('still holds the ends, which are a real limit', () => {
+    expect(clampToScale(SCALE, hours(9999))).toBe(hours(500));
+    expect(clampToScale(SCALE, 0)).toBe(minutes(1));
+    expect(clampToScale(SCALE, -50)).toBe(minutes(1));
+  });
+
+  it('leaves a value already on the grid alone', () => {
+    expect(clampToScale(SCALE, hours(12) + 30)).toBe(hours(12) + 30);
+  });
+
+  // What the wheel shows for it: the nearest row it can draw, which is what
+  // snapTo is for. The two answers are allowed to differ, and that difference
+  // is the whole point.
+  it('is what is kept, while snapTo is only what is drawn', () => {
+    const typed = hours(47) + 20;
+
+    expect(clampToScale(SCALE, typed)).toBe(typed);
+    expect(snapTo(SCALE, typed)).toBe(hours(47) + 15);
   });
 });
 

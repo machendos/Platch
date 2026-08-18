@@ -14,6 +14,7 @@ import { Wheel } from '../wheel/Wheel';
 import {
   applyColumn,
   buildColumns,
+  clampToScale,
   snapTo,
   toTotalMinutes,
   toValue,
@@ -166,6 +167,12 @@ export const TimeInput = ({
 
   // Typing wins over the value while the caret is in the field, so the text
   // does not fight back mid-edit; committing or leaving hands control back.
+  // A typed value is kept as typed, only held inside the scale's range. The
+  // step grid is how finely the wheel can be pointed, not what the field is
+  // allowed to hold — rounding 47h 20m to 47h 15m would throw away something
+  // the user actually meant for a reason that is purely about drawing. The
+  // wheel then shows the nearest row it can, the same as it already does for a
+  // value stored off-grid by anything else.
   const commit = (text: string) => {
     setTyped(null);
 
@@ -173,14 +180,15 @@ export const TimeInput = ({
       const minutes = parseDuration(text);
       // Unreadable text is discarded rather than guessed at: the field falls
       // back to the value it already held.
-      if (minutes !== null) onChange(toValue(mode, snapTo(scale, minutes)));
+      if (minutes !== null)
+        onChange(toValue(mode, clampToScale(scale, minutes)));
       return;
     }
 
     const time = parseTimeOfDay(text);
     if (time === null) return;
 
-    onChange(toValue(mode, snapTo(scale, time.hour * 60 + time.minute)));
+    onChange(toValue(mode, clampToScale(scale, time.hour * 60 + time.minute)));
   };
 
   const shown = value === null ? '' : serialize(value);

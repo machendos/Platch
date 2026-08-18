@@ -120,6 +120,13 @@ export const allowedMinutes = (scale: TimeScale, hour: number): number[] => {
   return result;
 };
 
+// The range is a real constraint; the step grid is only how finely the wheel
+// can be pointed. So a value that came from outside the wheel — typed, or
+// stored by something else — is held to the first and not the second: it keeps
+// exactly what was meant, and the wheel shows the nearest row it can draw.
+export const clampToScale = (scale: TimeScale, value: number) =>
+  Math.min(Math.max(value, scale.min), scale.max);
+
 export const snapTo = (scale: TimeScale, value: number): number => {
   if (value <= scale.min) return scale.min;
   if (value >= scale.max) return scale.max;
