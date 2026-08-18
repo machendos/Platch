@@ -515,11 +515,24 @@ oscillators just buzz.
 
 ### The grid is how finely the wheel points, not what the field may hold
 
-`min` and `max` are a real constraint and are enforced. **The step bands are
-not.** They exist so a 500-hour wheel can be navigated at all, and a value that
-did not come from the wheel is held to the range only — `clampToScale`, not
-`snapTo`. Typing `47h 20m` saves 47h 20m; the wheel shows 47h / 15m, the nearest
-row it is able to draw.
+A scale states three limits, and they are not the same kind of thing:
+
+| | what it is | applies to |
+| --- | --- | --- |
+| `min` | a real floor — a duration cannot be shorter | everything |
+| `max` | **how far the wheel reaches** | the wheel |
+| `absoluteMax` | the real ceiling, defaulting to `max` | values not from the wheel |
+
+**The step bands are not a constraint at all.** They exist so a 500-hour wheel
+can be navigated, and a value that did not come from the wheel is held to the
+floor and the ceiling only — `clampToScale`, not `snapTo`. Typing `47h 20m`
+saves 47h 20m; the wheel shows 47h / 15m, the nearest row it is able to draw.
+
+The split between `max` and `absoluteMax` is the same argument one level up: a
+wheel that stops at 500h is a statement about how far anyone will spin, not about
+how long a duration can be. Typing `700h` keeps 700h and leaves the wheel resting
+on its last row. A scale whose wheel can already reach everything the field may
+hold — `TIME_OF_DAY`, where 23:59 really is the end — simply omits it.
 
 Rounding it instead loses something the user actually meant, for a reason that
 is purely about drawing. It was also inconsistent: a value stored off-grid by

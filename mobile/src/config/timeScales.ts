@@ -8,7 +8,10 @@ import type { TimeScale } from '../ui/time-input/timeInputLogic';
 
 export const PROJECT_TOTAL_TIME: TimeScale = {
   min: minutes(1),
+  // How far the wheel goes, and separately how large a typed value may be. The
+  // wheel stopping at 500h is a statement about spinning, not about durations.
   max: hours(500),
+  absoluteMax: hours(9999),
   bands: [
     { from: minutes(0), step: minutes(1) },
     { from: minutes(5), step: minutes(5) },

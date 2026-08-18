@@ -126,10 +126,24 @@ describe('clampToScale', () => {
     }
   });
 
-  it('still holds the ends, which are a real limit', () => {
-    expect(clampToScale(SCALE, hours(9999))).toBe(hours(500));
+  it('still holds the minimum, which is a real limit', () => {
     expect(clampToScale(SCALE, 0)).toBe(minutes(1));
     expect(clampToScale(SCALE, -50)).toBe(minutes(1));
+  });
+
+  // The wheel stopping at 500h says nothing about how long a duration can be.
+  it('allows a value past the end of the wheel, up to the real ceiling', () => {
+    expect(clampToScale(SCALE, hours(700))).toBe(hours(700));
+    expect(clampToScale(SCALE, hours(9999))).toBe(hours(9999));
+    expect(clampToScale(SCALE, hours(99999))).toBe(hours(9999));
+
+    // The wheel itself still ends where it ends.
+    expect(snapTo(SCALE, hours(700))).toBe(hours(500));
+  });
+
+  it('falls back to the wheel end when a scale states no separate ceiling', () => {
+    expect(TIME_OF_DAY.absoluteMax).toBeUndefined();
+    expect(clampToScale(TIME_OF_DAY, hours(30))).toBe(TIME_OF_DAY.max);
   });
 
   it('leaves a value already on the grid alone', () => {
