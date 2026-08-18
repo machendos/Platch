@@ -306,6 +306,16 @@ The cost is that a mouse notch now moves about three rows rather than exactly
 one, because that is what a notch does everywhere else. Arrow keys still move
 one row for picking a neighbour precisely.
 
+Two limits keep a scroll's momentum from abusing the band. **`overscroll` cannot
+exceed `(visibleRows - 1) / 2 * itemHeight`** — beyond that the stretch carries
+the last row out of the viewport and the wheel is simply blank, which at 112 px
+on a 170 px viewport is exactly what a hard scroll into the end produced. And the
+**raw scroll position is bounded** before it reaches the band, because a trackpad
+keeps sending momentum long after the wheel has stopped: unchecked, that piles up
+an offset the band hides but which still has to be scrolled back before the wheel
+will move again. A finger cannot do this — its travel is limited by the screen —
+which is why only the scroll path needs the bound.
+
 ### The ends resist rather than refuse
 
 Dragging past the first or last row keeps following the finger, but gives less

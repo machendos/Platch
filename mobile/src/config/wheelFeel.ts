@@ -20,10 +20,16 @@ export const WHEEL_FEEL = {
   // nearest instead of coasting. Too low and an ordinary slow drag flings.
   minFlingVelocity: 0.35,
 
-  // How far past the first and last row the wheel can be dragged. The pull
+  // How far past the first and last row the wheel can be pulled. The pull
   // approaches this and never reaches it, so the end reads as an end without
   // the wheel going dead under the finger.
-  overscroll: 112,
+  //
+  // It cannot exceed two rows here, and that is geometry rather than taste:
+  // the viewport is `visibleRows * itemHeight` with the pill at its centre, so
+  // an overshoot beyond `(visibleRows - 1) / 2 * itemHeight` carries the last
+  // row out of sight and the wheel is left blank. At 112 a hard scroll into
+  // the end emptied it completely.
+  overscroll: 68,
   bounceMs: 520,
 
   // How far a throw arriving at the end wants to sink into the band, per unit

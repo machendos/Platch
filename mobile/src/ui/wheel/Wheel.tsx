@@ -11,6 +11,7 @@ import {
   easeOut,
   indexAt,
   isBeyondEnds,
+  maxOffset,
   planFling,
   velocityFrom,
   withRubberBand,
@@ -219,7 +220,19 @@ export const Wheel = ({
         scrollSamples.current = [{ time: now, y: 0 }];
       }
 
+      const count = live.current.options.length;
       scrollBy.current += event.deltaY * lines;
+
+      // A trackpad keeps sending momentum long after the wheel has reached the
+      // end, and unchecked that piles up an offset the band hides but which
+      // still has to be scrolled back before the wheel moves again. Bounding
+      // the raw position keeps the stretch honest and the way back immediate.
+      const reach = WHEEL_FEEL.overscroll * 3;
+      const bounded = Math.min(
+        Math.max(scrollFrom.current + scrollBy.current, -reach),
+        maxOffset(count, WHEEL_FEEL.itemHeight) + reach,
+      );
+      scrollBy.current = bounded - scrollFrom.current;
 
       // Recorded the way a finger is — travel inverted — so one velocity
       // reading and one sign convention serve both inputs.
@@ -228,8 +241,8 @@ export const Wheel = ({
 
       place(
         withRubberBand(
-          scrollFrom.current + scrollBy.current,
-          live.current.options.length,
+          bounded,
+          count,
           WHEEL_FEEL.itemHeight,
           WHEEL_FEEL.overscroll,
         ),

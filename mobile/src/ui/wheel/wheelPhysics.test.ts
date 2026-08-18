@@ -108,6 +108,19 @@ describe('rubberBand', () => {
   });
 });
 
+// The wheel is left blank if the stretch carries the last row out of the
+// viewport, which is what a 112px limit did on a 170px viewport.
+describe('the overscroll limit against the viewport', () => {
+  const viewport = WHEEL_FEEL.visibleRows * WHEEL_FEEL.itemHeight;
+  const centreToEdge = viewport / 2;
+
+  it('never pushes the edge row out of sight', () => {
+    const halfRow = WHEEL_FEEL.itemHeight / 2;
+
+    expect(WHEEL_FEEL.overscroll + halfRow).toBeLessThanOrEqual(centreToEdge);
+  });
+});
+
 describe('withRubberBand', () => {
   const LIMIT = WHEEL_FEEL.overscroll;
   const END = maxOffset(COUNT, ITEM);
