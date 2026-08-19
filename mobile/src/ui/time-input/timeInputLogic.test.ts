@@ -143,7 +143,7 @@ describe('clampToScale', () => {
 
   it('falls back to the wheel end when a scale states no separate ceiling', () => {
     expect(TIME_OF_DAY.absoluteMax).toBeUndefined();
-    expect(clampToScale(TIME_OF_DAY, hours(30))).toBe(TIME_OF_DAY.max);
+    expect(clampToScale(TIME_OF_DAY, hours(30))).toBe(TIME_OF_DAY.wheelMax);
   });
 
   it('leaves a value already on the grid alone', () => {
@@ -230,7 +230,7 @@ describe('buildColumns', () => {
   it('derives the meridiem options rather than assuming both', () => {
     const morningOnly: TimeScale = {
       min: 0,
-      max: hours(11) + 55,
+      wheelMax: hours(11) + 55,
       bands: [{ from: 0, step: minutes(5) }],
     };
 

@@ -31,7 +31,7 @@ const click = () => {
   // Deliberately not skipped while suspended. A suspended context freezes
   // currentTime, and scheduling a moment past it means the note plays as soon
   // as audio starts rather than being lost — where returning early here mutes
-  // every tick outright if the context never reports `running`.
+  // every tickSound outright if the context never reports `running`.
   if (ctx.state !== 'running') void ctx.resume();
 
   try {
@@ -54,7 +54,7 @@ const click = () => {
     oscillator.start(start);
     oscillator.stop(start + seconds);
   } catch {
-    // A tick is never worth interrupting a gesture for.
+    // A tickSound is never worth interrupting a gesture for.
   }
 };
 
@@ -65,8 +65,8 @@ const bump = () => {
   void Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
 };
 
-// Call from a real gesture handler before the first tick. iOS only lets an
-// AudioContext start inside a user gesture, and the first tick arrives from a
+// Call from a real gesture handler before the first tickSound. iOS only lets an
+// AudioContext start inside a user gesture, and the first tickSound arrives from a
 // pointermove or an animation frame, neither of which counts as one. Playing an
 // empty buffer here is the long-standing way to get WebKit to release it.
 export const armTicks = () => {
@@ -87,7 +87,7 @@ export const armTicks = () => {
   }
 };
 
-export const tick = () => {
+export const tickSound = () => {
   const now = performance.now();
   if (now - lastTickAt < WHEEL_TICK.minIntervalMs) return;
   lastTickAt = now;

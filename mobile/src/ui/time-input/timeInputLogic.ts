@@ -7,13 +7,7 @@ export type ScaleBand = {
 
 export type TimeScale = {
   min: number;
-  /** The wheel's last row: how far it can be pointed. */
-  max: number;
-  /**
-   * The largest value that may be held at all, for values that did not come
-   * from the wheel. Defaults to `max`, which is right whenever the wheel can
-   * reach everything the field is allowed to hold.
-   */
+  wheelMax: number;
   absoluteMax?: number;
   bands: ScaleBand[];
 };
@@ -72,7 +66,7 @@ const nearest = (options: number[], target: number) =>
   );
 
 export const isAllowed = (scale: TimeScale, value: number): boolean => {
-  if (value < scale.min || value > scale.max) return false;
+  if (value < scale.min || value > scale.wheelMax) return false;
 
   const band = bandAt(scale, value);
   return (value - band.from) % band.step === 0;
@@ -86,7 +80,7 @@ export const allowedHours = (scale: TimeScale): number[] => {
 
   scale.bands.forEach((band, index) => {
     const lo = firstAtOrAfter(band, Math.max(band.from, scale.min));
-    const hi = Math.min(bandEnd(scale, index) - 1, scale.max);
+    const hi = Math.min(bandEnd(scale, index) - 1, scale.wheelMax);
     if (lo > hi) return;
 
     const last = lo + Math.floor((hi - lo) / band.step) * band.step;
@@ -117,7 +111,7 @@ export const allowedMinutes = (scale: TimeScale, hour: number): number[] => {
 
   scale.bands.forEach((band, index) => {
     const lo = firstAtOrAfter(band, Math.max(band.from, scale.min, start));
-    const hi = Math.min(bandEnd(scale, index) - 1, scale.max, end);
+    const hi = Math.min(bandEnd(scale, index) - 1, scale.wheelMax, end);
 
     for (let value = lo; value <= hi; value += band.step) {
       result.push(value - start);
@@ -133,11 +127,11 @@ export const allowedMinutes = (scale: TimeScale, hour: number): number[] => {
 // ceiling — a wheel that stops at 500h does not mean 700h is not a duration,
 // it means nobody is going to spin that far.
 export const clampToScale = (scale: TimeScale, value: number) =>
-  Math.min(Math.max(value, scale.min), scale.absoluteMax ?? scale.max);
+  Math.min(Math.max(value, scale.min), scale.absoluteMax ?? scale.wheelMax);
 
 export const snapTo = (scale: TimeScale, value: number): number => {
   if (value <= scale.min) return scale.min;
-  if (value >= scale.max) return scale.max;
+  if (value >= scale.wheelMax) return scale.wheelMax;
   if (isAllowed(scale, value)) return value;
 
   const band = bandAt(scale, value);
@@ -145,7 +139,7 @@ export const snapTo = (scale: TimeScale, value: number): number => {
     band.from + Math.floor((value - band.from) / band.step) * band.step,
     scale.min,
   );
-  const above = Math.min(below + band.step, scale.max);
+  const above = Math.min(below + band.step, scale.wheelMax);
 
   return value - below <= above - value ? below : above;
 };

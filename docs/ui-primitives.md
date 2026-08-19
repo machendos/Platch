@@ -491,20 +491,20 @@ own the wheel. Its effect also depends on the selected **index** rather than on
 continuously, and a correction landing mid-spin dragged the wheel back where it
 started, so a move from 49h to 50h could never commit.
 
-### The tick is two mechanisms, and neither works everywhere
+### The tickSound is two mechanisms, and neither works everywhere
 
-`system/feedback/tick.ts` fires on every detent crossed, from both the drag and
+`system/feedback/tickSound.ts` fires on every detent crossed, from both the drag and
 the fling. It does two things because on iOS neither is enough alone:
 
 - **Sound** is a synthesized Web Audio burst, so there is no asset to ship.
   `armTicks()` runs from `pointerdown` to create, resume and unlock the
   `AudioContext` with an empty buffer, because iOS only lets one start inside a
-  user gesture and every later tick arrives from a pointermove or an animation
+  user gesture and every later tickSound arrives from a pointermove or an animation
   frame instead.
 
   Three things about it are not obvious. **A suspended `AudioContext` has a
   frozen `currentTime`**, so scheduling a moment *past* it is correct — the note
-  plays as soon as audio starts — while skipping the tick outright when the
+  plays as soon as audio starts — while skipping the tickSound outright when the
   context is not `running` mutes the control completely if it never unlocks,
   which is far worse. **Loudness follows RMS, not peak**: a triangle's RMS is
   ~58% of its peak where a square's equals it, so square `0.18` was painful and
@@ -512,7 +512,7 @@ the fling. It does two things because on iOS neither is enough alone:
   than the number; 9 ms is also too brief for a phone speaker to respond to at
   low amplitude. Measure a change by rendering the graph in an
   `OfflineAudioContext` and reading peak and RMS rather than guessing at the
-  gain. When it is silent, the question to answer first is whether a tick was
+  gain. When it is silent, the question to answer first is whether a tickSound was
   scheduled at all or was scheduled and inaudible — those have completely
   different causes and cannot be told apart by listening.
 
@@ -574,7 +574,7 @@ only opened to look at, and never shows a number that is not what is saved.
 ### Where the numbers live
 
 `config/wheelFeel.ts` holds every knob — row height, visible rows, fling gain and
-friction, tap slop, tick volume — and the component reads them. The row height
+friction, tap slop, tickSound volume — and the component reads them. The row height
 also reaches CSS as a custom property, because the offset arithmetic and the
 rendered row must agree and nothing is measured.
 
@@ -602,9 +602,9 @@ edge falloff and a masked pill would fade with them.
 | Feel constants are tuned by eye | `decelerationRate`, `restVelocity` and `minFlingVelocity` were set against an iPhone 17 simulator at 375 px. `0.9975` is roughly iOS; `0.995` is snappier, `0.999` glassier. Nothing derives them, and a very long or very short column may want different ones. |
 | Scrolling the page closes an open panel | The dismissal fires on any `pointerdown` outside the field, and on a phone that includes the touch that starts a page scroll. Correct for a dropdown; arguably aggressive for a panel that sits inline in a form. Excluding it means distinguishing a scroll from a tap, which cannot be known at `pointerdown`. |
 | An open wheel re-renders per detent | The wheel being spun rebuilds its rows on every detent it crosses — 181 of them for a 500-hour scale — and so does every other mounted wheel, since none are memoised. Only one panel is open at a time today, which keeps it tolerable. |
-| The tick volume is a fixed level, not a system volume | `WHEEL_TICK.volume` is an absolute gain on a synthesized tone, so it does not follow the device's ringer level the way a real UI sound would — it started ten times too loud. If sound is kept, it likely wants to become an asset played through a proper audio session rather than an oscillator. |
-| A tick can be missed on a fast fling | `minIntervalMs` rate-limits the click, so a throw crossing detents faster than every 28 ms ticks less often than it moves. Deliberate — the alternative is a buzz — but it means the ticks are not a count of rows passed. |
+| The tickSound volume is a fixed level, not a system volume | `WHEEL_TICK.volume` is an absolute gain on a synthesized tone, so it does not follow the device's ringer level the way a real UI sound would — it started ten times too loud. If sound is kept, it likely wants to become an asset played through a proper audio session rather than an oscillator. |
+| A tickSound can be missed on a fast fling | `minIntervalMs` rate-limits the click, so a throw crossing detents faster than every 28 ms ticks less often than it moves. Deliberate — the alternative is a buzz — but it means the ticks are not a count of rows passed. |
 | Mobiscroll cannot supply the wheels | Asked and answered against the installed `@mobiscroll/react-trial@6.1.2`: `Scroller` is absent from the runtime bundle's exports and is not a v6 product but the internal base class behind `Datepicker`/`Select`, with `value`, `onChange` and `onWheelMove` all `@hidden` and no `wheels`/`data` prop — the arbitrary multi-column API was a v4 feature that v6 dropped. `Datepicker controls={['time']}` fits time mode but takes a single `stepMinute`, so it cannot express the bands, and has no duration control at all (`max` is a `Date`). Do not re-open this without checking the bundle again. |
 | Scales are not validated at runtime | Bands must be ordered by `from` and reachable from it; nothing enforces either. A malformed scale produces a wheel with odd gaps rather than an error. The tests cover the shipped scales, so this only bites a new one. |
-| No haptics on the detents | `@capacitor/haptics` is installed and a selection tick per detent is what makes a native wheel feel right on device. Left out to keep the primitive free of Capacitor. |
+| No haptics on the detents | `@capacitor/haptics` is installed and a selection tickSound per detent is what makes a native wheel feel right on device. Left out to keep the primitive free of Capacitor. |
 | A very wide scale means a long column | The hour wheel for a 500-hour scale is 181 real DOM nodes, which is fine; a scale allowing single minutes across that range would be 30 000 and would need virtualising. The band arithmetic never enumerates them, but the rendered column would. |

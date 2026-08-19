@@ -3,7 +3,7 @@ import './Wheel.css';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react';
 import { WHEEL_FEEL } from '../../config/wheelFeel';
-import { armTicks, tick } from '../../system/feedback/tick';
+import { armTicks, tickSound } from '../../system/feedback/tickSound';
 import {
   clampOffset,
   decayProgress,
@@ -73,7 +73,7 @@ export const Wheel = ({
     row.current = landed;
     if (!notify) return;
 
-    tick();
+    tickSound();
     const option = current[landed];
     if (option && option.value !== held) emit(option.value);
   };

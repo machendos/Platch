@@ -1,4 +1,3 @@
-// Every knob that decides how a wheel feels. Tune here, not in the component.
 export const WHEEL_FEEL = {
   itemHeight: 34,
   visibleRows: 5,

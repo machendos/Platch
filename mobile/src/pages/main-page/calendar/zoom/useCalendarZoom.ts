@@ -275,7 +275,7 @@ export const useCalendarZoom = (
     };
 
     // Browsers report a trackpad pinch as a wheel event with ctrlKey set.
-    // Each tick is its own small gesture, so it re-anchors every time.
+    // Each tickSound is its own small gesture, so it re-anchors every time.
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
