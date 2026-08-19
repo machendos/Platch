@@ -1,0 +1,86 @@
+:root {
+  --wheel-fade: 42%;
+  /* A floor on the grab target, so a wheel in a narrow container is still
+     thumb-sized. Above it the columns stretch to whatever width the caller
+     gives the panel. */
+  --wheel-min-column: 72px;
+}
+
+/* Each wheel is a block that fills its share of the row, so the columns tile
+   the whole panel and a gesture anywhere in it lands on one of them. That, plus
+   `touch-action: none`, is what stops a spin from scrolling the page instead. */
+.wheel {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: var(--wheel-min-column);
+  height: calc(var(--wheel-item-height) * var(--wheel-rows));
+  touch-action: none;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.wheel:focus-visible {
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.wheel-viewport {
+  height: 100%;
+  overflow: hidden;
+
+  /* The falloff is this mask rather than per-item opacity written from the
+     animation loop — nothing has to run while the wheel is moving. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--wheel-fade),
+    #000 calc(100% - var(--wheel-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--wheel-fade),
+    #000 calc(100% - var(--wheel-fade)),
+    transparent 100%
+  );
+}
+
+/* The padding puts the first option on the centre line at offset 0, so the
+   wheel's offset is exactly `index * itemHeight` with nothing to correct for. */
+.wheel-list {
+  padding-block: calc(var(--wheel-item-height) * (var(--wheel-rows) - 1) / 2);
+  will-change: transform;
+}
+
+.wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--wheel-item-height);
+  font-size: var(--font-lg);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.wheel-item-selected {
+  font-weight: 600;
+}
+
+.wheel-unit {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wheel {
+    cursor: grab;
+  }
+}

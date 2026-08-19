@@ -56,3 +56,59 @@ export const serializeRange = (
 
   return `${serializedStart}–${serializedEnd}`;
 };
+
+export const serializeDuration = (totalMinutes: number): string => {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+
+  return `${hours}h ${minutes}m`;
+};
+
+export const serializeTimeOfDay = (time: Temporal.PlainTime): string =>
+  `${time.hour % 12 || 12}:${String(time.minute).padStart(2, '0')} ${
+    time.hour < 12 ? 'AM' : 'PM'
+  }`;
+
+// Typed input is forgiving on purpose: someone correcting "3h 30m" by hand
+// should not have to reproduce the format the field prints.
+export const parseDuration = (text: string): number | null => {
+  const input = text.trim().toLowerCase();
+  if (!input) return null;
+
+  const labelled = /^(?:(\d+)\s*h)?\s*(?:(\d+)\s*m(?:in)?)?$/.exec(input);
+  if (labelled && (labelled[1] || labelled[2])) {
+    return Number(labelled[1] ?? 0) * 60 + Number(labelled[2] ?? 0);
+  }
+
+  const clock = /^(\d+)\s*[:.]\s*(\d{1,2})$/.exec(input);
+  if (clock) return Number(clock[1]) * 60 + Number(clock[2]);
+
+  const bare = /^\d+$/.exec(input);
+  if (bare) return Number(input);
+
+  return null;
+};
+
+export const parseTimeOfDay = (text: string): Temporal.PlainTime | null => {
+  const input = text.trim().toLowerCase();
+  const match = /^(\d{1,2})\s*[:.\s]?\s*(\d{2})?\s*(am|pm)?$/.exec(input);
+  if (!match) return null;
+
+  const minute = Number(match[2] ?? 0);
+  if (minute > 59) return null;
+
+  let hour = Number(match[1]);
+  const meridiem = match[3];
+
+  if (meridiem) {
+    if (hour < 1 || hour > 12) return null;
+    hour = (hour % 12) + (meridiem === 'pm' ? 12 : 0);
+  } else if (hour > 23) {
+    return null;
+  }
+
+  return new Temporal.PlainTime(hour, minute);
+};

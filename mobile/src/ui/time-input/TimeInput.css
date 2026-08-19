@@ -1,0 +1,126 @@
+:root {
+  --time-input-field-padding: var(--space-2);
+  --time-input-panel-gap: var(--space-2);
+  /* Space left below the panel when opening scrolls it into view, so the
+     wheels do not end up flush against the bottom of the screen. */
+  --time-input-reveal-gap: 40px;
+  /* How wide the field and its wheels are allowed to get. Wide enough for
+     three thumb-sized columns and no wider — on a desktop the container is
+     the whole page, and a picker column has no use for 600px. Override it on
+     a call site that wants a different shape. */
+  --time-input-max-width: 360px;
+}
+
+/* Fills the width it is given, up to a limit. Full-width because the wheels
+   need it — a content-width panel left each column about 40px, which is not a
+   thumb target — and capped because "the width it is given" on a desktop is the
+   whole page.
+
+   No `gap`: the panel is always present, so a gap would hold space open below
+   the field even when it is collapsed. That spacing is the panel's own
+   margin-top, which animates with it. */
+.time-input {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--time-input-max-width);
+  min-width: 0;
+
+  /* Breathing room only. It must NOT also reserve the panel's height: the
+     reveal follows the panel as it grows, so once the panel is really there
+     that reservation is counted on top of it and scrolls a screenful too far. */
+  scroll-margin-bottom: var(--time-input-reveal-gap);
+}
+
+/* Reads as a read-only field rather than a button: --border-control and
+   --radius-sm are the tokens the app already encodes that box with. */
+.time-input-field {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--control-height);
+  padding: 0 var(--time-input-field-padding);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--font-md);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.time-input-field-open {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.time-input-placeholder {
+  color: var(--text-secondary);
+}
+
+.time-input-wheels {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+
+  /* No gap and no side padding: the columns are `flex: 1` and must meet, or a
+     gesture landing between them would fall through to the page instead of
+     spinning a wheel. Every pixel of this panel belongs to a column. */
+  gap: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+
+  /* Collapsed rather than removed, so opening and closing both have a state to
+     transition from. No `visibility` juggling is needed to keep a hidden panel
+     out of the tab order — the rows are unmounted while it is closed, so there
+     is nothing inside one to focus. */
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height var(--time-input-panel-duration) var(--easing-standard),
+    margin-top var(--time-input-panel-duration) var(--easing-standard),
+    opacity var(--time-input-panel-duration) var(--easing-standard);
+}
+
+/* The open height is arithmetic from the row count. It is computed here rather
+   than as a token on :root because the variables it multiplies are handed to
+   this element, and a custom property is substituted where it is declared —
+   on :root it would resolve them against nothing and collapse to invalid. */
+.time-input-wheels-open {
+  max-height: calc(var(--wheel-item-height) * var(--wheel-rows));
+  margin-top: var(--time-input-panel-gap);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-input-wheels {
+    transition: none;
+  }
+}
+
+/* One pill behind every column rather than a background on each selected row,
+   so the columns read as a single selection the way the platform picker does.
+   It sits outside the wheels because they are masked and it must not fade. */
+.time-input-pill {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  left: var(--space-2);
+  height: var(--control-height);
+  transform: translateY(-50%);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .time-input-field {
+    cursor: pointer;
+  }
+}
