@@ -693,11 +693,43 @@ the modal's Save: a stray Enter should never submit a half-filled form, and Save
 is the modal's business. The `onEnter` hook exists for the inline "add task"
 row, where Enter should create and keep focus.
 
-`enterKeyHint="done"` is set only in that mode, so the key is labelled to match.
-**The glyph is the OS's, not ours** — a web page cannot draw a key face. Gboard
-renders `done` as a checkmark, iOS renders the word. Whether WebKit honours the
-hint on a `<textarea>` at all is unconfirmed; if it does not, the behaviour is
-still right and only the label is wrong.
+`enterKeyHint="done"` is set only in that mode, so the key is labelled to
+match, and **it works on a `<textarea>`** — the doubt was whether WebKit would
+apply it to a control that is multi-line by nature. Confirmed on an iPhone 17
+at iOS 26: the return key becomes a blue **checkmark**, which is the key Google
+Calendar gets for an event name and the one that was asked for here. The
+control case is the goal field beside it — no hint, grey `↵`. Pressing the
+checkmark blurs and leaves the value untouched, with no newline inserted.
+
+The glyph is still the OS's, not ours: a page names the *intent* and the
+platform picks the key face. `done` happens to draw as a checkmark on both iOS
+and Gboard, so there is nothing to special-case, but nothing here forces it
+either.
+
+### What a hairline is on a 3× screen
+
+Also measured on that pass, because `--hairline-width` is `0.5px` and a 3×
+screen has no half of a device pixel to give it:
+
+| declared | computed | device pixels |
+|---|---|---|
+| `var(--hairline-width)` (`0.5px`) | `0.333px` | **1** |
+| `1px` | `1px` | 3 |
+| `0.5px` | `0.333px` | 1 |
+| `calc(1px / 3)` | `0px` | **0 — the border is not drawn at all** |
+
+So WebKit snaps a sub-pixel border to exactly one device pixel, and `0.5px` is
+the spelling that gets there. **Do not try to compute `1 / dpr` yourself** — a
+width that lands below the snapping threshold rounds to zero and the line
+disappears silently, which is the same class of bug as the calendar's but in
+the opposite direction.
+
+The field's bottom edge measured at 1115.953 device pixels — a fractional
+boundary, which `docs/calendar-layout.md` warns can antialias a hairline to
+nothing. It does not here: the line renders at every field on the page. That
+warning is about the calendar's *flexed, fractional column widths*, where the
+edge moves with the layout; a stacked form has no such churn.
+
 
 Enter is left alone while an IME is composing (`isComposing`), or confirming a
 candidate would end the edit instead of the word.
@@ -745,9 +777,9 @@ anywhere else, which is the whole reason both bodies are reached through one
 
 | Issue | Detail |
 |---|---|
+| `/lab` and `public/field-probe.html` are wired into the shipped app | Both are dev scaffolding, the same kind `909a01f` removed when the wheel was done — a route in `App.tsx` and a page Vite serves from `public/`. They leave with the work they support. |
 | `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field". `/lab` renders them side by side; the comparison row can go once it has. |
 | A long placeholder can be clipped | The replica carries the value, not the placeholder, so an empty field is `minRows` tall however long its placeholder is. Every current preset fits on one line at 343 px (the phone width), but a longer one would be cut. Replicating the placeholder instead would make an empty field taller than `minRows`, which is worse. |
-| `enterkeyhint` unverified on device | Whether WebKit applies it to a `<textarea>` has not been checked on the simulator. Only the key's label is at stake; the behaviour is enforced in the handler. |
 | No keyboard arrow navigation | The segmented control is a group of buttons; each is tabbable but arrow keys do not move between them as a native radio group would. Fine for now, worth revisiting when forms get long. |
 | Breadcrumbs are single-line only | The line budget is one row. Wrapping to two would not remove the need for the algorithm — `flex-wrap` has no notion of which node matters — it would just run the same plan against a doubled budget. Left out because a header whose height depends on ancestry depth moves everything beneath it on every navigation. |
 | One long name ends the row early | The first node that will not fit is clipped and nothing further is added, because skipping it would split the run and produce a third `…`. So a single very long ancestor hides every shorter name beyond it. Deliberate, but the most likely thing to want revisiting. |

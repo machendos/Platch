@@ -1,0 +1,96 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Field probe</title>
+<style>
+  body { margin: 0; padding: 10px; font: 13px/1.45 ui-monospace, Menlo, monospace; }
+  pre { margin: 0 0 14px; white-space: pre-wrap; word-break: break-word; }
+  h2 { margin: 14px 0 6px; font-size: 13px; }
+  iframe { position: absolute; left: -9999px; width: 390px; height: 900px; border: 0; }
+  .swatch { margin-bottom: 9px; }
+  .swatch span { display: block; font-size: 11px; color: #666; }
+  .rule { height: 0; }
+  .w-token { border-bottom: var(--hairline-width, 1px) solid rgba(60,60,67,.29); }
+  .w-1 { border-bottom: 1px solid rgba(60,60,67,.29); }
+  .w-half { border-bottom: 0.5px solid rgba(60,60,67,.29); }
+  .w-third { border-bottom: 0.333px solid rgba(60,60,67,.29); }
+  .w-1dp { border-bottom: calc(1px / 3) solid rgba(60,60,67,.29); }
+  .w-black { border-bottom: 0.5px solid #000; }
+  :root { --hairline-width: 1px; }
+  @media (-webkit-min-device-pixel-ratio: 2) { :root { --hairline-width: 0.5px; } }
+</style>
+<pre id="out">measuring…</pre>
+<h2>hairline swatches (screenshot these)</h2>
+<div class="swatch"><span>--hairline-width (what Field uses)</span><div class="rule w-token"></div></div>
+<div class="swatch"><span>1px</span><div class="rule w-1"></div></div>
+<div class="swatch"><span>0.5px</span><div class="rule w-half"></div></div>
+<div class="swatch"><span>0.333px</span><div class="rule w-third"></div></div>
+<div class="swatch"><span>calc(1px/3)</span><div class="rule w-1dp"></div></div>
+<div class="swatch"><span>0.5px solid black</span><div class="rule w-black"></div></div>
+<iframe id="app" src="/lab"></iframe>
+<script>
+  const lines = [];
+  const say = (k, v) => lines.push(k.padEnd(22) + v);
+  const px = (n) => (Math.round(n * 1000) / 1000).toString();
+
+  const run = () => {
+    const dpr = window.devicePixelRatio;
+    say('devicePixelRatio', dpr);
+    say('screen', screen.width + 'x' + screen.height + ' css');
+    say('mq dpr>=2', matchMedia('(-webkit-min-device-pixel-ratio: 2)').matches);
+    say('mq dpr>=3', matchMedia('(-webkit-min-device-pixel-ratio: 3)').matches);
+    const token = getComputedStyle(document.documentElement).getPropertyValue('--hairline-width').trim();
+    say('--hairline-width', token);
+
+    for (const cls of ['w-token', 'w-1', 'w-half', 'w-third', 'w-1dp']) {
+      const el = document.querySelector('.' + cls);
+      const w = parseFloat(getComputedStyle(el).borderBottomWidth);
+      say('  .' + cls, px(w) + 'css = ' + px(w * dpr) + 'dp');
+    }
+
+    const doc = document.getElementById('app').contentDocument;
+    if (!doc) { say('iframe', 'BLOCKED'); return done(); }
+    const f = doc.querySelector('.field-control');
+    if (!f) { say('iframe', 'no .field-control yet'); return done(); }
+    const cs = getComputedStyle(f);
+    const r = f.getBoundingClientRect();
+    const bw = parseFloat(cs.borderBottomWidth);
+    say('field border', px(bw) + 'css = ' + px(bw * dpr) + 'dp');
+    say('field border colour', cs.borderBottomColor);
+    say('field bottom edge', px(r.bottom) + 'css = ' + px(r.bottom * dpr) + 'dp');
+    say('  lands on whole dp', Number.isInteger(Math.round(r.bottom * dpr * 1000) / 1000));
+    say('field radius', cs.borderTopLeftRadius);
+    say('field width', px(r.width));
+
+    const ta = doc.querySelector('.field-textarea');
+    const tcs = getComputedStyle(ta);
+    say('font-size', tcs.fontSize);
+    say('line-height', tcs.lineHeight);
+    say('overflow-wrap', tcs.overflowWrap);
+    say('rows attr', ta.getAttribute('rows'));
+
+    const named = (sel) => doc.querySelector(sel + ' .field-textarea');
+    const name = named('.specimen-name-filled');
+    const goal = named('.specimen-goal-filled');
+    say('name enterkeyhint', JSON.stringify(name && name.getAttribute('enterkeyhint')));
+    say('name .enterKeyHint', JSON.stringify(name && name.enterKeyHint));
+    say('goal enterkeyhint', JSON.stringify(goal && goal.getAttribute('enterkeyhint')));
+    say('enterKeyHint in DOM', 'enterKeyHint' in HTMLTextAreaElement.prototype);
+
+    const unbreak = doc.querySelector('.specimen-name-unbreakable');
+    if (unbreak) {
+      const c = unbreak.querySelector('.field-control');
+      const t = unbreak.querySelector('.field-textarea');
+      say('longword field w', px(c.getBoundingClientRect().width));
+      say('longword parent w', px(unbreak.parentElement.getBoundingClientRect().width));
+      say('longword overflowX', t.scrollWidth > t.clientWidth + 1);
+    }
+    const d = doc.documentElement;
+    say('iframe page overflowX', d.scrollWidth > d.clientWidth);
+    done();
+  };
+
+  const done = () => { document.getElementById('out').textContent = lines.join('\n'); };
+  document.getElementById('app').addEventListener('load', () => setTimeout(run, 1200));
+  setTimeout(() => { if (!lines.length) { say('timeout', 'iframe never loaded'); done(); } }, 8000);
+</script>
