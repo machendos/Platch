@@ -12,6 +12,7 @@ import './index.css';
 import { Login } from './pages/login/Login';
 import { Register } from './pages/login/Register';
 import { MainPage } from './pages/main-page/MainPage';
+import { FieldLab } from './lab/FieldLab';
 
 setupIonicReact();
 
@@ -25,6 +26,7 @@ const App: React.FC = () => (
         <Route exact path="/login" component={Login} />
         <Route exact path="/register" component={Register} />
         <Route path="/home" component={MainPage} />
+        <Route exact path="/lab" component={FieldLab} />
         <Route exact path="/">
           <Redirect to="/login" />
         </Route>
