@@ -616,10 +616,10 @@ The fill is `--surface-subtle`, a lighter step than the `--surface-sunken` the
 segmented control's track uses — at field size, across several stacked fields,
 `#ececec` read as heavier than a focus ring needs to be.
 
-This cannot be checked by eye, which is why `/lab` renders a probe paragraph
-under every specimen. Measure the probe's `top` **relative to the field's own
-top**, not to the viewport: focusing scrolls the element into view, and that
-scroll otherwise reads as a 300 px layout shift. Verified across all seven
+This cannot be checked by eye, so it is checked with a probe element directly
+under the field. Measure the probe's `top` **relative to the field's own top**,
+not to the viewport: focusing scrolls the element into view, and that scroll
+otherwise reads as a 300 px layout shift. Verified across all seven
 specimens, on the page and inside a modal: `Δheight` and `Δgap` are both
 exactly `0`, while the border goes `rgba(60,60,67,.29)` → `--accent` and the
 fill `transparent` → `--surface-sunken` at an unchanged `0.5px`.
@@ -736,7 +736,7 @@ candidate would end the edit instead of the word.
 
 ### The hairline is the app's field chrome
 
-Settled by comparing them on identical content in `/lab`: a bottom
+Settled by rendering them against each other on identical content: a bottom
 `--hairline-width` line in `--separator` that fills with `--surface-sunken` on
 focus, against a full `1px --border-control` box that gains an accent ring —
 the idiom `TimeInput` still draws.
@@ -777,8 +777,7 @@ anywhere else, which is the whole reason both bodies are reached through one
 
 | Issue | Detail |
 |---|---|
-| `/lab` and `public/field-probe.html` are wired into the shipped app | Both are dev scaffolding, the same kind `909a01f` removed when the wheel was done — a route in `App.tsx` and a page Vite serves from `public/`. They leave with the work they support. |
-| `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field". `/lab` renders them side by side; the comparison row can go once it has. |
+| `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field". |
 | A long placeholder can be clipped | The replica carries the value, not the placeholder, so an empty field is `minRows` tall however long its placeholder is. Every current preset fits on one line at 343 px (the phone width), but a longer one would be cut. Replicating the placeholder instead would make an empty field taller than `minRows`, which is worse. |
 | No keyboard arrow navigation | The segmented control is a group of buttons; each is tabbable but arrow keys do not move between them as a native radio group would. Fine for now, worth revisiting when forms get long. |
 | Breadcrumbs are single-line only | The line budget is one row. Wrapping to two would not remove the need for the algorithm — `flex-wrap` has no notion of which node matters — it would just run the same plan against a doubled budget. Left out because a header whose height depends on ancestry depth moves everything beneath it on every navigation. |
