@@ -174,18 +174,7 @@
 }
 
 .header-menu-item + .header-menu-item {
-  border-top: 1px solid rgba(60, 60, 67, 0.29);
-}
-
-/* A whole CSS pixel rasterises two or three device pixels on a phone; WebKit
-   snaps .5px to exactly one. This is the calendar bottom strip's bug — see
-   docs/calendar-layout.md, which also records that a pseudo-element, a
-   gradient and a box-shadow were each tried here and each rasterises
-   differently from a real border. It has to be a border. */
-@media (-webkit-min-device-pixel-ratio: 2) {
-  .header-menu-item + .header-menu-item {
-    border-top-width: 0.5px;
-  }
+  border-top: var(--hairline-width) solid var(--separator);
 }
 
 /* Desktop: no finger, so the rows can be tighter, and a pointer expects a
