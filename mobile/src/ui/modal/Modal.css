@@ -53,7 +53,7 @@
   flex-shrink: 0;
   height: var(--modal-header-height);
   padding-inline: var(--space-3);
-  border-bottom: 1px solid var(--separator);
+  border-bottom: var(--hairline-width) solid var(--separator);
   background: var(--surface);
 }
 
@@ -123,7 +123,7 @@
   flex-shrink: 0;
   min-height: var(--modal-header-height);
   padding-inline: var(--space-3);
-  border-top: 1px solid var(--separator);
+  border-top: var(--hairline-width) solid var(--separator);
   background: var(--surface);
 }
 
@@ -176,19 +176,5 @@
 
   .modal-as-page .modal-footer {
     padding-bottom: 0;
-  }
-}
-
-/* A hairline is one whole CSS pixel here and two or three device pixels on a
-   phone; WebKit snaps .5px to exactly one. See docs/calendar-layout.md, which
-   records that a pseudo-element, a gradient and a box-shadow were each tried
-   for this and each rasterises differently from a real border. */
-@media (-webkit-min-device-pixel-ratio: 2) {
-  .modal-header {
-    border-bottom-width: 0.5px;
-  }
-
-  .modal-footer {
-    border-top-width: 0.5px;
   }
 }

@@ -149,13 +149,7 @@
 }
 
 .breadcrumbs-popover-item + .breadcrumbs-popover-item {
-  border-top: 1px solid var(--separator);
-}
-
-@media (-webkit-min-device-pixel-ratio: 2) {
-  .breadcrumbs-popover-item + .breadcrumbs-popover-item {
-    border-top-width: 0.5px;
-  }
+  border-top: var(--hairline-width) solid var(--separator);
 }
 
 @media (hover: hover) and (pointer: fine) {
