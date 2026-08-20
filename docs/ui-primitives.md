@@ -586,10 +586,168 @@ edge falloff and a masked pill would fade with them.
 
 ---
 
+## `Field`
+
+The text input. One **shell** and — once formatting lands — two **bodies**:
+`FieldShell` owns the label, the chrome and every dimension, `TextField` is a
+`<textarea>`, and a Lexical body will slot in beside it. The shell is what makes
+them look like one control; the split is what stops name and goal being dragged
+into a `contenteditable`, which is where WebKit caret and IME bugs live and
+which would forfeit native autocorrect, dictation, selection handles and Look
+Up.
+
+### There is no read mode
+
+Apple Reminders, not Google Calendar. The field is always a live, focusable
+input, so editing an event's name costs no clicks at all rather than the
+open → preview → Edit → sheet that Calendar asks for. Everything below exists
+to make a control that is permanently editable still read as a document.
+
+### Focus changes paint, never layout
+
+The rule the whole primitive rests on. Padding, `min-height` and border-*width*
+are identical at rest and focused; only the border **colour** and the background
+move. A heavier focus line would have to come from `box-shadow` or `outline`,
+which are out of flow — growing the border by a pixel reflows every field below
+it, and a form where focusing the first field nudges the other six is exactly
+the jumpiness the merged read/edit mode was meant to avoid.
+
+The fill is `--surface-subtle`, a lighter step than the `--surface-sunken` the
+segmented control's track uses — at field size, across several stacked fields,
+`#ececec` read as heavier than a focus ring needs to be.
+
+This cannot be checked by eye, which is why `/lab` renders a probe paragraph
+under every specimen. Measure the probe's `top` **relative to the field's own
+top**, not to the viewport: focusing scrolls the element into view, and that
+scroll otherwise reads as a 300 px layout shift. Verified across all seven
+specimens, on the page and inside a modal: `Δheight` and `Δgap` are both
+exactly `0`, while the border goes `rgba(60,60,67,.29)` → `--accent` and the
+fill `transparent` → `--surface-sunken` at an unchanged `0.5px`.
+
+### Nothing is limited, so nothing has to be enforced
+
+No `maxLength`, no counter, no near-limit state, no `maxRows`, no internal
+scrolling. A ten-line name is allowed and simply displays as ten lines, which
+is what Google Calendar does and is the right answer: weird input earns a weird
+outcome, and the app already survives long names because breadcrumbs clip by
+design.
+
+A limit on the **number of lines** was considered and rejected outright. Line
+count is a property of *layout*, not of content — the same goal is three lines
+on an iPad and five on an iPhone SE — so a three-line rule makes text that was
+legal when typed illegal when reopened, with no way for the reader to tell why.
+Character limits are the only kind that would be stable, and even those buy
+nothing here: hard-blocking keystrokes is the failure users hate most, and it
+truncates a paste silently.
+
+### The box grows by replicating itself, and measures nothing
+
+`.field-body` is a grid; a hidden `::after` carrying
+`content: attr(data-replicated-value) " "` sizes the row, and the textarea is
+stacked in the same cell and stretches to it. The field is already controlled,
+so the sync is one attribute — no `scrollHeight` read, no layout thrash, and
+nothing to race with Ionic's asynchronous first pass. Same spirit as
+`SegmentedControl` placing its indicator arithmetically.
+
+`field-sizing: content` would replace all of it in two lines of CSS. **WebKit
+has not shipped it**, so it cannot be the mechanism for an iOS app; it is worth
+revisiting the day Safari ships it.
+
+Four things look removable and are not:
+
+- **The trailing `" "` after `attr()`.** Without it a value ending in a newline
+  loses its last row. Measured directly: the same four-line-plus-newline value
+  is 104 px with the space and 82 px without — one whole line, silently.
+- **`rows={1}` on the textarea.** Its intrinsic height is two rows, and in a
+  shared grid cell that outvotes `minRows: 1` — every field would open at two
+  lines.
+- **Font, padding and line-height being shared by the replica and the
+  textarea.** They are written as one rule for this reason: if they drift, the
+  replica sizes the row for a different wrap than the reader sees.
+- **`grid-template-columns: minmax(0, 1fr)` together with
+  `overflow-wrap: anywhere`.** One word too long to fit a line otherwise widens
+  the field instead of breaking, and the damage is not confined to the field:
+  the column pushed past its container, the page gained horizontal scroll, and
+  the whole layout slid left with the field sitting centred in it. Both halves
+  are needed. An `auto` grid column is floored at its content's min-content
+  width, so the column has to be told it may be narrower than its content; and
+  `overflow-wrap: break-word` breaks the word for *layout* while still
+  reporting it whole to min-content, so only `anywhere` shrinks the intrinsic
+  width that sized the column in the first place. Verified at 900 px and
+  375 px: the field stays exactly its container's width, the word breaks across
+  lines, and neither the document nor `ion-content`'s scroller overflows.
+
+### `minRows` is a floor, not a size
+
+`context` opens at three rows to signal there is room to write, then grows.
+Verified live: empty → 3, `"one"` → 3, four lines → 4, four lines plus a
+trailing newline → 5, and 2 000 characters → 10 rows with no internal scroll at
+any point.
+
+### Enter, where a newline is not wanted
+
+`allowNewlines: false` does not limit anything — it stops a *name* growing a
+paragraph. Enter is swallowed, then `onEnter` runs if given, otherwise the field
+blurs, which dismisses the keyboard on iOS. It deliberately does **not** trigger
+the modal's Save: a stray Enter should never submit a half-filled form, and Save
+is the modal's business. The `onEnter` hook exists for the inline "add task"
+row, where Enter should create and keep focus.
+
+`enterKeyHint="done"` is set only in that mode, so the key is labelled to match.
+**The glyph is the OS's, not ours** — a web page cannot draw a key face. Gboard
+renders `done` as a checkmark, iOS renders the word. Whether WebKit honours the
+hint on a `<textarea>` at all is unconfirmed; if it does not, the behaviour is
+still right and only the label is wrong.
+
+Enter is left alone while an IME is composing (`isComposing`), or confirming a
+candidate would end the edit instead of the word.
+
+### The hairline is the app's field chrome
+
+Settled by comparing them on identical content in `/lab`: a bottom
+`--hairline-width` line in `--separator` that fills with `--surface-sunken` on
+focus, against a full `1px --border-control` box that gains an accent ring —
+the idiom `TimeInput` still draws.
+
+The hairline won because it scales in both directions and the box does not. A
+hairlined 34 px time control reads fine; a `1px #999` box drawn around a
+ten-line description reads like a web form from 1998, and a modal stacking six
+of them is noisy where six hairlines are calm. It also speaks the line language
+the app already has — `--separator` is what draws the modal header and footer
+rules and the menu rows.
+
+What it costs is that a hairlined control is marginally less obviously tappable
+than a boxed one. The focus fill covers that, and says "you are in *this* one"
+more clearly than an outline does.
+
+Two of the differences are **not** chrome and do not resolve by picking one:
+height (a duration is one token at a fixed 34 px; prose has to grow) and width
+(`TimeInput` caps at 360 px because its wheels need a sane column). Those stay
+different whatever the border does.
+
+### The presets are not in `ui/`
+
+A primitive must not know what a task goal is. `src/modals/fieldPresets.ts`
+holds `NAME_FIELD` / `GOAL_FIELD` / `CONTEXT_FIELD` as partial props, spread at
+the call site:
+
+```tsx
+<Field {...GOAL_FIELD} value={goal} onChange={setGoal} />
+```
+
+Turning formatting on for a field is then one key in that file and no change
+anywhere else, which is the whole reason both bodies are reached through one
+`Field` with one prop shape.
+
+---
+
 ## Known issues / watch list
 
 | Issue | Detail |
 |---|---|
+| `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field". `/lab` renders them side by side; the comparison row can go once it has. |
+| A long placeholder can be clipped | The replica carries the value, not the placeholder, so an empty field is `minRows` tall however long its placeholder is. Every current preset fits on one line at 343 px (the phone width), but a longer one would be cut. Replicating the placeholder instead would make an empty field taller than `minRows`, which is worse. |
+| `enterkeyhint` unverified on device | Whether WebKit applies it to a `<textarea>` has not been checked on the simulator. Only the key's label is at stake; the behaviour is enforced in the handler. |
 | No keyboard arrow navigation | The segmented control is a group of buttons; each is tabbable but arrow keys do not move between them as a native radio group would. Fine for now, worth revisiting when forms get long. |
 | Breadcrumbs are single-line only | The line budget is one row. Wrapping to two would not remove the need for the algorithm — `flex-wrap` has no notion of which node matters — it would just run the same plan against a doubled budget. Left out because a header whose height depends on ancestry depth moves everything beneath it on every navigation. |
 | One long name ends the row early | The first node that will not fit is clipped and nothing further is added, because skipping it would split the run and produce a third `…`. So a single very long ancestor hides every shorter name beyond it. Deliberate, but the most likely thing to want revisiting. |

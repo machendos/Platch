@@ -1,0 +1,62 @@
+/* The box grows by replicating its own value into a hidden pseudo-element that
+   sizes the grid row; the textarea is stacked in the same cell and stretches
+   to it. Nothing is measured, so there is no scrollHeight read to thrash
+   layout and nothing to race with Ionic's asynchronous first pass.
+
+   Four things here are load-bearing and look removable:
+   - the trailing " " after attr(), or the box collapses on a trailing newline;
+   - `rows={1}` on the textarea, or its intrinsic two rows outvote minRows;
+   - font, padding and line-height being shared by both, or the replica sizes
+     the row for a different wrap than the one the reader sees;
+   - `minmax(0, 1fr)` and `overflow-wrap: anywhere` together, or one word too
+     long to fit widens the column instead of breaking. An `auto` column is
+     floored at its content's min-content width, and `break-word` breaks the
+     word for layout while still reporting it whole to min-content — so the
+     field grew past its container and dragged the page sideways with it.
+
+   `field-sizing: content` would replace all of this, but WebKit has not
+   shipped it. */
+.field-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.field-body::after,
+.field-textarea {
+  grid-area: 1 / 1;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--field-padding-block) var(--field-padding-inline);
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: var(--field-line-height);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: calc(
+    var(--field-min-rows) * var(--field-line-height) + 2 *
+      var(--field-padding-block)
+  );
+}
+
+.field-body::after {
+  content: attr(data-replicated-value) ' ';
+  visibility: hidden;
+}
+
+/* No length limit anywhere, so the field never scrolls inside itself — it
+   grows and the surface it sits on scrolls. */
+.field-textarea {
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  resize: none;
+  overflow: hidden;
+}
+
+.field-textarea:focus {
+  outline: none;
+}
+
+.field-textarea::placeholder {
+  color: var(--text-secondary);
+}

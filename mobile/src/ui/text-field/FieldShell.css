@@ -1,0 +1,41 @@
+:root {
+  --field-line-height: 22px;
+  --field-padding-block: var(--space-2);
+  --field-padding-inline: var(--space-2);
+  --field-label-gap: var(--space-1);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--field-label-gap);
+}
+
+.field-label {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+/* Focus changes paint, never layout: the border keeps its width and only its
+   colour moves, and the fill is a background rather than an inset box. A
+   thicker focus line would have to come from box-shadow or outline, which are
+   out of flow — growing the border reflows every field below this one. */
+.field-control {
+  border-bottom: var(--hairline-width) solid var(--separator);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  transition:
+    background-color var(--duration-exit) var(--easing-standard),
+    border-color var(--duration-exit) var(--easing-standard);
+}
+
+.field:focus-within .field-control {
+  border-bottom-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-control {
+    transition: none;
+  }
+}
