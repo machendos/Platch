@@ -11,6 +11,11 @@
      --checkbox-* once that primitive lands on main. */
   --field-checkbox-size: 20px;
   --field-checkbox-tick-size: 14px;
+
+  /* Ink, not accent. A checklist here is *content* — part of what the user
+     wrote — while a Checkbox on the same page is a *control* that changes the
+     record. Drawing both in --accent would make them one thing to the eye. */
+  --field-checkbox-color: var(--text-primary);
 }
 
 /* Relative because Lexical renders the placeholder as a sibling of the
@@ -118,7 +123,7 @@
   width: var(--field-checkbox-size);
   height: var(--field-checkbox-size);
   box-sizing: border-box;
-  border: 1px solid var(--border-control);
+  border: 1px solid var(--field-checkbox-color);
   border-radius: var(--radius-sm);
   background: var(--surface);
   transition:
@@ -127,8 +132,8 @@
 }
 
 .field-listitem-checked::before {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--field-checkbox-color);
+  background: var(--field-checkbox-color);
 }
 
 /* ionicons' `checkmark`, the glyph Checkbox.tsx renders through IonIcon, as a
@@ -144,7 +149,7 @@
   );
   width: var(--field-checkbox-tick-size);
   height: var(--field-checkbox-tick-size);
-  background: var(--accent-contrast);
+  background: var(--surface);
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' stroke-width='32' d='M416 128L192 384l-96-96'/%3E%3C/svg%3E");
   mask-size: contain;
   mask-repeat: no-repeat;

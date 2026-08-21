@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { $getRoot, createEditor } from 'lexical';
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
+  createEditor,
+} from 'lexical';
 import { $isListNode } from '@lexical/list';
 import { $readMarkdown, $writeMarkdown } from './markdown';
 import { RICH_TEXT_NODES } from './nodes';
@@ -114,6 +119,40 @@ describe('surviving a save and a reopen', () => {
     expect(roundTrip('* one\n* two')).toBe('* one\n* two');
     expect(roundTrip('+ one\n+ two')).toBe('+ one\n+ two');
     expect(roundTrip('3. three\n4. four')).toBe('3. three\n4. four');
+  });
+
+  /* The one thing the format genuinely cannot carry. In the editor a list and
+     a paragraph are different node types, so there is no ambiguity while you
+     are typing — but markdown has no way to write "this paragraph merely
+     begins with the characters 1.", and Lexical does not escape a leading list
+     marker on export the way it escapes a backtick. So a paragraph that looks
+     like a list is one after a reopen. Airtight would mean escaping on export
+     or storing Lexical's JSON, and both cost more than this is worth today. */
+  it('cannot tell a paragraph that looks like a list from a list', () => {
+    const editor = createEditor({
+      nodes: RICH_TEXT_NODES,
+      onError: (error) => {
+        throw error;
+      },
+    });
+    editor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        paragraph.append($createTextNode('1. one'));
+        root.append(paragraph);
+      },
+      { discrete: true },
+    );
+
+    let exported = '';
+    editor.read(() => {
+      exported = $readMarkdown();
+    });
+
+    expect(exported).toBe('1. one');
+    expect(firstListType(exported)).toBe('number');
   });
 
   /* Markdown arriving from outside the editor — a paste, a hand-edited row —
