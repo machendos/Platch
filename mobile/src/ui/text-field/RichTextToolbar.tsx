@@ -16,21 +16,19 @@ import {
   INDENT_CONTENT_COMMAND,
   OUTDENT_CONTENT_COMMAND,
 } from 'lexical';
-import {
-  $isListNode,
-  INSERT_CHECK_LIST_COMMAND,
-  INSERT_ORDERED_LIST_COMMAND,
-  ListNode,
-  REMOVE_LIST_COMMAND,
-} from '@lexical/list';
-import { $getNearestNodeOfType } from '@lexical/utils';
+import type { ListType } from '@lexical/list';
 import { useKeyboardInset } from '../../system/keyboard/useKeyboardInset';
 import { useActiveField } from './richText/activeField';
+import {
+  $lineListType,
+  $removeLineList,
+  $setLineListType,
+} from './richText/lineList';
 
 type Marks = {
   bold: boolean;
   italic: boolean;
-  list: 'number' | 'check' | 'bullet' | null;
+  list: ListType | null;
 };
 
 const NO_MARKS: Marks = { bold: false, italic: false, list: null };
@@ -83,13 +81,10 @@ export const RichTextToolbar = () => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return setMarks(NO_MARKS);
 
-        const anchor = selection.anchor.getNode();
-        const list = $getNearestNodeOfType<ListNode>(anchor, ListNode);
-
         setMarks({
           bold: selection.hasFormat('bold'),
           italic: selection.hasFormat('italic'),
-          list: $isListNode(list) ? list.getListType() : null,
+          list: $lineListType(),
         });
       });
 
@@ -104,16 +99,14 @@ export const RichTextToolbar = () => {
     command();
   };
 
-  const toggleList = (
-    type: 'number' | 'check',
-    command:
-      | typeof INSERT_ORDERED_LIST_COMMAND
-      | typeof INSERT_CHECK_LIST_COMMAND,
-  ) =>
+  /* Both sides act on the caret's line only. Lexical's own INSERT_*_LIST and
+     REMOVE_LIST commands are written for a document toolbar and take the whole
+     containing list — or, removing, the whole top-level one at every depth. */
+  const toggleList = (type: ListType) =>
     run(() =>
-      marks.list === type
-        ? active.editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined)
-        : active.editor.dispatchCommand(command, undefined),
+      active.editor.update(() =>
+        marks.list === type ? $removeLineList() : $setLineListType(type),
+      ),
     );
 
   const toolbar = (
@@ -155,7 +148,7 @@ export const RichTextToolbar = () => {
       <ToolbarButton
         label="Numbered list"
         active={marks.list === 'number'}
-        onPress={() => toggleList('number', INSERT_ORDERED_LIST_COMMAND)}
+        onPress={() => toggleList('number')}
       >
         <IonIcon icon={listOutline} />
       </ToolbarButton>
@@ -163,7 +156,7 @@ export const RichTextToolbar = () => {
       <ToolbarButton
         label="Checklist"
         active={marks.list === 'check'}
-        onPress={() => toggleList('check', INSERT_CHECK_LIST_COMMAND)}
+        onPress={() => toggleList('check')}
       >
         <IonIcon icon={checkboxOutline} />
       </ToolbarButton>
