@@ -773,10 +773,102 @@ anywhere else, which is the whole reason both bodies are reached through one
 
 ---
 
+## `Checkbox` and `Reveal`
+
+Two primitives, because the sketch that prompted them is two separate things: a
+box that is ticked, and content that is there only while it is. An earlier draft
+made them one — `trailing` and `children` slots on the checkbox — and that was
+rejected before it was written. **A control must not own layout for arbitrary
+content.**
+
+### The link between them is a variable, not an id
+
+```tsx
+const [timed, setTimed] = useState(false);
+
+<Checkbox checked={timed} onChange={setTimed} label="Time needed target" />
+<Reveal when={timed} axis="inline"><TimeInput … /></Reveal>
+```
+
+Registering checkboxes by id and looking them up — `<ShowWhen checkbox="timed">`
+— was considered and dropped. It re-implements what `useState` already is, a
+typo'd key fails silently where a typo'd variable does not build, and it
+introduces exactly the collision it would then have to solve: two modals holding
+the same id.
+
+That collision does not exist as written. State is per component instance, and
+`@ionic/react` mounts an `IonModal`'s children only while it is presented —
+`handleWillPresent` sets `isOpen: true`, `handleDidDismiss` sets it back — so a
+closed `create` modal has nothing in the DOM when `edit` opens. Only
+`keepContentsMounted` changes that, and `Modal.tsx` does not set it.
+
+### The label wraps the box and its text, and nothing else
+
+`Checkbox` is a `<label>` around a clipped `<input>`, a painted box and the
+text. Wrapping means no `useId`/`htmlFor` pair, and the box *and* its text
+toggle. It also means **anything inside that label toggles it**, which is why
+the revealed control is a sibling and never a child: a `TimeInput` inside the
+label would flip the checkbox on the tap that opens its wheels and flip it back
+on the tap that picks a value.
+
+The input is clipped rather than `display: none` because focus, the space key
+and the checkbox role a screen reader reads are the input's, not the painted
+box's. The box is the one `.time-input-field` and `.select-field` draw, at
+checkbox size, so a row of mixed controls reads as one set.
+
+### Height comes from a grid track, not a max-height
+
+`Reveal` animates `grid-template-rows: 0fr → 1fr`. Its children are arbitrary —
+a row, a paragraph, a whole `TimeInput` — so a max-height would be a guess, and
+measuring one is the layout read `Field` avoids and that races Ionic's first
+pass.
+
+**`0fr` does not collapse across the inline axis**, and that was measured rather
+than assumed: down the block axis the track resolves to `0px`, but on a grid
+sized by its own content the fr track is what supplies that content size, so it
+resolved to the full 68 px of the field it was meant to be hiding. `axis="inline"`
+therefore does not animate size at all — the content arrives at its own width
+and fades in from a few pixels out. Nothing is displaced by that: the row's
+first child holds the left with a `margin-right: auto`, and there is nothing to
+the right of it.
+
+### Opening is a forced reflow, not a `requestAnimationFrame`
+
+A transition needs a resolved state to leave, and the closed one has only just
+been committed. Reading layout (`getBoundingClientRect`) resolves it.
+
+`requestAnimationFrame` was the obvious way to wait a frame and is the wrong
+one: **it does not run in a hidden page**, which is already recorded above for
+the wheel. The content mounted, the class never landed, and the reveal stayed
+collapsed for good — visible in the preview browser, where the pane is hidden
+often enough for this to be the normal case rather than the exception. The
+unmount at the end is a timer for the same family of reasons: `transitionend`
+never arrives under reduced motion either.
+
+### Clipping is for the travel only
+
+`overflow: hidden` is what lets the track cut the content off, and it is
+released by that same timer once the reveal is open. Left on, it would cut the
+wheels off a `TimeInput` opened inside a reveal — the sketch's own case, since
+`min block` sits in a nested row. Verified: the reveal grows from 44 px to
+212 px, the 170 px panel sits inside it, `overflow` reads `visible`.
+
+### The row they sit in is not a primitive yet
+
+"One line, checkbox left, control at the right edge, 44 px tall, nested lines
+indented" is five lines of CSS living in the lab page, not in `src/ui/`.
+`.create-project-row` in the `Select` work is the same row hand-rolled a second
+time; when a real modal wants it, those two are what justify lifting it.
+
+---
+
 ## Known issues / watch list
 
 | Issue | Detail |
 |---|---|
+| An inline `TimeInput` grows its row when opened | The wheels are an in-flow panel, so a `TimeInput` sitting at the right of a row expands that row to ~212 px and takes the width its columns need. Correct for a full-width field, surprising at the end of a line. The fix, if it is wanted, belongs to `TimeInput` (an overlay panel) and not to `Reveal`. |
+| `Reveal` is unmounted by a timer, not by the transition | The exit is `REVEAL_MOTION.durationMs` on a `setTimeout`, so a transition slowed by anything else — a busy main thread, a devtools override — is cut off at that mark. `transitionend` cannot be used: it never fires under reduced motion or in a hidden page. |
+| A block reveal animates its own growth twice over | If content inside an open reveal changes size — a `TimeInput` opening its wheels — the `1fr` track follows it, and that follow is itself transitioned. Two easings over one movement. Harmless today; it would show if the durations ever diverged. |
 | `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field". |
 | A long placeholder can be clipped | The replica carries the value, not the placeholder, so an empty field is `minRows` tall however long its placeholder is. Every current preset fits on one line at 343 px (the phone width), but a longer one would be cut. Replicating the placeholder instead would make an empty field taller than `minRows`, which is worse. |
 | No keyboard arrow navigation | The segmented control is a group of buttons; each is tabbable but arrow keys do not move between them as a native radio group would. Fine for now, worth revisiting when forms get long. |
