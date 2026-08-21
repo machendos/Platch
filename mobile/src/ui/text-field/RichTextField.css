@@ -1,7 +1,16 @@
 :root {
-  --field-checkbox-size: 18px;
   --field-list-indent: 24px;
   --field-block-gap: var(--space-1);
+
+  /* Deliberately the same numbers ui/checkbox/Checkbox.css uses, so a
+     checklist inside a field and a standalone checkbox in the same form are
+     the same control to look at. They cannot share the component: Lexical
+     renders the <li role="checkbox"> itself and owns the checked state, so a
+     React checkbox inside it would need a decorator node and would put the
+     node tree and the DOM in disagreement about what is ticked. Point these at
+     --checkbox-* once that primitive lands on main. */
+  --field-checkbox-size: 20px;
+  --field-checkbox-tick-size: 14px;
 }
 
 /* Relative because Lexical renders the placeholder as a sibling of the
@@ -109,9 +118,12 @@
   width: var(--field-checkbox-size);
   height: var(--field-checkbox-size);
   box-sizing: border-box;
-  border: var(--hairline-width) solid var(--border-control);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
+  transition:
+    background-color var(--duration-exit) var(--easing-standard),
+    border-color var(--duration-exit) var(--easing-standard);
 }
 
 .field-listitem-checked::before {
@@ -119,25 +131,34 @@
   background: var(--accent);
 }
 
-/* The tick is a rotated two-sided box rather than a glyph, so it does not
-   depend on a font that may not be present. */
+/* ionicons' `checkmark`, the glyph Checkbox.tsx renders through IonIcon, as a
+   mask so it can be painted on a pseudo-element — an <ion-icon> cannot be put
+   inside a node Lexical owns. Same path data, same stroke, so the two ticks
+   are the same shape rather than merely similar. */
 .field-listitem-checked::after {
   content: '';
   position: absolute;
-  top: calc(
-    (var(--field-line-height) - var(--field-checkbox-size)) / 2 +
-      var(--field-checkbox-size) * 0.22
+  top: calc((var(--field-line-height) - var(--field-checkbox-tick-size)) / 2);
+  left: calc(
+    (var(--field-checkbox-size) - var(--field-checkbox-tick-size)) / 2
   );
-  left: calc(var(--field-checkbox-size) * 0.34);
-  width: calc(var(--field-checkbox-size) * 0.28);
-  height: calc(var(--field-checkbox-size) * 0.52);
-  box-sizing: border-box;
-  border: solid var(--accent-contrast);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  width: var(--field-checkbox-tick-size);
+  height: var(--field-checkbox-tick-size);
+  background: var(--accent-contrast);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' stroke-width='32' d='M416 128L192 384l-96-96'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
 .field-listitem-checked {
   color: var(--text-secondary);
   text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-listitem-checked::before,
+  .field-listitem-unchecked::before {
+    transition: none;
+  }
 }

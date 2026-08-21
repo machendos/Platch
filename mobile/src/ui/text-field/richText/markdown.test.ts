@@ -84,3 +84,47 @@ describe('the pinned markdown transformers', () => {
     expect(roundTrip('\\`code\\`')).toBe('\\`code\\`');
   });
 });
+
+/* What a field holds is whatever it last exported, and reopening it is an
+   import of exactly that. So the property that matters is not `export(x) === x`
+   for arbitrary x — it is that a value stops changing once it has been through
+   the editor. Anything that normalises does so on the first save and never
+   drifts again, which is why a project cannot slowly rewrite itself across
+   openings. */
+describe('surviving a save and a reopen', () => {
+  const reopen = (markdown: string) => roundTrip(roundTrip(markdown));
+
+  const settles = (markdown: string) =>
+    expect(reopen(markdown)).toBe(roundTrip(markdown));
+
+  it('leaves its own output untouched', () => {
+    for (const written of [
+      '1. one\n2. two',
+      '1. one\n    1. deep\n2. two',
+      '- [x] done\n- [ ] todo',
+      '**bold** and *italic*',
+      '- one\n- two',
+    ]) {
+      expect(roundTrip(written)).toBe(written);
+      expect(reopen(written)).toBe(written);
+    }
+  });
+
+  it('keeps a bullet marker and a list that does not start at one', () => {
+    expect(roundTrip('* one\n* two')).toBe('* one\n* two');
+    expect(roundTrip('+ one\n+ two')).toBe('+ one\n+ two');
+    expect(roundTrip('3. three\n4. four')).toBe('3. three\n4. four');
+  });
+
+  /* Markdown arriving from outside the editor — a paste, a hand-edited row —
+     is normalised once. Each of these is stable from the second save on. */
+  it('normalises foreign markdown once, then holds still', () => {
+    expect(roundTrip('__b__ and _i_')).toBe('**b** and *i*');
+    // Two spaces is not deep enough to nest; it flattens to a sibling.
+    expect(roundTrip('1. one\n  1. deep')).toBe('1. one\n2. deep');
+
+    for (const foreign of ['__b__ and _i_', '1. one\n  1. deep']) {
+      settles(foreign);
+    }
+  });
+});
