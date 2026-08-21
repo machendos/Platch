@@ -1,18 +1,38 @@
 :root {
   --rich-toolbar-height: 38px;
   --rich-toolbar-gap: 2px;
+  --rich-toolbar-offset: 4px;
 }
 
-/* Out of flow, which is the whole point: the toolbar appears and disappears
-   with focus and may not move the form under it. `top` is written by
-   anchorToolbar.ts before the first paint — it prefers to sit above the field
-   but is clamped to the top of the scrolling area, so a field taller than the
-   screen cannot carry its own toolbar out of reach. */
+/* The rail is what sticks; the toolbar only hangs off it.
+
+   Driving the position from JS looked fine on a desktop and jittered on a
+   phone, because iOS scrolls on the compositor and a requestAnimationFrame
+   correction always arrives a frame or two behind the content it is chasing.
+   Sticky is handled by the same compositor that does the scrolling, so there
+   is nothing to chase.
+
+   Zero height and no margin, so a field gains nothing by having one — the
+   toolbar still costs no layout when it appears. `order: -1` puts it at the
+   field's top edge whatever order the portal appended it in.
+
+   Sticky is bounded by its containing block, which is the field, so "never
+   outlive the field" comes free: once the field's bottom rises past the stick
+   point the rail unsticks and leaves with it. */
+.rich-toolbar-rail {
+  position: sticky;
+  top: calc(var(--rich-toolbar-height) + 2 * var(--rich-toolbar-offset));
+  z-index: 2;
+  order: -1;
+  height: 0;
+}
+
+/* Hung above the rail's origin, so at rest it floats clear of the field's top
+   edge and its label. The rail's `top` is offset by this height to match. */
 .rich-toolbar {
   position: absolute;
-  top: var(--rich-toolbar-top, 0);
+  bottom: var(--rich-toolbar-offset);
   left: 0;
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: var(--rich-toolbar-gap);

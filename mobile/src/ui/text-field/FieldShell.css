@@ -6,15 +6,20 @@
 }
 
 /* Positioned so the formatting toolbar can anchor to the whole field — label
-   included — rather than to the editable inside it. */
+   included — rather than to the editable inside it.
+
+   Spaced with a margin on the label rather than `gap`, because the toolbar
+   arrives as a zero-height flex item and `gap` would space that too: focusing
+   a formatted field would nudge everything below it by 4px, which is the one
+   thing this control may not do. */
 .field {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--field-label-gap);
 }
 
 .field-label {
+  margin-bottom: var(--field-label-gap);
   font-size: var(--font-sm);
   color: var(--text-secondary);
 }

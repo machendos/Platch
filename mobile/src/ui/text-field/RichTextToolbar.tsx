@@ -1,12 +1,6 @@
 import './RichTextToolbar.css';
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { IonIcon } from '@ionic/react';
 import {
@@ -24,7 +18,6 @@ import {
 } from 'lexical';
 import type { ListType } from '@lexical/list';
 import { useActiveField } from './richText/activeField';
-import { ceilingFor, toolbarTopWithin } from './richText/anchorToolbar';
 import {
   $lineListType,
   $removeLineList,
@@ -72,7 +65,6 @@ const ToolbarButton = ({
 export const RichTextToolbar = () => {
   const { active } = useActiveField();
   const [marks, setMarks] = useState<Marks>(NO_MARKS);
-  const bar = useRef<HTMLDivElement>(null);
 
   const editor = active?.editor ?? null;
 
@@ -98,44 +90,6 @@ export const RichTextToolbar = () => {
     return editor.registerUpdateListener(read);
   }, [editor]);
 
-  /* Followed frame by frame rather than by listening for scrolls. A scroll
-     listener is the obvious approach and it is not dependable here: the
-     scroller lives in ion-content's shadow root and is only handed over
-     asynchronously, and iOS does not deliver scroll events during momentum the
-     way a desktop browser does. Neither shows up in a preview browser driven
-     with synthetic events, which is exactly how this shipped broken once.
-
-     A frame loop has none of those failure modes. It costs one rect read per
-     frame, only while a formatted field has focus, and the write is guarded on
-     the value changing — so a still page does no style work at all. It also
-     subsumes the resize and grow cases that needed their own observers. */
-  useLayoutEffect(() => {
-    const field = active?.shell;
-    const element = bar.current;
-    if (!field || !element) return;
-
-    let frame = 0;
-    let last: number | null = null;
-
-    const follow = () => {
-      const top = toolbarTopWithin(
-        field.getBoundingClientRect(),
-        ceilingFor(field),
-        element.offsetHeight,
-      );
-
-      if (top !== last) {
-        last = top;
-        element.style.setProperty('--rich-toolbar-top', `${top}px`);
-      }
-
-      frame = requestAnimationFrame(follow);
-    };
-
-    follow();
-    return () => cancelAnimationFrame(frame);
-  }, [active]);
-
   if (!active) return null;
 
   const run = (command: () => void) => {
@@ -154,79 +108,84 @@ export const RichTextToolbar = () => {
     );
 
   const toolbar = (
-    <div
-      ref={bar}
-      className="rich-toolbar"
-      role="toolbar"
-      aria-label="Formatting"
-      data-rich-toolbar=""
-    >
-      <ToolbarButton
-        label="Bold"
-        active={marks.bold}
-        onPress={() =>
-          run(() => active.editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'))
-        }
+    <div className="rich-toolbar-rail">
+      <div
+        className="rich-toolbar"
+        role="toolbar"
+        aria-label="Formatting"
+        data-rich-toolbar=""
       >
-        <span className="rich-toolbar-glyph rich-toolbar-glyph-bold">B</span>
-      </ToolbarButton>
+        <ToolbarButton
+          label="Bold"
+          active={marks.bold}
+          onPress={() =>
+            run(() =>
+              active.editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
+            )
+          }
+        >
+          <span className="rich-toolbar-glyph rich-toolbar-glyph-bold">B</span>
+        </ToolbarButton>
 
-      <ToolbarButton
-        label="Italic"
-        active={marks.italic}
-        onPress={() =>
-          run(() =>
-            active.editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
-          )
-        }
-      >
-        <span className="rich-toolbar-glyph rich-toolbar-glyph-italic">I</span>
-      </ToolbarButton>
+        <ToolbarButton
+          label="Italic"
+          active={marks.italic}
+          onPress={() =>
+            run(() =>
+              active.editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
+            )
+          }
+        >
+          <span className="rich-toolbar-glyph rich-toolbar-glyph-italic">
+            I
+          </span>
+        </ToolbarButton>
 
-      <span className="rich-toolbar-divider" aria-hidden="true" />
+        <span className="rich-toolbar-divider" aria-hidden="true" />
 
-      <ToolbarButton
-        label="Numbered list"
-        active={marks.list === 'number'}
-        onPress={() => toggleList('number')}
-      >
-        <IonIcon icon={listOutline} />
-      </ToolbarButton>
+        <ToolbarButton
+          label="Numbered list"
+          active={marks.list === 'number'}
+          onPress={() => toggleList('number')}
+        >
+          <IonIcon icon={listOutline} />
+        </ToolbarButton>
 
-      <ToolbarButton
-        label="Checklist"
-        active={marks.list === 'check'}
-        onPress={() => toggleList('check')}
-      >
-        <IonIcon icon={checkboxOutline} />
-      </ToolbarButton>
+        <ToolbarButton
+          label="Checklist"
+          active={marks.list === 'check'}
+          onPress={() => toggleList('check')}
+        >
+          <IonIcon icon={checkboxOutline} />
+        </ToolbarButton>
 
-      <span className="rich-toolbar-divider" aria-hidden="true" />
+        <span className="rich-toolbar-divider" aria-hidden="true" />
 
-      {/* Tab and Shift+Tab do this on a keyboard, and no software keyboard has
+        {/* Tab and Shift+Tab do this on a keyboard, and no software keyboard has
           a Tab key — not iOS, not Gboard. On a phone these are the only way to
           nest, which is why they are here rather than being a nicety. */}
-      <ToolbarButton
-        label="Outdent"
-        onPress={() =>
-          run(() =>
-            active.editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined),
-          )
-        }
-      >
-        <IonIcon icon={chevronBack} />
-      </ToolbarButton>
+        <ToolbarButton
+          label="Outdent"
+          onPress={() =>
+            run(() =>
+              active.editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined),
+            )
+          }
+        >
+          <IonIcon icon={chevronBack} />
+        </ToolbarButton>
 
-      <ToolbarButton
-        label="Indent"
-        onPress={() =>
-          run(() =>
-            active.editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined),
-          )
-        }
-      >
-        <IonIcon icon={chevronForward} />
-      </ToolbarButton>
+        <ToolbarButton
+          label="Indent"
+          onPress={() =>
+            run(() =>
+              active.editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined),
+            )
+          }
+        >
+          <IonIcon icon={chevronForward} />
+        </ToolbarButton>
+      </div>
     </div>
   );
 
