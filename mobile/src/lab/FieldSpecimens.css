@@ -18,3 +18,14 @@
   font-size: var(--font-sm);
   color: var(--text-secondary);
 }
+
+/* What actually gets stored. With markdown as the format this is the thing
+   worth staring at — the rendering is downstream of it. */
+.field-specimen-value {
+  margin: var(--space-1) 0 0;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,143 @@
+:root {
+  --field-checkbox-size: 18px;
+  --field-list-indent: 24px;
+  --field-block-gap: var(--space-1);
+}
+
+/* Relative because Lexical renders the placeholder as a sibling of the
+   editable, not inside it. */
+.field-rich {
+  position: relative;
+}
+
+/* No replica and no measuring here: a contenteditable is made of real blocks,
+   so it sizes itself. The plain body needs the grid trick only because a
+   textarea will not. */
+.field-editor {
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.field-placeholder {
+  position: absolute;
+  top: var(--field-padding-block);
+  left: var(--field-padding-inline);
+  pointer-events: none;
+  font-size: var(--font-md);
+  line-height: var(--field-line-height);
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+/* ===== Blocks ===== */
+
+.field-paragraph {
+  margin: 0;
+}
+
+.field-paragraph + .field-paragraph {
+  margin-top: var(--field-block-gap);
+}
+
+.field-bold {
+  font-weight: 600;
+}
+
+.field-italic {
+  font-style: italic;
+}
+
+/* ===== Lists ===== */
+
+.field-list-ol,
+.field-list-ul {
+  margin: 0;
+  padding: 0;
+  list-style-position: outside;
+}
+
+.field-listitem {
+  margin: 0 0 0 var(--field-list-indent);
+  padding: 0;
+}
+
+/* A nested list arrives as a list item holding a list. It must draw no marker
+   of its own, or every nested level shows an empty bullet above its children. */
+.field-listitem-nested {
+  list-style: none;
+}
+
+.field-listitem-nested::before,
+.field-listitem-nested::after {
+  display: none;
+}
+
+/* Numbering restarts per level so a nested ordered list reads 1. / 1.1 rather
+   than continuing the parent's count. */
+.field-list-ol-1 {
+  list-style-type: decimal;
+}
+
+.field-list-ol-2 {
+  list-style-type: lower-alpha;
+}
+
+.field-list-ol-3 {
+  list-style-type: lower-roman;
+}
+
+/* ===== Checklists ===== */
+
+/* Marker drawn on the item rather than with an <input>: Lexical owns the
+   checked state and toggles it from a pointer handler, so a real checkbox
+   would be a second source of truth that the undo stack does not know about. */
+.field-listitem-checked,
+.field-listitem-unchecked {
+  position: relative;
+  margin-left: 0;
+  padding-left: calc(var(--field-checkbox-size) + var(--space-2));
+  list-style: none;
+  outline: none;
+}
+
+.field-listitem-checked::before,
+.field-listitem-unchecked::before {
+  content: '';
+  position: absolute;
+  top: calc((var(--field-line-height) - var(--field-checkbox-size)) / 2);
+  left: 0;
+  width: var(--field-checkbox-size);
+  height: var(--field-checkbox-size);
+  box-sizing: border-box;
+  border: var(--hairline-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.field-listitem-checked::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* The tick is a rotated two-sided box rather than a glyph, so it does not
+   depend on a font that may not be present. */
+.field-listitem-checked::after {
+  content: '';
+  position: absolute;
+  top: calc(
+    (var(--field-line-height) - var(--field-checkbox-size)) / 2 +
+      var(--field-checkbox-size) * 0.22
+  );
+  left: calc(var(--field-checkbox-size) * 0.34);
+  width: calc(var(--field-checkbox-size) * 0.28);
+  height: calc(var(--field-checkbox-size) * 0.52);
+  box-sizing: border-box;
+  border: solid var(--accent-contrast);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.field-listitem-checked {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}

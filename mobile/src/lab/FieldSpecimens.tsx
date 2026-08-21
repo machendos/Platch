@@ -66,6 +66,27 @@ const SPECIMENS: Specimen[] = [
     preset: CONTEXT_FIELD,
     initial: 'Timber is ordered.\nFelt is not.\n',
   },
+  {
+    id: 'context-ordered',
+    note: 'context / ordered list, nested one level',
+    preset: CONTEXT_FIELD,
+    initial:
+      '1. Strip the felt\n    1. Lift the battens\n    2. Bag the nails\n2. Re-deck\n3. New felt',
+  },
+  {
+    id: 'context-checklist',
+    note: 'context / checklist, checked and unchecked',
+    preset: CONTEXT_FIELD,
+    initial:
+      '- [x] Order the timber\n- [ ] Order the felt\n- [ ] Book the skip',
+  },
+  {
+    id: 'context-emphasis',
+    note: 'context / bold and italic',
+    preset: CONTEXT_FIELD,
+    initial:
+      'The **roof** goes on first. Everything else is *weather-dependent*.',
+  },
 ];
 
 export const FieldSpecimens = () => {
@@ -89,6 +110,9 @@ export const FieldSpecimens = () => {
           <p className="field-specimen-probe" data-probe={id}>
             probe
           </p>
+          <pre className="field-specimen-value" data-value={id}>
+            {JSON.stringify(values[id])}
+          </pre>
         </section>
       ))}
     </div>

@@ -2,7 +2,7 @@ import type { FieldProps } from '../ui/text-field/Field';
 
 export type FieldPreset = Pick<
   FieldProps,
-  'label' | 'placeholder' | 'minRows' | 'allowNewlines'
+  'label' | 'placeholder' | 'minRows' | 'allowNewlines' | 'formatting'
 >;
 
 export const NAME_FIELD: FieldPreset = {
@@ -24,4 +24,5 @@ export const CONTEXT_FIELD: FieldPreset = {
   placeholder: 'Anything worth remembering',
   minRows: 3,
   allowNewlines: true,
+  formatting: true,
 };

@@ -16,6 +16,32 @@
   color: var(--text-secondary);
 }
 
+/* One box for every body, because the shell owns the dimensions and the two
+   bodies have to be interchangeable: flipping a field from plain to formatted
+   must not move a pixel. `.field-body::after` is in the list rather than
+   carrying the class because a pseudo-element cannot have one, and it is the
+   replica the plain body is sized from — if its metrics drift from the
+   textarea's, it sizes the row for a wrap the reader never sees. */
+.field-input,
+.field-body::after {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--field-padding-block) var(--field-padding-inline);
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: var(--field-line-height);
+  overflow-wrap: anywhere;
+  min-height: calc(
+    var(--field-min-rows) * var(--field-line-height) + 2 *
+      var(--field-padding-block)
+  );
+}
+
+.field-input:focus,
+.field-input:focus-visible {
+  outline: none;
+}
+
 /* Focus changes paint, never layout: the border keeps its width and only its
    colour moves, and the fill is a background rather than an inset box. A
    thicker focus line would have to come from box-shadow or outline, which are
