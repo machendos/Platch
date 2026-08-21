@@ -30,11 +30,28 @@ export const useKeyboardInset = () => {
       };
     }
 
+    /* In a browser this reports 0 for as long as Ionic is holding the document
+       still, and that is not a bug here — it is the platform.
+
+       iOS shrinks the visual viewport for the keyboard only when the *document*
+       scrolls. Ionic locks the body and scrolls inside ion-content instead, so
+       iOS overlays the keyboard and leaves the viewport alone: measured on an
+       iPhone 17 with the keyboard up, innerHeight and visualViewport.height are
+       both 714. The same page outside Ionic reports 714 and 367.
+
+       Ionic's own detection has the identical limitation — @ionic/core reaches
+       for the Capacitor plugin first and falls back to visualViewport.onresize,
+       so ionKeyboardDidShow does not fire here either. Nothing a web page can
+       read distinguishes the two states, and Ionic's answer is to guess with a
+       keyboardHeight config default of 290, which is a device-specific number
+       dressed up as a constant.
+
+       So the browser keeps the anchored toolbar, and the keyboard dock is a
+       native-app behaviour. Left as viewport arithmetic rather than a hardcoded
+       zero because it is correct wherever the document does scroll. */
     const viewport = window.visualViewport;
     if (!viewport) return;
 
-    // What the layout viewport has that the visual one does not is the
-    // keyboard, plus anything else the browser has pushed in front of it.
     const read = () =>
       setInset(
         Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop),
