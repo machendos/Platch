@@ -1,6 +1,12 @@
 import './RichTextToolbar.css';
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { IonIcon } from '@ionic/react';
 import {
@@ -17,8 +23,12 @@ import {
   OUTDENT_CONTENT_COMMAND,
 } from 'lexical';
 import type { ListType } from '@lexical/list';
-import { useKeyboardInset } from '../../system/keyboard/useKeyboardInset';
 import { useActiveField } from './richText/activeField';
+import {
+  ceilingFor,
+  scrollerFor,
+  toolbarTopWithin,
+} from './richText/anchorToolbar';
 import {
   $lineListType,
   $removeLineList,
@@ -65,8 +75,8 @@ const ToolbarButton = ({
 
 export const RichTextToolbar = () => {
   const { active } = useActiveField();
-  const keyboardInset = useKeyboardInset();
   const [marks, setMarks] = useState<Marks>(NO_MARKS);
+  const bar = useRef<HTMLDivElement>(null);
 
   const editor = active?.editor ?? null;
 
@@ -92,6 +102,50 @@ export const RichTextToolbar = () => {
     return editor.registerUpdateListener(read);
   }, [editor]);
 
+  /* Layout, not state: the top is written straight onto the element so a
+     scroll does not re-render the toolbar, and useLayoutEffect places it
+     before the first paint so it never flashes at the wrong height. */
+  useLayoutEffect(() => {
+    const field = active?.shell;
+    const element = bar.current;
+    if (!field || !element) return;
+
+    const place = () => {
+      element.style.setProperty(
+        '--rich-toolbar-top',
+        `${toolbarTopWithin(
+          field.getBoundingClientRect(),
+          ceilingFor(field),
+          element.offsetHeight,
+        )}px`,
+      );
+    };
+
+    place();
+
+    // The field grows as the text does, which moves everything below it.
+    const resized = new ResizeObserver(place);
+    resized.observe(field);
+    window.addEventListener('resize', place);
+
+    let detach: (() => void) | undefined;
+    let dropped = false;
+
+    void scrollerFor(field).then((scroller) => {
+      if (dropped) return;
+      scroller.addEventListener('scroll', place, { passive: true });
+      detach = () => scroller.removeEventListener('scroll', place);
+      place();
+    });
+
+    return () => {
+      dropped = true;
+      detach?.();
+      resized.disconnect();
+      window.removeEventListener('resize', place);
+    };
+  }, [active]);
+
   if (!active) return null;
 
   const run = (command: () => void) => {
@@ -111,12 +165,8 @@ export const RichTextToolbar = () => {
 
   const toolbar = (
     <div
-      className={
-        keyboardInset > 0
-          ? 'rich-toolbar rich-toolbar-on-keyboard'
-          : 'rich-toolbar rich-toolbar-anchored'
-      }
-      style={{ '--keyboard-inset': `${keyboardInset}px` } as CSSProperties}
+      ref={bar}
+      className="rich-toolbar"
       role="toolbar"
       aria-label="Formatting"
       data-rich-toolbar=""

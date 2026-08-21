@@ -83,6 +83,13 @@ const SPECIMENS: Specimen[] = [
       '- [x] Order the timber\n- [ ] Order the felt\n- [ ] Book the skip',
   },
   {
+    id: 'context-tall',
+    note: 'context / taller than the screen, toolbar must stay reachable',
+    preset: CONTEXT_FIELD,
+    initial:
+      '1. Step 1 of a list long enough to scroll its own toolbar off the top\n2. Step 2 of a list long enough to scroll its own toolbar off the top\n3. Step 3 of a list long enough to scroll its own toolbar off the top\n4. Step 4 of a list long enough to scroll its own toolbar off the top\n5. Step 5 of a list long enough to scroll its own toolbar off the top\n6. Step 6 of a list long enough to scroll its own toolbar off the top\n7. Step 7 of a list long enough to scroll its own toolbar off the top\n8. Step 8 of a list long enough to scroll its own toolbar off the top\n9. Step 9 of a list long enough to scroll its own toolbar off the top\n10. Step 10 of a list long enough to scroll its own toolbar off the top\n11. Step 11 of a list long enough to scroll its own toolbar off the top\n12. Step 12 of a list long enough to scroll its own toolbar off the top\n13. Step 13 of a list long enough to scroll its own toolbar off the top\n14. Step 14 of a list long enough to scroll its own toolbar off the top\n15. Step 15 of a list long enough to scroll its own toolbar off the top\n16. Step 16 of a list long enough to scroll its own toolbar off the top\n17. Step 17 of a list long enough to scroll its own toolbar off the top\n18. Step 18 of a list long enough to scroll its own toolbar off the top\n19. Step 19 of a list long enough to scroll its own toolbar off the top\n20. Step 20 of a list long enough to scroll its own toolbar off the top\n21. Step 21 of a list long enough to scroll its own toolbar off the top\n22. Step 22 of a list long enough to scroll its own toolbar off the top\n23. Step 23 of a list long enough to scroll its own toolbar off the top\n24. Step 24 of a list long enough to scroll its own toolbar off the top\n25. Step 25 of a list long enough to scroll its own toolbar off the top',
+  },
+  {
     id: 'context-emphasis',
     note: 'context / bold and italic',
     preset: CONTEXT_FIELD,
