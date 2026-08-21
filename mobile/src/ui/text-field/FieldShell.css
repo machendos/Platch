@@ -5,7 +5,10 @@
   --field-label-gap: var(--space-1);
 }
 
+/* Positioned so the formatting toolbar can anchor to the whole field — label
+   included — rather than to the editable inside it. */
 .field {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--field-label-gap);

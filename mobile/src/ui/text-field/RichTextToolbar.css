@@ -1,0 +1,110 @@
+:root {
+  --rich-toolbar-height: 38px;
+  --rich-toolbar-gap: 2px;
+  --rich-toolbar-offset: var(--space-1);
+}
+
+/* Out of flow in both placements, which is the whole point: the toolbar
+   appears and disappears with focus, and neither may move the form under it. */
+.rich-toolbar {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--rich-toolbar-gap);
+  box-sizing: border-box;
+  height: var(--rich-toolbar-height);
+  padding: 0 var(--space-1);
+  border: var(--hairline-width) solid var(--separator);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+/* Desktop: pinned to the top edge of the field being edited, so it is next to
+   the text rather than at the far end of a long modal. */
+.rich-toolbar-anchored {
+  bottom: calc(100% + var(--rich-toolbar-offset));
+  left: 0;
+}
+
+/* Touch: the Apple Notes placement. `fixed` so it stays put while the field
+   scrolls, sitting on whatever --keyboard-inset reports. */
+.rich-toolbar-on-keyboard {
+  position: fixed;
+  right: var(--space-3);
+  bottom: calc(var(--keyboard-inset, 0px) + var(--space-2));
+  left: var(--space-3);
+  justify-content: space-around;
+}
+
+.rich-toolbar-divider {
+  align-self: stretch;
+  width: var(--hairline-width);
+  margin: var(--space-2) var(--space-1);
+  background: var(--separator);
+}
+
+.rich-toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--icon-button-size);
+  height: var(--icon-button-size);
+  padding: 0 var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  transition: background-color var(--duration-exit) var(--easing-standard);
+}
+
+/* The app's other "this one is chosen" idiom — the accent surface with dark
+   text that .header-button.active uses — rather than a filled accent block. */
+.rich-toolbar-button-active {
+  background: var(--accent-surface);
+  color: var(--accent);
+}
+
+.rich-toolbar-button ion-icon {
+  font-size: 18px;
+}
+
+/* Serif for the two letter glyphs, because "B" and "I" are only legible as
+   formatting marks when the weight and the slant are unmistakable. */
+.rich-toolbar-glyph {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.rich-toolbar-glyph-bold {
+  font-weight: 700;
+}
+
+.rich-toolbar-glyph-italic {
+  font-style: italic;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rich-toolbar-button {
+    cursor: pointer;
+  }
+
+  .rich-toolbar-button:hover {
+    background: var(--surface-subtle);
+  }
+
+  .rich-toolbar-button-active:hover {
+    background: var(--accent-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rich-toolbar-button {
+    transition: none;
+  }
+}

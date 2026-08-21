@@ -2,6 +2,8 @@ import './FieldSpecimens.css';
 
 import { useState } from 'react';
 import { Field } from '../ui/text-field/Field';
+import { RichTextToolbar } from '../ui/text-field/RichTextToolbar';
+import { ActiveFieldProvider } from '../ui/text-field/richText/activeField';
 import {
   CONTEXT_FIELD,
   GOAL_FIELD,
@@ -95,26 +97,29 @@ export const FieldSpecimens = () => {
   );
 
   return (
-    <div className="field-specimens">
-      {SPECIMENS.map(({ id, note, preset }) => (
-        <section className="field-specimen" key={id}>
-          <p className="field-specimen-note">{note}</p>
-          <Field
-            {...preset}
-            className={`specimen-${id}`}
-            value={values[id]}
-            onChange={(value) =>
-              setValues((current) => ({ ...current, [id]: value }))
-            }
-          />
-          <p className="field-specimen-probe" data-probe={id}>
-            probe
-          </p>
-          <pre className="field-specimen-value" data-value={id}>
-            {JSON.stringify(values[id])}
-          </pre>
-        </section>
-      ))}
-    </div>
+    <ActiveFieldProvider>
+      <RichTextToolbar />
+      <div className="field-specimens">
+        {SPECIMENS.map(({ id, note, preset }) => (
+          <section className="field-specimen" key={id}>
+            <p className="field-specimen-note">{note}</p>
+            <Field
+              {...preset}
+              className={`specimen-${id}`}
+              value={values[id]}
+              onChange={(value) =>
+                setValues((current) => ({ ...current, [id]: value }))
+              }
+            />
+            <p className="field-specimen-probe" data-probe={id}>
+              probe
+            </p>
+            <pre className="field-specimen-value" data-value={id}>
+              {JSON.stringify(values[id])}
+            </pre>
+          </section>
+        ))}
+      </div>
+    </ActiveFieldProvider>
   );
 };

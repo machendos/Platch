@@ -11,6 +11,7 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
+import { ReportFocusPlugin } from './richText/ReportFocusPlugin';
 import { RICH_TEXT_NODES } from './richText/nodes';
 import {
   $readMarkdown,
@@ -38,6 +39,7 @@ export const RichTextField = ({
   // seeds it once and is never written back. Reseeding happens by remounting
   // (`key`). Both refs exist to tell our own emissions apart from a write from
   // outside, which is the one thing that silently does nothing.
+  const shell = useRef<HTMLDivElement>(null);
   const seed = useRef(value);
   const lastEmitted = useRef(value);
   const warned = useRef(false);
@@ -59,6 +61,7 @@ export const RichTextField = ({
 
   return (
     <div
+      ref={shell}
       className="field-rich"
       style={{ '--field-min-rows': minRows } as CSSProperties}
     >
@@ -93,6 +96,7 @@ export const RichTextField = ({
         <ListPlugin />
         <CheckListPlugin />
         <TabIndentationPlugin />
+        <ReportFocusPlugin shell={shell} />
         <MarkdownShortcutPlugin transformers={RICH_TEXT_TRANSFORMERS} />
         <OnChangePlugin
           ignoreSelectionChange
