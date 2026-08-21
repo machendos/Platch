@@ -1,0 +1,69 @@
+:root {
+  --reveal-inline-gap: var(--space-2);
+  --reveal-inline-shift: var(--space-2);
+}
+
+.reveal {
+  display: grid;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--reveal-duration) var(--easing-standard),
+    transform var(--reveal-duration) var(--easing-standard),
+    opacity var(--reveal-duration) var(--easing-standard);
+}
+
+.reveal-open {
+  opacity: 1;
+}
+
+/* Height comes from the grid track, `0fr` to `1fr`, and not from a max-height.
+   The children are arbitrary — a row, a paragraph, a whole TimeInput — so any
+   max-height would be a guess, and measuring one is the layout read
+   TextField.css avoids and that races Ionic's first pass. */
+.reveal-block {
+  grid-template-rows: 0fr;
+}
+
+.reveal-block.reveal-open {
+  grid-template-rows: 1fr;
+}
+
+/* The track is what collapses; the content keeps its own height and this is
+   what cuts it off. `min-height: 0` is what lets the item be shorter than it
+   is. Clipping is for the travel only — left on, it would cut the wheels off a
+   TimeInput opened inside a reveal. */
+.reveal-block .reveal-content {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.reveal-block.reveal-settled .reveal-content {
+  overflow: visible;
+}
+
+/* No size animation on this axis, and that is measured rather than chosen: a
+   `0fr` track collapses to nothing down the block axis but resolves to its
+   content's width across the inline one, where the grid is sized to its
+   content and the fr track is what supplies that content size. So the row
+   arrives at its own width and fades in from a few pixels out instead.
+   Nothing is displaced by that — the row's first child holds the left with a
+   `margin-right: auto`, and there is nothing to the right of this. */
+.reveal-inline {
+  transform: translateX(var(--reveal-inline-shift));
+}
+
+.reveal-inline.reveal-open {
+  transform: none;
+}
+
+.reveal-inline .reveal-content {
+  display: flex;
+  align-items: center;
+  gap: var(--reveal-inline-gap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transition: none;
+  }
+}
