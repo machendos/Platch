@@ -6,6 +6,9 @@ import { Breadcrumbs } from '../ui/breadcrumbs/Breadcrumbs';
 import type { BreadcrumbItem } from '../ui/breadcrumbs/Breadcrumbs';
 import { SegmentedControl } from '../ui/segmented-control/SegmentedControl';
 import type { SegmentedOption } from '../ui/segmented-control/SegmentedControl';
+import { Select } from '../ui/select/Select';
+import { numberRange } from '../ui/select/selectOptions';
+import type { SelectOption } from '../ui/select/selectOptions';
 
 type CreateProjectModalProps = {
   isOpen: boolean;
@@ -17,6 +20,19 @@ type ProjectStatus = 'ACTIVE' | 'BACKLOG';
 const STATUS_OPTIONS: SegmentedOption<ProjectStatus>[] = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'BACKLOG', label: 'Backlog' },
+];
+
+// TODO: demo mount for the Select primitive until the recurrence form exists.
+const MONTH_DAYS = numberRange(1, 31);
+
+const WEEKDAYS: SelectOption<string>[] = [
+  { value: 'MO', label: 'Monday' },
+  { value: 'TU', label: 'Tuesday' },
+  { value: 'WE', label: 'Wednesday' },
+  { value: 'TH', label: 'Thursday' },
+  { value: 'FR', label: 'Friday' },
+  { value: 'SA', label: 'Saturday' },
+  { value: 'SU', label: 'Sunday' },
 ];
 
 // TODO: hardcoded ancestry until projects can be nested for real.
@@ -36,6 +52,8 @@ export const CreateProjectModal = ({
 }: CreateProjectModalProps) => {
   const [status, setStatus] = useState<ProjectStatus>('ACTIVE');
   const [currentId, setCurrentId] = useState('this-project');
+  const [monthDay, setMonthDay] = useState<number | null>(30);
+  const [weekday, setWeekday] = useState<string | null>(null);
 
   return (
     <Modal
@@ -60,6 +78,23 @@ export const CreateProjectModal = ({
           value={status}
           onChange={setStatus}
           label="Project status"
+        />
+      </div>
+
+      <div className="create-project-row">
+        <span className="create-project-row-label">on</span>
+        <Select
+          options={MONTH_DAYS}
+          value={monthDay}
+          onChange={setMonthDay}
+          label="Day of the month"
+        />
+        <Select
+          options={WEEKDAYS}
+          value={weekday}
+          onChange={setWeekday}
+          label="Day of the week"
+          placeholder="Any day"
         />
       </div>
 
