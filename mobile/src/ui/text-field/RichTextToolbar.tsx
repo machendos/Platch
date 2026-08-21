@@ -24,11 +24,7 @@ import {
 } from 'lexical';
 import type { ListType } from '@lexical/list';
 import { useActiveField } from './richText/activeField';
-import {
-  ceilingFor,
-  scrollerFor,
-  toolbarTopWithin,
-} from './richText/anchorToolbar';
+import { ceilingFor, toolbarTopWithin } from './richText/anchorToolbar';
 import {
   $lineListType,
   $removeLineList,
@@ -102,48 +98,42 @@ export const RichTextToolbar = () => {
     return editor.registerUpdateListener(read);
   }, [editor]);
 
-  /* Layout, not state: the top is written straight onto the element so a
-     scroll does not re-render the toolbar, and useLayoutEffect places it
-     before the first paint so it never flashes at the wrong height. */
+  /* Followed frame by frame rather than by listening for scrolls. A scroll
+     listener is the obvious approach and it is not dependable here: the
+     scroller lives in ion-content's shadow root and is only handed over
+     asynchronously, and iOS does not deliver scroll events during momentum the
+     way a desktop browser does. Neither shows up in a preview browser driven
+     with synthetic events, which is exactly how this shipped broken once.
+
+     A frame loop has none of those failure modes. It costs one rect read per
+     frame, only while a formatted field has focus, and the write is guarded on
+     the value changing — so a still page does no style work at all. It also
+     subsumes the resize and grow cases that needed their own observers. */
   useLayoutEffect(() => {
     const field = active?.shell;
     const element = bar.current;
     if (!field || !element) return;
 
-    const place = () => {
-      element.style.setProperty(
-        '--rich-toolbar-top',
-        `${toolbarTopWithin(
-          field.getBoundingClientRect(),
-          ceilingFor(field),
-          element.offsetHeight,
-        )}px`,
+    let frame = 0;
+    let last: number | null = null;
+
+    const follow = () => {
+      const top = toolbarTopWithin(
+        field.getBoundingClientRect(),
+        ceilingFor(field),
+        element.offsetHeight,
       );
+
+      if (top !== last) {
+        last = top;
+        element.style.setProperty('--rich-toolbar-top', `${top}px`);
+      }
+
+      frame = requestAnimationFrame(follow);
     };
 
-    place();
-
-    // The field grows as the text does, which moves everything below it.
-    const resized = new ResizeObserver(place);
-    resized.observe(field);
-    window.addEventListener('resize', place);
-
-    let detach: (() => void) | undefined;
-    let dropped = false;
-
-    void scrollerFor(field).then((scroller) => {
-      if (dropped) return;
-      scroller.addEventListener('scroll', place, { passive: true });
-      detach = () => scroller.removeEventListener('scroll', place);
-      place();
-    });
-
-    return () => {
-      dropped = true;
-      detach?.();
-      resized.disconnect();
-      window.removeEventListener('resize', place);
-    };
+    follow();
+    return () => cancelAnimationFrame(frame);
   }, [active]);
 
   if (!active) return null;
@@ -240,10 +230,8 @@ export const RichTextToolbar = () => {
     </div>
   );
 
-  /* Rendered into the focused field rather than into the page. Anchored, it
-     then moves with the content and needs no scroll listener at all; docked to
-     the keyboard it is fixed, and the portal only decides which stacking
-     context it lands in. Either way it is out of flow, so appearing shifts
-     nothing. */
+  /* Rendered into the focused field rather than into the page, so it is
+     positioned against the thing it is editing and moves with it. Out of flow
+     throughout, so appearing shifts nothing. */
   return createPortal(toolbar, active.shell);
 };

@@ -44,18 +44,3 @@ export const ceilingFor = (field: HTMLElement) => {
   const top = content ? content.getBoundingClientRect().top : 0;
   return top + TOOLBAR_CEILING_GAP;
 };
-
-/* ion-content scrolls in its shadow root, so the element that actually emits
-   scroll events cannot be reached with closest(). Ionic hands it over, but
-   only asynchronously. */
-export const scrollerFor = async (field: HTMLElement): Promise<EventTarget> => {
-  const content = field.closest('ion-content');
-  if (!content) return window;
-
-  const withScroller = content as HTMLElement & {
-    getScrollElement?: () => Promise<HTMLElement>;
-  };
-  if (!withScroller.getScrollElement) return window;
-
-  return withScroller.getScrollElement();
-};
