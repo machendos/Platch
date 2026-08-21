@@ -862,6 +862,239 @@ time; when a real modal wants it, those two are what justify lifting it.
 
 ---
 
+## `Select`
+
+A field that opens a list and takes one value out of it. Bound to the small
+closed sets the schema is full of — `recurringByMonthDay` (1–31),
+`recurringByMonth`, `RecurringFrequency`, project status, colour.
+
+**It is for correcting a value, not for entering one.** These fields mostly
+display something that arrived another way; the control exists so the user can
+adjust it. That is why it is deliberately plain, and why it does not try to
+compete with `TimeInput`'s machinery.
+
+### The panel is an `IonPopover`, unlike `TimeInput`'s
+
+The two solve the same problem — a field that opens a picker — and they solve it
+differently, which is worth stating plainly so the next person does not assume
+one is an oversight.
+
+`TimeInput` expands **in flow** and scrolls itself into view on every frame of
+the expansion. `Select` **portals** to `<ion-app>` and lets
+`getPopoverPosition` place it: it clamps against all four edges, flips above the
+trigger when there is no room below, respects the safe areas, and falls back to a
+scrollable panel anchored to the trigger when neither side fits. Nothing here
+measures anything.
+
+The trade is real in both directions. The popover cannot be clipped by whatever
+contains the field and needs no reveal logic; but it does not follow the trigger
+when the page moves, which is why scrolling dismisses it (below).
+
+### Ionic takes the focus away in three places, and each needs its own answer
+
+This is the part that took the longest to get right, and it is worth stating in
+full because two visible bugs came out of getting only part of it. All three
+live in `@ionic/core`'s `utils/overlays.js`, and **none of them implies the
+others**:
+
+| What | Fix |
+|---|---|
+| `trapKeyboardFocus` pulls focus back inside the overlay | `focusTrap={false}` |
+| `overlay.el.focus()` runs *after* `didPresent`, so it overwrites any refocus done there | `keyboardClose={false}` |
+| `restoreElementFocus` is called by `present` for every overlay that is not a toast, and **blurs the field on the way in** | refocus the field in `onDidPresent` |
+
+The third has no prop and no opt-out — `present` calls it unconditionally
+(`overlays.js:449`). It captures `document.activeElement`, blurs it immediately,
+then after dismiss puts focus back if nothing else has taken it.
+
+Both halves of that produced a real bug:
+
+- **Blurring on the way in** meant the caret was gone the instant the panel
+  opened. The field could not be typed into until it was clicked a *second*
+  time, so it behaved as a dropdown-only control on a desktop.
+- **Restoring on the way out** meant clicking a *second* `Select` handed the
+  caret back to the first one. That field's own present had just blurred it, so
+  focus was momentarily on `<body>` — which is exactly the condition
+  `restoreElementFocus` waits for. The result was the second field's panel on
+  screen while the first field still took the typing.
+
+The second bug was caused by the first.
+
+**The restore is disarmed rather than raced.** The field blurs itself just
+before Ionic presents — `onClickCapture`, which runs ahead of the click listener
+Ionic put on the trigger — and takes focus back in `onDidPresent`. Ionic
+therefore snapshots `body`, which makes both halves of the restore no-ops: it
+blurs body going in and focuses body coming out.
+
+Trying to *beat* the restore instead does not work, and the reason is worth
+keeping. The obvious fix is to blur the field again after `didDismiss`, on the
+next frame. But the restore's own condition is `activeElement === body` — so
+that blur does not defeat the restore, **it creates exactly the state the
+restore is waiting for**. Measured: with the blur-after approach the field was
+focused again by the time the panel finished closing, which is the "stays
+selected for a moment" the second bug reported. Removing focus early and never
+giving Ionic the field to remember is the only version that holds.
+
+Nothing here wants `keyboardClose`'s documented effect either — on touch the
+field is a button, so there is no keyboard to dismiss.
+
+### Open and closed are read from the `will` events, not the `did` ones
+
+The field's border comes from `isOpen`, and taking that from `onDidDismiss`
+meant it only changed once the leave animation had finished — so the control
+went on looking selected for a beat after the click that closed it. Only when
+it was open at the time, though: closing it by picking a row had already
+flipped the state, so that same click felt instant, and the control behaved
+differently depending on what you had done last. Both edges now come from
+`onWillPresent` / `onWillDismiss`, which fire when the transition *starts*.
+Measured: the open class now drops 3 ms after `willDismiss`.
+
+### Scrolling the active row into view must not scroll anything else
+
+`scrollIntoView({ block: 'nearest' })` is the obvious call and it is the wrong
+one here: it is free to scroll any ancestor, and an ancestor scrolling fires a
+scroll event that the dismiss listener below reads as the page moving — so the
+panel dismissed itself. It runs on every change of `active`, which is every
+keystroke and every arrow press, so the panel could begin fading out from under
+the very typing that moved the highlight. Adjusting the list's own `scrollTop`
+from the two rects cannot touch anything outside the list.
+
+### Anything outside it dismisses, and scrolling counts
+
+It also **gives up the caret**, not just the panel. Closing without blurring is
+what left a field still taking keystrokes while a different field's panel was the
+one on screen, so the two have to happen together.
+
+Capture-phase `pointerdown`, `wheel` **and** `scroll`, tested by node identity
+rather than by selector so a second `Select` on the page cannot suppress this
+one. The same listener `HeaderMenu` needs, for the same reason — and it is
+duplicated between them rather than shared, which is worth fixing the next time
+either is touched.
+
+`scroll` is in the list because **`wheel` does not fire for touch scrolling**, so
+without it the panel would sit stranded after a flick on a phone. `HeaderMenu`
+listens only for `wheel` and so probably has that gap.
+
+The backdrop is transparent *and* inert — `pointer-events: none` on the host and
+the backdrop, `auto` on the content, as `HeaderMenu` does. Here it is not only
+about keeping the page live: on a desktop the field is a text box the user may
+still be typing into, and a backdrop over it would eat the click.
+
+### On a desktop the field is a text box, exactly as `TimeInput`'s is
+
+`isCoarsePointer()` decides, and the answer is cached. Touch gets a `<button>`,
+so no software keyboard ever covers the panel; a fine pointer gets an `<input>`.
+
+**The typed text drives the highlight, and the highlight is what commits.**
+Typing resolves through `resolveTyped` to an option index, which moves the active
+row; Enter or blur commits that row. So there is one path — the list is always
+the thing being chosen from — and no separate parse-and-clamp step. Text that
+resolves to nothing is discarded rather than guessed at, and the field falls back
+to the value it held, which is `TimeInput`'s rule too.
+
+Resolution is **exact before prefix**. With 1–31 in the list, `3` is both an
+option and the start of `30` and `31`, and the one actually typed has to win.
+
+There is deliberately **no type-ahead buffer**. An earlier design had one, with
+a repeated character cycling through matches the way a native `<select>` does;
+`2`,`2` selecting 2 and then 22 is surprising when the field is a text box that
+can simply hold `22`.
+
+### Options carry their own text
+
+A `ReactNode` cannot be read as text without rendering it — the same wall
+`Breadcrumbs` hit when it needed label widths and had to build a mirror. So
+`optionText` resolves `text ?? (string label) ?? String(value)`, which means
+numbers and plain names need no extra field and only an icon-bearing option sets
+one.
+
+A consequence: the **button** renders `label`, so it can show an icon, while the
+**input** can only ever show `optionText`. An option whose meaning lives in its
+icon will read as its text on a desktop.
+
+### The value is `string | number`, and that is a boundary
+
+It is the React key, the equality test and the fallback text. Widening it to
+arbitrary objects breaks all three. Labels are already `ReactNode`, which is
+where icons go.
+
+### The panel is exactly as wide as the field, via `size="cover"`
+
+Ionic measures the trigger and writes `--width` from it
+(`animations/ios.enter.js`), so the two edges line up without this component
+measuring anything — the same arithmetic-not-measurement preference
+`SegmentedControl` follows.
+
+Sizing the panel to its own content instead is the obvious first move and it
+looks wrong: a list of `1`–`31` under a 189 px field is about half its width and
+hangs off the left edge, reading as a detached box rather than as the field
+opening. A `--min-width` floor does not fix it either, because the field's width
+comes from the layout it sits in and is not knowable here.
+
+Nothing may set `--width`, `--min-width` or `--max-width` on the host — they
+fight the value Ionic writes. Measured: field 189 px, panel 189 px, both edges
+flush to 0 px.
+
+### Tokens are on `:root`, and the row height changes with the pointer
+
+The panel is portalled outside the page shell, so anything it reads has to be on
+`:root` — the same placement, for the same reason, as `Modal.css` and
+`HeaderMenu.css`. `--select-row-height` is `--touch-target` by default and drops
+to `--control-height` under `@media (hover: hover) and (pointer: fine)`;
+Ionic's own `.popover-desktop` is not used because it is evaluated once at render
+and misses a mouse plugged in later.
+
+`--max-height` is `6.5` rows so a long list is cut mid-row — the half row is what
+says it continues.
+
+**The fill belongs on `::part(content)`, not on the list inside it.** With the
+surface on the list, Ionic's own part stayed transparent, so anything that put
+the panel part-way through its fade showed the page straight through it — rows
+with the dispatcher's items legible behind them. One opaque box, clipped to its
+own radius, has nothing to see through. `overflow: hidden` is safe here for the
+same reason there is no custom animation: `HeaderMenu` needs `visible` only so
+its scale transform can escape.
+
+### The chrome comes from `FieldShell`, not from here
+
+`Select` renders its trigger as a child of `FieldShell`, the same shell `Field`
+and `TextField` go through, so the hairline, its focus colour and the fill are
+defined once. `Select.css` sets no border, radius or fill of its own — only
+layout, and `position: relative` on `.field-control` for the chevron to hang
+from.
+
+It started out drawing a full `1px --border-control` box, copied from
+`.time-input-field` so a day field and a time field on one row would match.
+That was the right instinct against the wrong reference: **the hairline had
+already won that comparison** — see *The hairline is the app's field chrome* —
+and `TimeInput` is the control that has not migrated yet, not the one to match.
+Restating the hairline locally instead of using the shell would have been the
+fourth copy of a decision `--hairline-width` had just finished consolidating.
+
+Two things are worth keeping from the switch:
+
+- **The dropdown is the easiest field to hairline, not the hardest.** The one
+  cost the shell's own notes name is that a hairlined control is less obviously
+  tappable than a boxed one. `Select` is the single field that answers this for
+  free: the chevron is the affordance, so nothing is given up.
+- **The panel relates better to a hairline than to a box.** A boxed field under
+  a boxed panel is two outlines meeting; a hairline under a floating card reads
+  as one object opening — helped by `size="cover"`, which already makes the two
+  exactly one width.
+
+**Open is a class, not `:focus-within`.** The shell fills on focus, but the
+field deliberately gives up focus for an instant on the way into `present` (see
+above), and a focus-driven fill blinks across that gap. `.select-is-open` is
+driven from the same `isOpen` the `will` events set, so the fill turns on when
+the panel starts opening and off when it starts closing.
+
+The one seam: flipped **above** the field, the panel meets the top corners,
+which the shell rounds because its radius is shaped for a fill sitting on a
+bottom border. Opening downward has no such join. Minor, and only in the
+flipped case.
+
+---
+
 ## Known issues / watch list
 
 | Issue | Detail |
@@ -869,7 +1102,7 @@ time; when a real modal wants it, those two are what justify lifting it.
 | An inline `TimeInput` grows its row when opened | The wheels are an in-flow panel, so a `TimeInput` sitting at the right of a row expands that row to ~212 px and takes the width its columns need. Correct for a full-width field, surprising at the end of a line. The fix, if it is wanted, belongs to `TimeInput` (an overlay panel) and not to `Reveal`. |
 | `Reveal` is unmounted by a timer, not by the transition | The exit is `REVEAL_MOTION.durationMs` on a `setTimeout`, so a transition slowed by anything else — a busy main thread, a devtools override — is cut off at that mark. `transitionend` cannot be used: it never fires under reduced motion or in a hidden page. |
 | A block reveal animates its own growth twice over | If content inside an open reveal changes size — a `TimeInput` opening its wheels — the `1fr` track follows it, and that follow is itself transitioned. Two easings over one movement. Harmless today; it would show if the durations ever diverged. |
-| `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field". |
+| `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field" — and the recurrence row is exactly such a form: `on [30 ⌄]` is now hairlined and `At [5:45 PM]` beside it is not. `Field` and `Select` both go through `FieldShell`, so `TimeInput` is the last field still drawing its own box. (`Checkbox` is not a counterexample — it is not a field box at all, and carries its own out-of-flow focus outline.) |
 | A long placeholder can be clipped | The replica carries the value, not the placeholder, so an empty field is `minRows` tall however long its placeholder is. Every current preset fits on one line at 343 px (the phone width), but a longer one would be cut. Replicating the placeholder instead would make an empty field taller than `minRows`, which is worse. |
 | No keyboard arrow navigation | The segmented control is a group of buttons; each is tabbable but arrow keys do not move between them as a native radio group would. Fine for now, worth revisiting when forms get long. |
 | Breadcrumbs are single-line only | The line budget is one row. Wrapping to two would not remove the need for the algorithm — `flex-wrap` has no notion of which node matters — it would just run the same plan against a doubled budget. Left out because a header whose height depends on ancestry depth moves everything beneath it on every navigation. |
@@ -879,6 +1112,12 @@ time; when a real modal wants it, those two are what justify lifting it.
 | `--segmented-index` clamps at 0 | When `value` matches nothing the index is floored to 0 so the transform stays valid. The indicator is hidden in that case, so it is invisible — but if the indicator is ever made unconditional, this becomes a wrong-looking selection. |
 | Typing and the wheels can disagree mid-edit | While the caret is in the field the typed text wins, so the wheels can show one value and the box another until Enter or blur. Committing reconciles them. Acceptable, but it is the first thing to revisit if the desktop field grows. |
 | The desktop field has no explicit open control | Focus opens the wheels and Escape closes them; there is no chevron. Fine while the panel is inline, worth adding if it ever becomes an overlay. |
+| The panel is positioned once, against wherever the field was | Ionic measures the trigger at present time and never again. Opening while the layout is still moving — a sheet modal animating up, a section expanding — anchors the panel to a position the field has since left. Verified: opened mid-animation on a phone the panel ran 149 px past the bottom of the screen; opened once settled it flips cleanly to `bottom: 560` against a field at `top: 559`. A user tapping a settled field never sees it, and scrolling dismisses — but **dragging the sheet does not scroll**, so that case can still strand it. |
+| Two pickers, two mechanisms | `TimeInput` expands in flow, `Select` portals into a popover. Both are justified where they are, but a form holding one of each has two dismissal rules and two ways of getting out of the viewport's way. Reconcile if a third picker appears. |
+| The dismiss listener is duplicated | `Select` and `HeaderMenu` each carry their own copy of the capture-phase outside-interaction effect. `Select`'s also listens for `scroll`, which `HeaderMenu` needs and lacks. Extract into one hook next time either is touched. |
+| `Select` opens on click, not focus | The popover is driven by Ionic's `trigger`, whose action is a click. Tabbing to the field and pressing Down opens it, but tabbing alone does not — unlike `TimeInput`, where focus opens the wheels. |
+| A label wider than the field is clipped | `size="cover"` caps the panel at the field's width, so an option whose text is longer than the field ellipsises rather than widening the panel. Fine for the numeric and weekday sets in use; if a set of long names turns up, that call site should widen its field rather than the panel breaking alignment. |
+| An icon option reads as text on a desktop | The button renders the `ReactNode` label, the input can only render `optionText`. Fine for the numeric and named sets in use now; revisit when an option's meaning is carried by its icon. |
 | The wheel is not a scroll container | Driving it by hand bought velocity control but gave up what the browser did for free: a screen reader cannot scroll it to reveal options, and there is no scrollbar or trackpad-scroll affordance. Options are all in the DOM and arrow keys work, but this is the accessibility cost of the rewrite. |
 | Feel constants are tuned by eye | `decelerationRate`, `restVelocity` and `minFlingVelocity` were set against an iPhone 17 simulator at 375 px. `0.9975` is roughly iOS; `0.995` is snappier, `0.999` glassier. Nothing derives them, and a very long or very short column may want different ones. |
 | Scrolling the page closes an open panel | The dismissal fires on any `pointerdown` outside the field, and on a phone that includes the touch that starts a page scroll. Correct for a dropdown; arguably aggressive for a panel that sits inline in a form. Excluding it means distinguishing a scroll from a tap, which cannot be known at `pointerdown`. |
