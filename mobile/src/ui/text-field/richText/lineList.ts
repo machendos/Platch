@@ -1,8 +1,10 @@
 import {
   $createParagraphNode,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   $isRootOrShadowRoot,
+  type ElementNode,
 } from 'lexical';
 import {
   $createListItemNode,
@@ -111,10 +113,64 @@ const $isolate = (item: ListItemNode, type: ListType): ListNode => {
   return own;
 };
 
+/* A line that is not in a list yet joins the list next to it when there is
+   one of the same type, rather than starting its own. Without this, taking a
+   line out of a list and putting it back leaves three lists where there was
+   one, and the numbering restarts in the middle. */
+const $listFor = (item: ListItemNode, block: ElementNode, type: ListType) => {
+  const previous = block.getPreviousSibling();
+  const next = block.getNextSibling();
+
+  if ($isListNode(previous) && previous.getListType() === type) {
+    previous.append(item);
+    block.remove();
+
+    // The line just closed a gap between two runs, so they are one run now.
+    if ($isListNode(next) && next.getListType() === type) {
+      for (const child of next.getChildren()) previous.append(child);
+      next.remove();
+    }
+    return;
+  }
+
+  if ($isListNode(next) && next.getListType() === type) {
+    const first = next.getFirstChild();
+    if (first) first.insertBefore(item);
+    else next.append(item);
+    next.setStart(Math.max(1, next.getStart() - 1));
+    block.remove();
+    return;
+  }
+
+  const list = $createListNode(type);
+  list.append(item);
+  block.replace(list);
+};
+
 /** Makes the line at the caret a list of `type`, leaving its siblings alone. */
 export const $setLineListType = (type: ListType) => {
   const item = $listItemAtCaret();
-  if (!item || $holdsNestedList(item)) return;
+
+  /* Not in a list at all — a plain paragraph, or a line that was just taken
+     out of one. Wrapping it is the other half of the toggle; without it the
+     buttons look dead once a line has been unlisted. */
+  if (!item) {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) return;
+
+    const block = selection.anchor.getNode().getTopLevelElement();
+    if (!$isElementNode(block) || $isListNode(block)) return;
+
+    const line = $createListItemNode();
+    for (const child of block.getChildren()) line.append(child);
+
+    $listFor(line, block, type);
+    if (type === 'check') line.setChecked(false);
+    line.selectEnd();
+    return;
+  }
+
+  if ($holdsNestedList(item)) return;
 
   const list = item.getParentOrThrow();
   if ($isListNode(list) && list.getListType() === type) return;

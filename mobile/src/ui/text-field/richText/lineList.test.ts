@@ -113,6 +113,51 @@ describe('removing the list from one line', () => {
   });
 });
 
+describe('a line that is not in a list', () => {
+  it('becomes one', () => {
+    expect(act('plain', 'plain', () => $setLineListType('number'))).toBe(
+      '1. plain',
+    );
+    expect(act('plain', 'plain', () => $setLineListType('check'))).toBe(
+      '- [ ] plain',
+    );
+  });
+
+  /* The toggle has to be reversible, or a line can leave a list and never get
+     back in. Rejoining the run next to it rather than starting its own is what
+     makes the round trip land exactly where it began. */
+  it('rejoins the run it was taken out of', () => {
+    const editor = load('1. a\n2. b\n3. c');
+    caretOn(editor, 'b');
+    editor.update($removeLineList, { discrete: true });
+    expect(markdownOf(editor)).toBe('1. a\n\nb\n\n2. c');
+
+    editor.update(() => $setLineListType('number'), { discrete: true });
+    expect(markdownOf(editor)).toBe('1. a\n2. b\n3. c');
+  });
+
+  it('joins the run above it', () => {
+    const editor = load('1. a\n\nb');
+    caretOn(editor, 'b');
+    editor.update(() => $setLineListType('number'), { discrete: true });
+    expect(markdownOf(editor)).toBe('1. a\n2. b');
+  });
+
+  it('joins the run below it', () => {
+    const editor = load('a\n\n1. b');
+    caretOn(editor, 'a');
+    editor.update(() => $setLineListType('number'), { discrete: true });
+    expect(markdownOf(editor)).toBe('1. a\n2. b');
+  });
+
+  it('starts its own when the neighbouring run is a different type', () => {
+    const editor = load('- [ ] a\n\nb');
+    caretOn(editor, 'b');
+    editor.update(() => $setLineListType('number'), { discrete: true });
+    expect(markdownOf(editor)).toBe('- [ ] a\n\n1. b');
+  });
+});
+
 describe('nesting', () => {
   /* A nesting wrapper is a sibling in the tree that draws no number of its
      own, so counting it when renumbering the remainder leaves a visible gap. */
