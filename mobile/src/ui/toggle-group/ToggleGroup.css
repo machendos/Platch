@@ -1,6 +1,6 @@
 :root {
   --toggle-track-padding: 2px;
-  --toggle-option-min-width: 34px;
+  --toggle-option-min-width: 28px;
 }
 
 /* The same track as SegmentedControl, deliberately — a row of weekdays and a
@@ -17,16 +17,18 @@
   background: var(--surface-sunken);
 }
 
-/* No indicator element to place, so unlike SegmentedControl these need no
-   equal-width rule: `flex: 1 1 auto` with a floor lets Mo–Su share the row
-   while `All` keeps the width its word needs. */
+/* Equal widths, not content widths: `flex: 1 1 auto` sizes each option in
+   proportion to its own text, and a row of weekdays came out visibly ragged —
+   Mo 33.9px beside Fr 28px. The reason is not SegmentedControl's (no indicator
+   arithmetic to line up with here); it is simply that a set of like things
+   should look like one. */
 .toggle-option {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: var(--toggle-option-min-width);
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-1);
   border: none;
   border-radius: calc(var(--radius-sm) - var(--toggle-track-padding));
   background: none;
@@ -45,9 +47,11 @@
 }
 
 /* Set apart from the options it commands, so it reads as acting on them rather
-   than as one more of them. */
+   than as one more of them, and never squeezed: a word has to survive where
+   two letters can afford to give ground. */
 .toggle-option-all {
-  margin-right: var(--space-2);
+  flex: 0 0 auto;
+  margin-right: var(--space-1);
 }
 
 @media (prefers-reduced-motion: reduce) {
