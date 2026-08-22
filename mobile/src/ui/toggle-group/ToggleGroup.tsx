@@ -51,6 +51,9 @@ export const ToggleGroup = <T extends string>({
 
   return (
     <div className={classes} role="group" aria-label={label}>
+      {/* Above the options rather than beside them, which is not a preference:
+          at the size the options are drawn, seven of them plus this one do not
+          fit a phone's width at all. See ToggleGroup.css. */}
       {selectAllLabel !== undefined && (
         <button
           className={
@@ -68,31 +71,27 @@ export const ToggleGroup = <T extends string>({
         </button>
       )}
 
-      {/* Drawn here rather than left to the call site: what it separates is
-          two zones of one control, which only this component knows it has. */}
-      {selectAllLabel !== undefined && (
-        <span className="toggle-divider" aria-hidden="true" />
-      )}
+      <div className="toggle-group-options">
+        {options.map((option) => {
+          const selected = values.includes(option.value);
 
-      {options.map((option) => {
-        const selected = values.includes(option.value);
-
-        return (
-          <button
-            key={option.value}
-            className={
-              selected
-                ? 'toggle-option toggle-option-selected'
-                : 'toggle-option'
-            }
-            type="button"
-            aria-pressed={selected}
-            onClick={() => toggle(option.value)}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={option.value}
+              className={
+                selected
+                  ? 'toggle-option toggle-option-selected'
+                  : 'toggle-option'
+              }
+              type="button"
+              aria-pressed={selected}
+              onClick={() => toggle(option.value)}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

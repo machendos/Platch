@@ -1171,36 +1171,63 @@ last.
 
 So the shape now carries the difference. A segmented control fills one
 continuous groove because exactly one of its options is ever on; this is a row
-of separate circles with space between them, which is what a row of independent
+of separate shapes with space between them, which is what a row of independent
 switches looks like. The two are told apart before either is touched.
 
 Unselected is a hairline ring on `--surface`, selected is an `--accent` fill.
 The ring keeps its width and changes only colour, so selecting cannot move
 anything — the rule `FieldShell`'s focus state follows, for the same reason.
 
+The shape itself is `--toggle-option-radius`, a token alongside
+`--toggle-option-size`, which is what let six candidates be compared in the lab
+as the same component with two values changed rather than six forks. Settled on
+a **36px squircle at radius 12** — circles read as the most obviously
+multi-select but were the hardest to hit, and a plain rounded square read as a
+key on a keyboard.
+
 ### The options are a fixed size, not flexed
 
 Equal-width segments made sense inside a track that had to be filled edge to
-edge. A circle has no such duty, and it has one it cannot escape: **it has to
-stay a circle.** Under `flex: 1 1 0` the days grew with their container — 220px
-wide on a desktop, which is not a circle and not a weekday either.
+edge. A separate shape has no such duty, and it has one it cannot escape: it
+has to keep its proportions. Under `flex: 1 1 0` the days grew with their
+container — 220px wide on a desktop, which is neither a squircle nor a weekday.
 
-Fixed at 30px they draw the same at 375px and at 1280px, and the row simply ends
-where it ends instead of tracking a container it has nothing to do with. That
-also removes the whole class of "does it still fit" question at large widths;
-only the small end can bind.
+Fixed, they draw the same at 375px and at 1280px, and the row simply ends where
+it ends instead of tracking a container it has nothing to do with. That removes
+the whole class of "does it still fit" question at large widths; **only the
+small end can bind.**
 
-### The small end is what sets the size
+### What is drawn and what can be hit are different sizes
 
-Measured at 375px, not assumed, and twice. The first attempt at 32px came to
-320px of content where the real recurrence row has ~315px, so the circle went to
-30px and the row now measures 310px with 8.2px to spare inside a modal. That
-spare is also why the gap between circles stays at `--space-1` — there is not
-24px going free to widen it with.
+Only the first is a design decision. A 30px shape in a 44px row claims 30px of
+it and leaves the 4px gaps dead, so a thumb aimed between two days hits neither
+and the control reads as ignoring the tap — which is exactly how it was
+reported.
 
-Note what the constraint actually is: seven days plus a select-all is the widest
-set this control is for, and a phone is the narrowest place it must draw them.
-Every number here comes out of that one case.
+`.toggle-option::after` takes the full `--touch-target` height and half of each
+neighbouring gap, so adjacent targets meet exactly: no dead strip, and no
+overlap either, which would quietly hand a day's edge to its neighbour. 30×30
+became 33×44 with nothing moving on screen. **Growing the shapes solves the same
+problem by making the control bigger than it wants to be**, so reach for this
+first.
+
+The group carries a cancelling `padding` / negative `margin` pair of half a gap
+so its box contains those targets. Without it the two end options overhang by
+2px, which the group cannot see and an ancestor that scrolls would find. It
+belongs on the group and not on the options row, or the two lines stop agreeing
+where their left edge is.
+
+### The select-all is on its own line, and that is arithmetic
+
+At 36px the seven days need 276px of the ~318px a phone's recurrence row has.
+That leaves 42px — less than the pill's own `min-width` before any gap at all.
+It is not a near miss to be tuned away.
+
+This is the trade the whole layout turns on, so it is worth stating plainly:
+**with the select-all beside them the days cannot exceed ~32px; with it above,
+they can be 44px.** Measured, not estimated — 36px inline overflowed by 19px at
+375px. An earlier pass put a hairline rule between an inline select-all and the
+first day, which read well and is gone with the layout it separated.
 
 ### The set comes back in option order
 
@@ -1216,10 +1243,17 @@ unless asked for. That is a multi-select affordance rather than anything about
 days — which is what keeps the domain out of the primitive, even though
 `recurringByDay` is the only caller today.
 
-It is drawn as a **wider pill**, set apart on `--space-5` rather than the row's
-own 4px gap. Both say the same thing twice over: it is not one more of the
-things it commands. At the row gap it read as a first day of the week with an
-odd label, which is exactly the confusion the distance removes.
+It is drawn as a **pill**, whatever `--toggle-option-radius` the options are
+wearing, so it stays distinct from them under every value of that token. On its
+own line it is free to take the width its word needs rather than the width left
+over.
+
+It stays inside the primitive rather than becoming the caller's job, and the
+reason is that there is nothing for a caller to own: its pressed state is a pure
+function of `values`, its action a pure function of `options`. Split out, it is
+not an independent control whose state happens to be coupled — it is the same
+derivation rewritten at every call site, plus alignment that would have to
+become local CSS.
 
 ---
 

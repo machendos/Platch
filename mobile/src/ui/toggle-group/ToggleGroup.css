@@ -1,21 +1,45 @@
 :root {
-  --toggle-option-size: 30px;
-  --toggle-option-radius: 50%;
+  --toggle-option-size: 36px;
+  --toggle-option-radius: 12px;
   --toggle-option-gap: var(--space-1);
   /* Wider than a day, and a pill rather than a circle: it is not one more of
      the things it commands. */
   --toggle-all-min-width: 52px;
 }
 
-/* Round, gapped, and with no track behind it — deliberately not
-   SegmentedControl's shape. That control fills one continuous groove because
-   exactly one of its options is ever on; this is a row of independent
-   switches, and looking like a row of independent switches is the whole
-   affordance. The user should be able to tell which kind of control they are
-   looking at before touching it. An earlier version shared the track, on the
-   argument that neighbouring rows should match, and that was the wrong thing
-   to hold constant: matching made the two indistinguishable. */
+/* Separate, gapped shapes with no track behind them — deliberately not
+   SegmentedControl's. That control fills one continuous groove because exactly
+   one of its options is ever on; this is a row of independent switches, and
+   looking like a row of independent switches is the whole affordance. The user
+   should be able to tell which kind of control they are looking at before
+   touching it. An earlier version shared the track, on the argument that
+   neighbouring rows should match, and that was the wrong thing to hold
+   constant: matching made the two indistinguishable.
+
+   A stack, because the select-all cannot sit beside the options. At 36px the
+   seven days need 276px of the ~318px a phone's recurrence row has, which
+   leaves 42px — less than the pill's own width before any gap. It is not a
+   near miss to be tuned away; it is arithmetic, and the second line is the
+   only thing that answers it. */
 .toggle-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  /* Cancelling pair, so nothing moves: it exists so the group's box contains
+     the hit areas rather than being overhung by them. Each option's target
+     claims half a gap either side (see ::after below), which at the two ends
+     is half a gap of thin air — 2px of overflow the group could not see, and
+     an ancestor that scrolls would have found it.
+
+     On the group and not on the options row, or the two lines stop agreeing
+     about where their left edge is: the row shifted 2px and All did not. */
+  padding: 0 calc(var(--toggle-option-gap) / 2);
+  margin: 0 calc(var(--toggle-option-gap) / -2);
+}
+
+.toggle-group-options {
   display: flex;
   align-items: center;
   gap: var(--toggle-option-gap);
@@ -82,28 +106,14 @@
 }
 
 /* A pill whatever shape the days are wearing, so it stays distinct from them
-   under every variant of --toggle-option-radius. */
+   under every value of --toggle-option-radius. On its own line it is free to
+   take the width its word needs rather than the width that is left over. */
 .toggle-option-all {
   width: auto;
   min-width: var(--toggle-all-min-width);
+  height: var(--toggle-option-size);
   padding: 0 var(--space-3);
   border-radius: calc(var(--toggle-option-size) / 2);
-}
-
-/* The rule does the separating, so the space around it does not have to. A gap
-   alone was carrying two meanings — `not one of these` and `there is a boundary
-   here` — and the second reads better as a line, because empty space can only
-   be read by comparing it with the other gaps and a line cannot be misread at
-   all. It is also cheaper: --toggle-all-gap on its own put the row 2px over the
-   width it has at 375px, where a line plus --space-2 leaves 8px spare and still
-   separates more, 24.5px against 20px. */
-.toggle-divider {
-  flex: 0 0 auto;
-  align-self: center;
-  width: var(--hairline-width);
-  height: calc(var(--toggle-option-size) - var(--space-2));
-  margin: 0 var(--space-2);
-  background: var(--separator);
 }
 
 @media (prefers-reduced-motion: reduce) {

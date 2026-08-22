@@ -28,6 +28,16 @@
   color: var(--text-primary);
 }
 
+.picker-specimens-row-wide {
+  align-items: flex-start;
+}
+
+.picker-specimens-row-wide .picker-specimens-label {
+  /* The control is two lines now; centring the word against the pair leaves it
+     floating between them. */
+  line-height: var(--toggle-option-size, 36px);
+}
+
 .picker-specimens-row-wide .toggle-group {
   min-width: 0;
 }
