@@ -1160,9 +1160,47 @@ between positions — **one box cannot be in three places.** Here the fill belon
 to each option instead, which is also what says the choices are independent
 rather than exclusive.
 
-The track is deliberately identical: a row of weekdays sits directly under a row
-of frequencies in the recurrence form, and two different tracks there would read
-as two different kinds of control.
+### Round and gapped, with no track — and that is the point
+
+The first version shared `SegmentedControl`'s track exactly, reasoning that a
+row of weekdays sitting directly under a row of frequencies should match. That
+was the wrong thing to hold constant. **Matching made the two
+indistinguishable**, so nothing about the weekday row said that more than one
+answer was allowed — a user had to press one and watch what happened to the
+last.
+
+So the shape now carries the difference. A segmented control fills one
+continuous groove because exactly one of its options is ever on; this is a row
+of separate circles with space between them, which is what a row of independent
+switches looks like. The two are told apart before either is touched.
+
+Unselected is a hairline ring on `--surface`, selected is an `--accent` fill.
+The ring keeps its width and changes only colour, so selecting cannot move
+anything — the rule `FieldShell`'s focus state follows, for the same reason.
+
+### The options are a fixed size, not flexed
+
+Equal-width segments made sense inside a track that had to be filled edge to
+edge. A circle has no such duty, and it has one it cannot escape: **it has to
+stay a circle.** Under `flex: 1 1 0` the days grew with their container — 220px
+wide on a desktop, which is not a circle and not a weekday either.
+
+Fixed at 30px they draw the same at 375px and at 1280px, and the row simply ends
+where it ends instead of tracking a container it has nothing to do with. That
+also removes the whole class of "does it still fit" question at large widths;
+only the small end can bind.
+
+### The small end is what sets the size
+
+Measured at 375px, not assumed, and twice. The first attempt at 32px came to
+320px of content where the real recurrence row has ~315px, so the circle went to
+30px and the row now measures 310px with 8.2px to spare inside a modal. That
+spare is also why the gap between circles stays at `--space-1` — there is not
+24px going free to widen it with.
+
+Note what the constraint actually is: seven days plus a select-all is the widest
+set this control is for, and a phone is the narrowest place it must draw them.
+Every number here comes out of that one case.
 
 ### The set comes back in option order
 
@@ -1171,28 +1209,17 @@ a caller always receives the same set written the same way and never has to sort
 it back. `serializeRecurrence` sorts as well, which is not redundant — that one
 is defending against data arriving from the backend.
 
-### Eight segments have to fit a phone, and that sets the floor
-
-Measured at 375px, not assumed: with a 34px `min-width` the group had 263px to
-draw 296px of options and clipped `Su`. 34px was picked for a thumb, and it is
-the wrong thing to hold fixed — seven weekdays plus a select-all is the widest
-set this control is for, and a phone is the narrowest place it must draw them,
-so the floor is whatever lets that case fit. 28px does, with the side padding at
-`--space-1`. `All` never shrinks: a word has to survive where two letters can
-afford to give ground.
-
-Options are `flex: 1 1 0`, and **not** for `SegmentedControl`'s reason — there
-is no indicator arithmetic to line up with here. `1 1 auto` distributes leftover
-space in proportion to each label's own text, which left the weekdays visibly
-ragged (Mo 33.9px beside Fr 28px). A row of like things should look like one.
-Verified after: 0px overflow, every weekday exactly 30.4px.
-
 ### `selectAllLabel` is generic, not a weekday shortcut
 
 It turns every option on, and off again once they all are, and it is absent
 unless asked for. That is a multi-select affordance rather than anything about
 days — which is what keeps the domain out of the primitive, even though
 `recurringByDay` is the only caller today.
+
+It is drawn as a **wider pill**, set apart on `--space-5` rather than the row's
+own 4px gap. Both say the same thing twice over: it is not one more of the
+things it commands. At the row gap it read as a first day of the week with an
+odd label, which is exactly the confusion the distance removes.
 
 ---
 

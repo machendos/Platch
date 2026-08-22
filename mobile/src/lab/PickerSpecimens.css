@@ -28,7 +28,12 @@
 }
 
 .picker-specimens-row-wide .toggle-group {
-  flex: 1;
+  min-width: 0;
+}
+
+/* The real recurrence row's label is `on`, not a 72px column — reserving one
+   here would design the control against a constraint it never meets. */
+.picker-specimens-row-wide .picker-specimens-label {
   min-width: 0;
 }
 

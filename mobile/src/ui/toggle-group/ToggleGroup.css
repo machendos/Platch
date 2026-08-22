@@ -1,57 +1,75 @@
 :root {
-  --toggle-track-padding: 2px;
-  --toggle-option-min-width: 28px;
+  --toggle-option-size: 30px;
+  --toggle-option-gap: var(--space-1);
+  /* Wider than a day, and a pill rather than a circle: it is not one more of
+     the things it commands. */
+  --toggle-all-min-width: 52px;
+  --toggle-all-gap: var(--space-5);
 }
 
-/* The same track as SegmentedControl, deliberately — a row of weekdays and a
-   row of frequencies sit one above the other in the recurrence form, and two
-   different tracks there would read as two different kinds of control. */
+/* Round, gapped, and with no track behind it — deliberately not
+   SegmentedControl's shape. That control fills one continuous groove because
+   exactly one of its options is ever on; this is a row of independent
+   switches, and looking like a row of independent switches is the whole
+   affordance. The user should be able to tell which kind of control they are
+   looking at before touching it. An earlier version shared the track, on the
+   argument that neighbouring rows should match, and that was the wrong thing
+   to hold constant: matching made the two indistinguishable. */
 .toggle-group {
   display: flex;
-  gap: var(--toggle-track-padding);
-  box-sizing: border-box;
+  align-items: center;
+  gap: var(--toggle-option-gap);
   min-width: 0;
-  height: var(--control-height);
-  padding: var(--toggle-track-padding);
-  border-radius: var(--radius-sm);
-  background: var(--surface-sunken);
+  height: var(--toggle-option-size);
 }
 
-/* Equal widths, not content widths: `flex: 1 1 auto` sizes each option in
-   proportion to its own text, and a row of weekdays came out visibly ragged —
-   Mo 33.9px beside Fr 28px. The reason is not SegmentedControl's (no indicator
-   arithmetic to line up with here); it is simply that a set of like things
-   should look like one. */
+/* Fixed, never flexed. Equal-width segments made sense inside a track that had
+   to be filled edge to edge; a circle has to stay a circle, and one stretched
+   to 220px on a desktop — which `flex: 1 1 0` did — is not one. Holding the
+   size also means the row looks the same at every width and simply ends where
+   it ends, instead of growing with a container that has nothing to do with it. */
 .toggle-option {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 0;
-  min-width: var(--toggle-option-min-width);
-  padding: 0 var(--space-1);
-  border: none;
-  border-radius: calc(var(--radius-sm) - var(--toggle-track-padding));
-  background: none;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: var(--toggle-option-size);
+  height: var(--toggle-option-size);
+  padding: 0;
+  border: var(--hairline-width) solid var(--separator);
+  border-radius: 50%;
+  background: var(--surface);
   font: inherit;
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
   line-height: 1;
   color: var(--text-primary);
   white-space: nowrap;
-  transition: background-color var(--duration-exit) var(--easing-standard);
+  transition:
+    background-color var(--duration-exit) var(--easing-standard),
+    border-color var(--duration-exit) var(--easing-standard),
+    color var(--duration-exit) var(--easing-standard);
 }
 
+/* The border keeps its width and only changes colour, so selecting cannot move
+   anything — the rule FieldShell's focus state follows, for the same reason. */
 .toggle-option-selected {
+  border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 600;
 }
 
-/* Set apart from the options it commands, so it reads as acting on them rather
-   than as one more of them, and never squeezed: a word has to survive where
-   two letters can afford to give ground. */
+/* Set well apart from the days, on --space-4 rather than the row's own gap: at
+   the gap it read as a first day of the week with an odd label. The distance
+   is what says it acts on the row rather than belonging to it, and the pill
+   shape says the same thing again. */
 .toggle-option-all {
-  flex: 0 0 auto;
-  margin-right: var(--space-1);
+  width: auto;
+  min-width: var(--toggle-all-min-width);
+  margin-right: var(--toggle-all-gap);
+  padding: 0 var(--space-3);
+  border-radius: calc(var(--toggle-option-size) / 2);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -66,10 +84,11 @@
   }
 
   .toggle-option:hover {
-    background: var(--surface-subtle);
+    border-color: var(--text-secondary);
   }
 
   .toggle-option-selected:hover {
+    border-color: var(--accent);
     background: var(--accent);
   }
 }
