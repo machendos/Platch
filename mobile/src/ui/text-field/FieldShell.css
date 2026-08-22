@@ -3,6 +3,9 @@
   --field-padding-block: var(--space-2);
   --field-padding-inline: var(--space-2);
   --field-label-gap: var(--space-1);
+  /* Stated rather than left to the font, because the formatting toolbar sits
+     on this line and centres itself against it. */
+  --field-label-line: 18px;
 }
 
 /* Positioned so the formatting toolbar can anchor to the whole field — label
@@ -21,6 +24,7 @@
 .field-label {
   margin-bottom: var(--field-label-gap);
   font-size: var(--font-sm);
+  line-height: var(--field-label-line);
   color: var(--text-secondary);
 }
 

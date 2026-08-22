@@ -1,7 +1,20 @@
 :root {
-  --rich-toolbar-height: 38px;
+  --rich-toolbar-height: 32px;
   --rich-toolbar-gap: 2px;
-  --rich-toolbar-offset: 4px;
+  --rich-toolbar-button: 26px;
+
+  /* Where the toolbar stops on the way up. `max` because the two browsers
+     disagree about where a page begins: Safari starts the content below the
+     status bar, Chrome on iOS runs it underneath — with a fixed 8px the bar
+     stuck under the clock there and was sliced in half. The inset is the
+     browser telling us which case it is. */
+  --rich-toolbar-ceiling: max(var(--space-2), env(safe-area-inset-top, 0px));
+
+  /* How far the toolbar rides above the field's top edge to sit centred on the
+     label's line. Positive because the bar is the taller of the two. */
+  --rich-toolbar-lift: calc(
+    (var(--rich-toolbar-height) - var(--field-label-line)) / 2
+  );
 }
 
 /* The rail is what sticks; the toolbar only hangs off it.
@@ -21,18 +34,19 @@
    point the rail unsticks and leaves with it. */
 .rich-toolbar-rail {
   position: sticky;
-  top: calc(var(--rich-toolbar-height) + 2 * var(--rich-toolbar-offset));
+  top: calc(var(--rich-toolbar-ceiling) + var(--rich-toolbar-lift));
   z-index: 2;
   order: -1;
   height: 0;
 }
 
-/* Hung above the rail's origin, so at rest it floats clear of the field's top
-   edge and its label. The rail's `top` is offset by this height to match. */
+/* On the label's line and at the far end of it, rather than floating over
+   whatever sits above the field. The label is short and left-aligned, so the
+   row has the room, and the field keeps its own top edge to itself. */
 .rich-toolbar {
   position: absolute;
-  bottom: var(--rich-toolbar-offset);
-  left: 0;
+  top: calc(-1 * var(--rich-toolbar-lift));
+  right: 0;
   display: flex;
   align-items: center;
   gap: var(--rich-toolbar-gap);
@@ -48,7 +62,7 @@
 .rich-toolbar-divider {
   align-self: stretch;
   width: var(--hairline-width);
-  margin: var(--space-2) var(--space-1);
+  margin: var(--space-1) var(--space-1);
   background: var(--separator);
 }
 
@@ -57,8 +71,8 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  min-width: var(--icon-button-size);
-  height: var(--icon-button-size);
+  min-width: var(--rich-toolbar-button);
+  height: var(--rich-toolbar-button);
   padding: 0 var(--space-1);
   border: none;
   border-radius: var(--radius-sm);
