@@ -10,10 +10,11 @@
      browser telling us which case it is. */
   --rich-toolbar-ceiling: max(var(--space-2), env(safe-area-inset-top, 0px));
 
-  /* How far the toolbar rides above the field's top edge to sit centred on the
-     label's line. Positive because the bar is the taller of the two. */
-  --rich-toolbar-lift: calc(
-    (var(--rich-toolbar-height) - var(--field-label-line)) / 2
+  /* How far the toolbar rises above the field's top edge, which is whatever it
+     has that the label's line does not. Negative if it is ever the shorter of
+     the two, and every rule below still holds. */
+  --rich-toolbar-rise: calc(
+    var(--rich-toolbar-height) - var(--field-label-line)
   );
 }
 
@@ -34,7 +35,7 @@
    point the rail unsticks and leaves with it. */
 .rich-toolbar-rail {
   position: sticky;
-  top: calc(var(--rich-toolbar-ceiling) + var(--rich-toolbar-lift));
+  top: calc(var(--rich-toolbar-ceiling) + var(--rich-toolbar-rise));
   z-index: 2;
   order: -1;
   height: 0;
@@ -42,10 +43,16 @@
 
 /* On the label's line and at the far end of it, rather than floating over
    whatever sits above the field. The label is short and left-aligned, so the
-   row has the room, and the field keeps its own top edge to itself. */
+   row has the room, and the field keeps its own top edge to itself.
+
+   Anchored by its **bottom**, to the bottom of the label's line. That is what
+   keeps the two heights independent: --rich-toolbar-height is free to change
+   and the bar grows upward from a fixed baseline, never into the input below
+   or into the label's own text. Centring it would have tied the two together
+   and pushed half of any extra height down over the field. */
 .rich-toolbar {
   position: absolute;
-  top: calc(-1 * var(--rich-toolbar-lift));
+  bottom: calc(-1 * var(--field-label-line));
   right: 0;
   display: flex;
   align-items: center;
