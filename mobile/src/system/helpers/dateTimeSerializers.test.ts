@@ -3,6 +3,7 @@ import { Temporal } from 'temporal-polyfill';
 import {
   parseDuration,
   parseTimeOfDay,
+  serializeDate,
   serializeDuration,
   serializeRange,
   serializeTimeOfDay,
@@ -54,6 +55,23 @@ describe('serializeRange', () => {
     expect(serializeRange(date(2025, 3, 4), date(2025, 3, 4), TODAY)).toBe(
       'Mar 4, 2025',
     );
+  });
+});
+
+describe('serializeDate', () => {
+  it('leaves the current year off', () => {
+    expect(serializeDate(date(2026, 6, 19), TODAY)).toBe('Jun 19');
+  });
+
+  it('states any other year', () => {
+    expect(serializeDate(date(2025, 3, 4), TODAY)).toBe('Mar 4, 2025');
+    expect(serializeDate(date(2028, 11, 30), TODAY)).toBe('Nov 30, 2028');
+  });
+
+  it('agrees with the range serializer on a single day', () => {
+    for (const day of [date(2026, 6, 19), date(2025, 3, 4)]) {
+      expect(serializeDate(day, TODAY)).toBe(serializeRange(day, day, TODAY));
+    }
   });
 });
 

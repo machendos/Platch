@@ -7,7 +7,7 @@ import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/
 import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
 import { serializeRange } from '../../../system/helpers/dateTimeSerializers';
 import type { DateRange } from '../../../system/helpers/dateRange';
-import { WEEK_STARTS_ON } from '../layout-config';
+import { WEEK_STARTS_ON } from '../../../config/calendarPreferences';
 import { DateFrameInput } from './DateFrameInput';
 import { HeaderMenu } from './HeaderMenu';
 

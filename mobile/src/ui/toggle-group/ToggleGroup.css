@@ -1,0 +1,71 @@
+:root {
+  --toggle-track-padding: 2px;
+  --toggle-option-min-width: 34px;
+}
+
+/* The same track as SegmentedControl, deliberately — a row of weekdays and a
+   row of frequencies sit one above the other in the recurrence form, and two
+   different tracks there would read as two different kinds of control. */
+.toggle-group {
+  display: flex;
+  gap: var(--toggle-track-padding);
+  box-sizing: border-box;
+  min-width: 0;
+  height: var(--control-height);
+  padding: var(--toggle-track-padding);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+/* No indicator element to place, so unlike SegmentedControl these need no
+   equal-width rule: `flex: 1 1 auto` with a floor lets Mo–Su share the row
+   while `All` keeps the width its word needs. */
+.toggle-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: var(--toggle-option-min-width);
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: calc(var(--radius-sm) - var(--toggle-track-padding));
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+  transition: background-color var(--duration-exit) var(--easing-standard);
+}
+
+.toggle-option-selected {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+/* Set apart from the options it commands, so it reads as acting on them rather
+   than as one more of them. */
+.toggle-option-all {
+  margin-right: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-option {
+    transition: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toggle-option {
+    cursor: pointer;
+  }
+
+  .toggle-option:hover {
+    background: var(--surface-subtle);
+  }
+
+  .toggle-option-selected:hover {
+    background: var(--accent);
+  }
+}

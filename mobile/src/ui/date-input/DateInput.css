@@ -1,0 +1,72 @@
+/* On :root, not on the component: mobiscroll's calendar is portalled out of
+   the page shell, the same as Ionic's overlays, and inherits nothing declared
+   inside it. Same placement, same reason, as Select.css and Modal.css. */
+:root {
+  --date-input-padding: var(--space-2);
+  --date-input-icon-space: 26px;
+  --date-input-min-width: 108px;
+}
+
+.date-input {
+  min-width: 0;
+}
+
+/* FieldShell's control box is the positioning context for the icon and has to
+   lay the trigger out in a row. The chrome itself is the shell's. */
+.date-input .field-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Open, not merely focused — see the note on onOpen in DateInput.tsx. */
+.date-input-is-open .field-control {
+  border-bottom-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+/* No border, radius or fill of its own; those come from the shell. */
+.date-input-field {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: var(--date-input-min-width);
+  height: var(--control-height);
+  padding: 0 var(--date-input-icon-space) 0 var(--date-input-padding);
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-md);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* The shell draws the focus state; the browser's own ring on top of it would
+   be a second, differently-coloured answer. Same reasoning as Field. */
+.date-input-field:focus {
+  outline: none;
+}
+
+.date-input-placeholder {
+  color: var(--text-secondary);
+}
+
+/* Absolute so it is not squeezed by a long date, and inert so a tap on it
+   still lands on the trigger underneath. */
+.date-input-icon {
+  position: absolute;
+  right: var(--space-2);
+  font-size: 15px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .date-input-field {
+    cursor: pointer;
+  }
+}
