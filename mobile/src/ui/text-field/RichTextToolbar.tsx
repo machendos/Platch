@@ -17,6 +17,7 @@ import {
   OUTDENT_CONTENT_COMMAND,
 } from 'lexical';
 import type { ListType } from '@lexical/list';
+import { useVisualViewportTop } from '../../system/viewport/useVisualViewportTop';
 import { useActiveField } from './richText/activeField';
 import {
   $lineListType,
@@ -65,6 +66,10 @@ const ToolbarButton = ({
 export const RichTextToolbar = () => {
   const { active } = useActiveField();
   const [marks, setMarks] = useState<Marks>(NO_MARKS);
+
+  // iOS pans the page to clear the keyboard, which moves the container the
+  // toolbar sticks inside. The ceiling has to know by how much.
+  useVisualViewportTop();
 
   const editor = active?.editor ?? null;
 

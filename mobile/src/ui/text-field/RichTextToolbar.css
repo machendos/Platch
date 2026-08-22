@@ -3,12 +3,19 @@
   --rich-toolbar-gap: 2px;
   --rich-toolbar-button: 26px;
 
-  /* Where the toolbar stops on the way up. `max` because the two browsers
-     disagree about where a page begins: Safari starts the content below the
-     status bar, Chrome on iOS runs it underneath — with a fixed 8px the bar
-     stuck under the clock there and was sliced in half. The inset is the
-     browser telling us which case it is. */
-  --rich-toolbar-ceiling: max(var(--space-2), env(safe-area-inset-top, 0px));
+  /* Where the toolbar stops on the way up, measured from ion-content — which
+     is not where the screen begins. iOS pans the whole page to lift the caret
+     above the keyboard, taking ion-content with it, so the container the
+     toolbar sticks inside can be a hundred pixels above the visible area while
+     sticky is doing its job perfectly. --visual-viewport-top is how far it has
+     been panned; see system/viewport/useVisualViewportTop.ts.
+
+     The safe-area term is for the installed app, where there is no pan and the
+     notch is the only thing above the content. It reads 0 in a browser tab. */
+  --rich-toolbar-ceiling: calc(
+    var(--visual-viewport-top, 0px) +
+      max(var(--space-2), env(safe-area-inset-top, 0px))
+  );
 
   /* How far the toolbar rises above the field's top edge, which is whatever it
      has that the label's line does not. Negative if it is ever the shorter of
