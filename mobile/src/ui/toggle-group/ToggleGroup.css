@@ -1,10 +1,10 @@
 :root {
   --toggle-option-size: 30px;
+  --toggle-option-radius: 50%;
   --toggle-option-gap: var(--space-1);
   /* Wider than a day, and a pill rather than a circle: it is not one more of
      the things it commands. */
   --toggle-all-min-width: 52px;
-  --toggle-all-gap: var(--space-5);
 }
 
 /* Round, gapped, and with no track behind it — deliberately not
@@ -37,8 +37,9 @@
   width: var(--toggle-option-size);
   height: var(--toggle-option-size);
   padding: 0;
+  position: relative;
   border: var(--hairline-width) solid var(--separator);
-  border-radius: 50%;
+  border-radius: var(--toggle-option-radius);
   background: var(--surface);
   font: inherit;
   font-size: var(--font-sm);
@@ -51,6 +52,26 @@
     color var(--duration-exit) var(--easing-standard);
 }
 
+/* What is drawn and what can be hit are two different sizes, and only the first
+   of them is a design decision. A 30px circle in a 44px row claims 30px of it
+   and leaves the 4px gaps dead, so a thumb aimed between two days hits neither
+   — which reads as the control ignoring the tap.
+
+   The target is the full row height, and wide enough to claim half of each
+   neighbouring gap, so adjacent targets meet exactly: no dead strip between
+   them and no overlap either, which would hand a day's edge to its neighbour.
+   Growing the circles instead would fix the same problem by making the control
+   bigger than it wants to be. */
+.toggle-option::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% + var(--toggle-option-gap));
+  height: var(--touch-target);
+  transform: translate(-50%, -50%);
+}
+
 /* The border keeps its width and only changes colour, so selecting cannot move
    anything — the rule FieldShell's focus state follows, for the same reason. */
 .toggle-option-selected {
@@ -60,16 +81,29 @@
   font-weight: 600;
 }
 
-/* Set well apart from the days, on --space-4 rather than the row's own gap: at
-   the gap it read as a first day of the week with an odd label. The distance
-   is what says it acts on the row rather than belonging to it, and the pill
-   shape says the same thing again. */
+/* A pill whatever shape the days are wearing, so it stays distinct from them
+   under every variant of --toggle-option-radius. */
 .toggle-option-all {
   width: auto;
   min-width: var(--toggle-all-min-width);
-  margin-right: var(--toggle-all-gap);
   padding: 0 var(--space-3);
   border-radius: calc(var(--toggle-option-size) / 2);
+}
+
+/* The rule does the separating, so the space around it does not have to. A gap
+   alone was carrying two meanings — `not one of these` and `there is a boundary
+   here` — and the second reads better as a line, because empty space can only
+   be read by comparing it with the other gaps and a line cannot be misread at
+   all. It is also cheaper: --toggle-all-gap on its own put the row 2px over the
+   width it has at 375px, where a line plus --space-2 leaves 8px spare and still
+   separates more, 24.5px against 20px. */
+.toggle-divider {
+  flex: 0 0 auto;
+  align-self: center;
+  width: var(--hairline-width);
+  height: calc(var(--toggle-option-size) - var(--space-2));
+  margin: 0 var(--space-2);
+  background: var(--separator);
 }
 
 @media (prefers-reduced-motion: reduce) {

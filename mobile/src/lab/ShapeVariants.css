@@ -1,0 +1,80 @@
+.shape-variants {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.shape-variants-heading {
+  margin: 0;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.shape-variants-lede {
+  margin: calc(var(--space-4) * -1) 0 0;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.shape-variant {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.shape-variant-name {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+.shape-variant-note {
+  margin: calc(var(--space-2) * -1) 0 0;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.shape-variant-all {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-sm);
+  color: var(--accent);
+}
+
+/* The variants themselves. Only the two shape knobs move — everything else the
+   primitive decides, so nothing here can flatter one option over another. */
+.shape-a {
+  --toggle-option-size: 30px;
+  --toggle-option-radius: 50%;
+}
+
+.shape-b {
+  --toggle-option-size: 36px;
+  --toggle-option-radius: 50%;
+}
+
+.shape-c {
+  --toggle-option-size: 36px;
+  --toggle-option-radius: 12px;
+}
+
+.shape-d {
+  --toggle-option-size: 36px;
+  --toggle-option-radius: 8px;
+}
+
+.shape-e {
+  --toggle-option-size: 44px;
+  --toggle-option-radius: 50%;
+}
+
+.shape-f {
+  --toggle-option-size: 44px;
+  --toggle-option-radius: 14px;
+}

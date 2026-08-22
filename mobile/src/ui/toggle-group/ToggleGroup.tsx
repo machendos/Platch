@@ -68,6 +68,12 @@ export const ToggleGroup = <T extends string>({
         </button>
       )}
 
+      {/* Drawn here rather than left to the call site: what it separates is
+          two zones of one control, which only this component knows it has. */}
+      {selectAllLabel !== undefined && (
+        <span className="toggle-divider" aria-hidden="true" />
+      )}
+
       {options.map((option) => {
         const selected = values.includes(option.value);
 

@@ -5,6 +5,7 @@ import { Temporal } from 'temporal-polyfill';
 import { DateInput } from '../ui/date-input/DateInput';
 import { ToggleGroup } from '../ui/toggle-group/ToggleGroup';
 import { SegmentedControl } from '../ui/segmented-control/SegmentedControl';
+import { ShapeVariants } from './ShapeVariants';
 
 type Weekday = 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU';
 
@@ -89,6 +90,8 @@ export const PickerSpecimens = () => {
       <p className="picker-specimens-readout">
         every {frequency.toLowerCase()} on {days.join(', ') || '—'}
       </p>
+
+      <ShapeVariants />
     </div>
   );
 };
