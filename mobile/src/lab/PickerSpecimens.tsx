@@ -83,7 +83,8 @@ export const PickerSpecimens = () => {
           values={days}
           onChange={setDays}
           label="Days of the week"
-          selectAllLabel="All"
+          selectAllLabel="Select all"
+          clearAllLabel="Clear all"
         />
       </div>
 

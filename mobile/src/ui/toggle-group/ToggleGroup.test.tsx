@@ -74,36 +74,52 @@ describe('ToggleGroup', () => {
   it('has no select-all unless one is asked for', () => {
     render(<Harness />);
 
-    expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Select all' })).toBeNull();
   });
 
-  it('select-all turns every option on, and off once they all are', async () => {
+  it('select-all turns every option on, and clears them once they all are', async () => {
     const user = userEvent.setup();
-    render(<Harness selectAllLabel="All" />);
+    render(<Harness selectAllLabel="Select all" clearAllLabel="Clear all" />);
 
-    await user.click(day('All'));
+    await user.click(day('Select all'));
 
     for (const name of ['Mo', 'Tu', 'We']) {
       expect(day(name)).toHaveAttribute('aria-pressed', 'true');
     }
-    expect(day('All')).toHaveAttribute('aria-pressed', 'true');
 
-    await user.click(day('All'));
+    await user.click(day('Clear all'));
 
     for (const name of ['Mo', 'Tu', 'We']) {
       expect(day(name)).toHaveAttribute('aria-pressed', 'false');
     }
   });
 
-  it('select-all reads as pressed once the last option is picked by hand', async () => {
+  it('states the action it will take, not a state it is in', async () => {
     const user = userEvent.setup();
-    render(<Harness initial={['MO', 'TU']} selectAllLabel="All" />);
+    render(
+      <Harness
+        initial={['MO', 'TU']}
+        selectAllLabel="Select all"
+        clearAllLabel="Clear all"
+      />,
+    );
 
-    expect(day('All')).toHaveAttribute('aria-pressed', 'false');
+    // A command, so no aria-pressed to contradict the label.
+    expect(day('Select all')).not.toHaveAttribute('aria-pressed');
 
     await user.click(day('We'));
 
-    expect(day('All')).toHaveAttribute('aria-pressed', 'true');
+    expect(day('Clear all')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select all' })).toBeNull();
+  });
+
+  it('keeps the one label when no clearing word is given', async () => {
+    const user = userEvent.setup();
+    render(<Harness selectAllLabel="All" />);
+
+    await user.click(day('All'));
+
+    expect(day('All')).toBeInTheDocument();
   });
 
   it('follows the values prop rather than its own state', () => {

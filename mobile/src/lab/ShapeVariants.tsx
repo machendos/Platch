@@ -65,7 +65,8 @@ const Specimen = ({ id, name, note }: (typeof VARIANTS)[number]) => {
         values={days}
         onChange={setDays}
         label={`Days of the week, ${name}`}
-        selectAllLabel="All"
+        selectAllLabel="Select all"
+        clearAllLabel="Clear all"
       />
     </div>
   );

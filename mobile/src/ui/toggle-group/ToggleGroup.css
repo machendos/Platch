@@ -2,9 +2,6 @@
   --toggle-option-size: 36px;
   --toggle-option-radius: 12px;
   --toggle-option-gap: var(--space-1);
-  /* Wider than a day, and a pill rather than a circle: it is not one more of
-     the things it commands. */
-  --toggle-all-min-width: 52px;
 }
 
 /* Separate, gapped shapes with no track behind them — deliberately not
@@ -105,15 +102,33 @@
   font-weight: 600;
 }
 
-/* A pill whatever shape the days are wearing, so it stays distinct from them
-   under every value of --toggle-option-radius. On its own line it is free to
-   take the width its word needs rather than the width that is left over. */
-.toggle-option-all {
-  width: auto;
-  min-width: var(--toggle-all-min-width);
-  height: var(--toggle-option-size);
-  padding: 0 var(--space-3);
-  border-radius: calc(var(--toggle-option-size) / 2);
+/* Text, not another shape. As a pill it was the largest, boldest thing in the
+   control while being the one part of it that is not a choice — it sets the
+   options rather than being one of them, and drawing it like them said the
+   opposite. An action styled as an action states what it does and then gets
+   out of the way.
+
+   It keeps a full-height target even though the text is 17px tall: a link-sized
+   tap area is exactly the problem the options just had. */
+.toggle-select-all {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-sm);
+  line-height: 1;
+  color: var(--accent);
+}
+
+.toggle-select-all::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% + var(--space-4));
+  height: var(--touch-target);
+  transform: translate(-50%, -50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -123,7 +138,8 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .toggle-option {
+  .toggle-option,
+  .toggle-select-all {
     cursor: pointer;
   }
 

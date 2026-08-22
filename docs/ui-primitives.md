@@ -1220,8 +1220,9 @@ where their left edge is.
 ### The select-all is on its own line, and that is arithmetic
 
 At 36px the seven days need 276px of the ~318px a phone's recurrence row has.
-That leaves 42px — less than the pill's own `min-width` before any gap at all.
-It is not a near miss to be tuned away.
+That leaves 42px, and `Select all` does not fit in 42px however it is drawn —
+as a pill or as text, before any gap at all. It is not a near miss to be tuned
+away.
 
 This is the trade the whole layout turns on, so it is worth stating plainly:
 **with the select-all beside them the days cannot exceed ~32px; with it above,
@@ -1243,16 +1244,26 @@ unless asked for. That is a multi-select affordance rather than anything about
 days — which is what keeps the domain out of the primitive, even though
 `recurringByDay` is the only caller today.
 
-It is drawn as a **pill**, whatever `--toggle-option-radius` the options are
-wearing, so it stays distinct from them under every value of that token. On its
-own line it is free to take the width its word needs rather than the width left
-over.
+It is drawn as **text in `--accent`, not as another shape.** As a pill it was
+the largest, boldest thing in the control while being the one part of it that
+is not a choice — it sets the options rather than being one of them, and
+drawing it like them said the opposite.
+
+That also settles its semantics: it is a **command, not a toggle**, so it
+carries no `aria-pressed`. Its label states what pressing it will do —
+`selectAllLabel` until everything is on, `clearAllLabel` after — and a pressed
+state on top of that would be a second, quieter answer to the same question.
+`clearAllLabel` falls back to `selectAllLabel` for sets whose two directions do
+not need different words.
+
+It keeps a full `--touch-target` hit area despite being 17px of text, for the
+reason the options do.
 
 It stays inside the primitive rather than becoming the caller's job, and the
-reason is that there is nothing for a caller to own: its pressed state is a pure
-function of `values`, its action a pure function of `options`. Split out, it is
-not an independent control whose state happens to be coupled — it is the same
-derivation rewritten at every call site, plus alignment that would have to
+reason is that there is nothing for a caller to own: what it shows is a pure
+function of `values`, what it does a pure function of `options`. Split out, it
+is not an independent control whose state happens to be coupled — it is the
+same derivation rewritten at every call site, plus alignment that would have to
 become local CSS.
 
 ---

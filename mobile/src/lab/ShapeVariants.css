@@ -37,16 +37,6 @@
   color: var(--text-secondary);
 }
 
-.shape-variant-all {
-  align-self: flex-start;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: var(--font-sm);
-  color: var(--accent);
-}
-
 /* The variants themselves. Only the two shape knobs move — everything else the
    primitive decides, so nothing here can flatter one option over another. */
 .shape-a {

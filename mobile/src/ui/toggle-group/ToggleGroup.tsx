@@ -12,9 +12,13 @@ export type ToggleGroupProps<T extends string> = {
   values: readonly T[];
   onChange: (values: T[]) => void;
   label: string;
-  /** Adds a leading segment that turns every option on, and off again once
-      they all are. Omit it and the group is only its options. */
+  /** Adds an action above the options that turns every one of them on. Omit it
+      and the group is only its options. */
   selectAllLabel?: string;
+  /** What that action says once they are all on, when it clears them instead.
+      Defaults to `selectAllLabel`, which suits a set whose two directions do
+      not need different words. */
+  clearAllLabel?: string;
   className?: string;
 };
 
@@ -30,6 +34,7 @@ export const ToggleGroup = <T extends string>({
   onChange,
   label,
   selectAllLabel,
+  clearAllLabel,
   className,
 }: ToggleGroupProps<T>) => {
   // Emitted in `options` order rather than the order they were pressed in, so
@@ -53,21 +58,21 @@ export const ToggleGroup = <T extends string>({
     <div className={classes} role="group" aria-label={label}>
       {/* Above the options rather than beside them, which is not a preference:
           at the size the options are drawn, seven of them plus this one do not
-          fit a phone's width at all. See ToggleGroup.css. */}
+          fit a phone's width at all. See ToggleGroup.css.
+
+          No aria-pressed, unlike the options: this is a command and not a
+          toggle. Its label already says what pressing it will do, and a
+          pressed state on top of that would be a second, quieter answer to the
+          same question. */}
       {selectAllLabel !== undefined && (
         <button
-          className={
-            allSelected
-              ? 'toggle-option toggle-option-all toggle-option-selected'
-              : 'toggle-option toggle-option-all'
-          }
+          className="toggle-select-all"
           type="button"
-          aria-pressed={allSelected}
           onClick={() =>
             onChange(allSelected ? [] : options.map((option) => option.value))
           }
         >
-          {selectAllLabel}
+          {allSelected ? (clearAllLabel ?? selectAllLabel) : selectAllLabel}
         </button>
       )}
 
