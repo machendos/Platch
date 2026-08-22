@@ -1,0 +1,39 @@
+.picker-specimens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.picker-specimens-heading {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* The row the specimens sit on: one line, its word at the left, the control
+   after it. Local to the lab, the same as the checkbox lab's was. */
+.picker-specimens-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+}
+
+.picker-specimens-label {
+  min-width: 72px;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+.picker-specimens-row-wide .toggle-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-specimens-readout {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+}
