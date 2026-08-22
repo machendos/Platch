@@ -5,14 +5,12 @@ import { IonContent, IonPage } from '@ionic/react';
 import { Modal } from '../ui/modal/Modal';
 import { ChromeComparison } from './ChromeComparison';
 import { FieldSpecimens } from './FieldSpecimens';
-import { ToolbarProbe } from './ToolbarProbe';
 
 export const FieldLab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <IonPage>
-      <ToolbarProbe />
       <IonContent className="field-lab">
         <h1 className="field-lab-title">Text fields</h1>
 

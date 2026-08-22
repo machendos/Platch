@@ -1,7 +1,13 @@
 :root {
-  --rich-toolbar-height: 32px;
+  /* Roughly a quarter larger than the first pass, which puts it in the same
+     range as the formatting bar in Notes. The height is free to change on its
+     own: the bar is anchored by its bottom, so extra height grows upward and
+     the field below never moves. */
+  --rich-toolbar-height: 40px;
   --rich-toolbar-gap: 2px;
-  --rich-toolbar-button: 26px;
+  --rich-toolbar-button: 32px;
+  --rich-toolbar-icon: 22px;
+  --rich-toolbar-glyph: 20px;
 
   /* Where the toolbar stops on the way up, measured from ion-content — which
      is not where the screen begins. iOS pans the whole page to lift the caret
@@ -105,14 +111,14 @@
 }
 
 .rich-toolbar-button ion-icon {
-  font-size: 18px;
+  font-size: var(--rich-toolbar-icon);
 }
 
 /* Serif for the two letter glyphs, because "B" and "I" are only legible as
    formatting marks when the weight and the slant are unmistakable. */
 .rich-toolbar-glyph {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
+  font-size: var(--rich-toolbar-glyph);
   line-height: 1;
 }
 

@@ -1,201 +1,84 @@
 import './RichTextToolbar.css';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { Fragment } from 'react';
 import { createPortal } from 'react-dom';
-import { IonIcon } from '@ionic/react';
-import {
-  checkboxOutline,
-  chevronBack,
-  chevronForward,
-  listOutline,
-} from 'ionicons/icons';
-import {
-  $getSelection,
-  $isRangeSelection,
-  FORMAT_TEXT_COMMAND,
-  INDENT_CONTENT_COMMAND,
-  OUTDENT_CONTENT_COMMAND,
-} from 'lexical';
-import type { ListType } from '@lexical/list';
 import { useVisualViewportTop } from '../../system/viewport/useVisualViewportTop';
 import { useActiveField } from './richText/activeField';
-import {
-  $lineListType,
-  $removeLineList,
-  $setLineListType,
-} from './richText/lineList';
-
-type Marks = {
-  bold: boolean;
-  italic: boolean;
-  list: ListType | null;
-};
-
-const NO_MARKS: Marks = { bold: false, italic: false, list: null };
+import { TOOLBAR_GROUPS, type Control } from './richText/toolbarControls';
+import { useToolbarMarks, type Marks } from './richText/useToolbarMarks';
 
 const ToolbarButton = ({
-  label,
-  active,
+  control,
+  marks,
   onPress,
-  children,
 }: {
-  label: string;
-  active?: boolean;
+  control: Control;
+  marks: Marks;
   onPress: () => void;
-  children: ReactNode;
-}) => (
-  <button
-    className={
-      active
-        ? 'rich-toolbar-button rich-toolbar-button-active'
-        : 'rich-toolbar-button'
-    }
-    type="button"
-    aria-label={label}
-    aria-pressed={active}
-    // The editor must keep the caret and the selection the command is about to
-    // act on. Without this the button takes focus, the selection collapses,
-    // and the command has nothing to apply to.
-    onMouseDown={(event) => event.preventDefault()}
-    onClick={onPress}
-  >
-    {children}
-  </button>
-);
+}) => {
+  const active = control.isActive?.(marks) ?? false;
 
+  return (
+    <button
+      className={
+        active
+          ? 'rich-toolbar-button rich-toolbar-button-active'
+          : 'rich-toolbar-button'
+      }
+      type="button"
+      aria-label={control.label}
+      aria-pressed={control.isActive ? active : undefined}
+      // The editor must keep the selection the command is about to act on.
+      // Without this the button takes focus, the selection collapses, and the
+      // command has nothing left to apply to.
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onPress}
+    >
+      {control.icon}
+    </button>
+  );
+};
+
+/* One toolbar for the whole form, bound to whichever formatted field has
+   focus. It answers three questions and nothing else: what to draw
+   (toolbarControls), what is currently on (useToolbarMarks), and where to put
+   it (the rail in RichTextToolbar.css). */
 export const RichTextToolbar = () => {
   const { active } = useActiveField();
-  const [marks, setMarks] = useState<Marks>(NO_MARKS);
+  const marks = useToolbarMarks(active?.editor ?? null);
 
-  // iOS pans the page to clear the keyboard, which moves the container the
-  // toolbar sticks inside. The ceiling has to know by how much.
+  // iOS pans the page to lift the caret above the keyboard, which moves the
+  // container the toolbar sticks inside. The rail's ceiling reads this.
   useVisualViewportTop();
-
-  const editor = active?.editor ?? null;
-
-  useEffect(() => {
-    if (!editor) {
-      setMarks(NO_MARKS);
-      return;
-    }
-
-    const read = () =>
-      editor.getEditorState().read(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return setMarks(NO_MARKS);
-
-        setMarks({
-          bold: selection.hasFormat('bold'),
-          italic: selection.hasFormat('italic'),
-          list: $lineListType(),
-        });
-      });
-
-    read();
-    return editor.registerUpdateListener(read);
-  }, [editor]);
 
   if (!active) return null;
 
-  const run = (command: () => void) => {
-    active.editor.focus();
-    command();
-  };
-
-  /* Both sides act on the caret's line only. Lexical's own INSERT_*_LIST and
-     REMOVE_LIST commands are written for a document toolbar and take the whole
-     containing list — or, removing, the whole top-level one at every depth. */
-  const toggleList = (type: ListType) =>
-    run(() =>
-      active.editor.update(() =>
-        marks.list === type ? $removeLineList() : $setLineListType(type),
-      ),
-    );
-
-  const toolbar = (
+  return createPortal(
     <div className="rich-toolbar-rail">
-      <div
-        className="rich-toolbar"
-        role="toolbar"
-        aria-label="Formatting"
-        data-rich-toolbar=""
-      >
-        <ToolbarButton
-          label="Bold"
-          active={marks.bold}
-          onPress={() =>
-            run(() =>
-              active.editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
-            )
-          }
-        >
-          <span className="rich-toolbar-glyph rich-toolbar-glyph-bold">B</span>
-        </ToolbarButton>
+      <div className="rich-toolbar" role="toolbar" aria-label="Formatting">
+        {TOOLBAR_GROUPS.map((group, index) => (
+          <Fragment key={group[0].label}>
+            {index > 0 && (
+              <span className="rich-toolbar-divider" aria-hidden="true" />
+            )}
 
-        <ToolbarButton
-          label="Italic"
-          active={marks.italic}
-          onPress={() =>
-            run(() =>
-              active.editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
-            )
-          }
-        >
-          <span className="rich-toolbar-glyph rich-toolbar-glyph-italic">
-            I
-          </span>
-        </ToolbarButton>
-
-        <span className="rich-toolbar-divider" aria-hidden="true" />
-
-        <ToolbarButton
-          label="Numbered list"
-          active={marks.list === 'number'}
-          onPress={() => toggleList('number')}
-        >
-          <IonIcon icon={listOutline} />
-        </ToolbarButton>
-
-        <ToolbarButton
-          label="Checklist"
-          active={marks.list === 'check'}
-          onPress={() => toggleList('check')}
-        >
-          <IonIcon icon={checkboxOutline} />
-        </ToolbarButton>
-
-        <span className="rich-toolbar-divider" aria-hidden="true" />
-
-        {/* Tab and Shift+Tab do this on a keyboard, and no software keyboard has
-          a Tab key — not iOS, not Gboard. On a phone these are the only way to
-          nest, which is why they are here rather than being a nicety. */}
-        <ToolbarButton
-          label="Outdent"
-          onPress={() =>
-            run(() =>
-              active.editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined),
-            )
-          }
-        >
-          <IonIcon icon={chevronBack} />
-        </ToolbarButton>
-
-        <ToolbarButton
-          label="Indent"
-          onPress={() =>
-            run(() =>
-              active.editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined),
-            )
-          }
-        >
-          <IonIcon icon={chevronForward} />
-        </ToolbarButton>
+            {group.map((control) => (
+              <ToolbarButton
+                key={control.label}
+                control={control}
+                marks={marks}
+                onPress={() => {
+                  active.editor.focus();
+                  control.press(active.editor, marks);
+                }}
+              />
+            ))}
+          </Fragment>
+        ))}
       </div>
-    </div>
+    </div>,
+    // Into the focused field, so the bar is positioned against the thing it is
+    // editing and travels with it.
+    active.shell,
   );
-
-  /* Rendered into the focused field rather than into the page, so it is
-     positioned against the thing it is editing and moves with it. Out of flow
-     throughout, so appearing shifts nothing. */
-  return createPortal(toolbar, active.shell);
 };

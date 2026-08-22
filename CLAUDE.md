@@ -182,6 +182,8 @@ approaches that were tried and do not work, which the code cannot show.
   presentation, Ionic overlay workarounds.
 - [`docs/ui-primitives.md`](docs/ui-primitives.md) — the reusable controls in
   `src/ui/` that modals are composed from.
+- [`docs/rich-text.md`](docs/rich-text.md) — the formatted text body, markdown
+  as the stored format, and where the formatting toolbar sits.
 
 ## Conventions
 
