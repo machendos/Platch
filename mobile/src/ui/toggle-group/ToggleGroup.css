@@ -1,0 +1,171 @@
+:root {
+  /* The smaller of the two sizes is the base, because the narrow phone is the
+     case that binds — see the sizing note on .toggle-group. */
+  --toggle-option-size: 32px;
+  --toggle-option-radius: 12px;
+  --toggle-option-gap: var(--space-1);
+}
+
+/* Seven days plus `Select all` need 7 * size + 88px. A 430px phone leaves the
+   recurrence row ~373px, which fits the options at 36px; a 375px one leaves
+   ~318px, which does not — 340px against 318px — but fits them at 32px with
+   6px to spare. Hence the step, and hence 400px as the point it happens: that
+   is the viewport at which 36px stops overflowing. */
+@media (min-width: 400px) {
+  :root {
+    --toggle-option-size: 36px;
+  }
+}
+
+/* Separate, gapped shapes with no track behind them — deliberately not
+   SegmentedControl's. That control fills one continuous groove because exactly
+   one of its options is ever on; this is a row of independent switches, and
+   looking like a row of independent switches is the whole affordance. The user
+   should be able to tell which kind of control they are looking at before
+   touching it. An earlier version shared the track, on the argument that
+   neighbouring rows should match, and that was the wrong thing to hold
+   constant: matching made the two indistinguishable.
+
+   A wrapping row rather than a stack, which is what gives the layout three
+   tiers off one media query. The options are a single flex item, so the only
+   thing that can wrap is `Select all`: it sits after the days where there is
+   room for it, drops to its own line where there is not, and the step down to
+   32px in between is what keeps that second case rare. Wrapping is the honest
+   backstop of the three, because it answers to the width the control actually
+   got rather than to the width the viewport claims — a narrow container inside
+   a wide window still lands on its feet. */
+.toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+  /* Cancelling pair, so nothing moves: it exists so the group's box contains
+     the hit areas rather than being overhung by them. Each option's target
+     claims half a gap either side (see ::after below), which at the two ends
+     is half a gap of thin air — 2px of overflow the group could not see, and
+     an ancestor that scrolls would have found it.
+
+     On the group and not on the options row, or the two lines stop agreeing
+     about where their left edge is: the row shifted 2px and All did not. */
+  padding: 0 calc(var(--toggle-option-gap) / 2);
+  margin: 0 calc(var(--toggle-option-gap) / -2);
+}
+
+.toggle-group-options {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--toggle-option-gap);
+  height: var(--toggle-option-size);
+}
+
+/* Fixed, never flexed. Equal-width segments made sense inside a track that had
+   to be filled edge to edge; a circle has to stay a circle, and one stretched
+   to 220px on a desktop — which `flex: 1 1 0` did — is not one. Holding the
+   size also means the row looks the same at every width and simply ends where
+   it ends, instead of growing with a container that has nothing to do with it. */
+.toggle-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: var(--toggle-option-size);
+  height: var(--toggle-option-size);
+  padding: 0;
+  position: relative;
+  border: var(--hairline-width) solid var(--separator);
+  border-radius: var(--toggle-option-radius);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--font-sm);
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-exit) var(--easing-standard),
+    border-color var(--duration-exit) var(--easing-standard),
+    color var(--duration-exit) var(--easing-standard);
+}
+
+/* What is drawn and what can be hit are two different sizes, and only the first
+   of them is a design decision. A 30px circle in a 44px row claims 30px of it
+   and leaves the 4px gaps dead, so a thumb aimed between two days hits neither
+   — which reads as the control ignoring the tap.
+
+   The target is the full row height, and wide enough to claim half of each
+   neighbouring gap, so adjacent targets meet exactly: no dead strip between
+   them and no overlap either, which would hand a day's edge to its neighbour.
+   Growing the circles instead would fix the same problem by making the control
+   bigger than it wants to be. */
+.toggle-option::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% + var(--toggle-option-gap));
+  height: var(--touch-target);
+  transform: translate(-50%, -50%);
+}
+
+/* The border keeps its width and only changes colour, so selecting cannot move
+   anything — the rule FieldShell's focus state follows, for the same reason. */
+.toggle-option-selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+/* Text, not another shape. As a pill it was the largest, boldest thing in the
+   control while being the one part of it that is not a choice — it sets the
+   options rather than being one of them, and drawing it like them said the
+   opposite. An action styled as an action states what it does and then gets
+   out of the way.
+
+   It keeps a full-height target even though the text is 17px tall: a link-sized
+   tap area is exactly the problem the options just had. */
+.toggle-select-all {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-sm);
+  line-height: 1;
+  color: var(--accent);
+}
+
+.toggle-select-all::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: var(--touch-target);
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-option {
+    transition: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toggle-option,
+  .toggle-select-all {
+    cursor: pointer;
+  }
+
+  .toggle-option:hover {
+    border-color: var(--text-secondary);
+  }
+
+  .toggle-option-selected:hover {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+}

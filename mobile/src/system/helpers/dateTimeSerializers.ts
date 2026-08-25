@@ -15,8 +15,21 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
-const serializeDate = (date: { day: number; month?: string; year?: number }) =>
+const serializeParts = (date: { day: number; month?: string; year?: number }) =>
   `${date.month ?? ''} ${date.day}${date.year ? `, ${date.year}` : ''}`.trim();
+
+// The single-date case serializeRange was already computing privately, given a
+// name of its own so a field showing one date reads the same way as one end of
+// a range does.
+export const serializeDate = (
+  date: Temporal.PlainDate,
+  today: Temporal.PlainDate = Temporal.Now.plainDateISO(),
+): string =>
+  serializeParts({
+    day: date.day,
+    month: MONTH_NAMES[date.month - 1],
+    year: date.year === today.year ? undefined : date.year,
+  });
 
 export const serializeRange = (
   start: Temporal.PlainDate,
@@ -31,7 +44,7 @@ export const serializeRange = (
       ? start.year
       : undefined;
 
-  const serializedStart = serializeDate({
+  const serializedStart = serializeParts({
     day: startDay,
     month: startMonth,
     year: startYear,
@@ -48,7 +61,7 @@ export const serializeRange = (
       ? MONTH_NAMES[end.month - 1]
       : undefined;
 
-  const serializedEnd = serializeDate({
+  const serializedEnd = serializeParts({
     day: endDay,
     month: endMonth,
     year: endYear,

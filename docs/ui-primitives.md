@@ -1095,6 +1095,199 @@ flipped case.
 
 ---
 
+## `DateInput`
+
+A field that opens a calendar and takes one date out of it, for
+`absoluteFrom` / `absoluteTo` and, later, `earliestDate` / `deadlineDate`. It
+wraps mobiscroll's `Datepicker` in `FieldShell` chrome, so it draws the same
+hairline as `Field` and `Select` rather than a fourth answer to "this is a
+field".
+
+Like `Select`, its `label` is for assistive technology only and nothing is
+drawn for it — these sit on rows that carry their own word (`From`, `To`).
+
+### The trigger is a button, and the text in it is ours
+
+A custom `inputComponent` is handed only `{defaultValue, placeholder, ref}`.
+`defaultValue` is the giveaway: the value is **uncontrolled**, written into the
+element through that `ref` as the picker changes. So an `<input>` there would
+display whatever mobiscroll formatted, and `serializeDate` would never be what
+the field says.
+
+Passing our own serialized text through `inputProps` and rendering it into a
+`<button>` is what keeps one date format in the app. `Header`'s range picker
+already worked this way; this is the same move with the field chrome on it.
+
+The cost is that **there is no typing on a desktop**, unlike `Select` and
+`TimeInput`, whose fields become text boxes under a fine pointer. Recovering it
+means letting mobiscroll own the text, which is the thing being avoided.
+
+### Open is a class, not `:focus-within`
+
+The calendar takes the focus while it is up, so a fill driven by the shell's
+`:focus-within` drops off the field the moment its own panel appears. `onOpen`
+and `onClose` carry it instead. Same problem `Select` has, same fix — and
+unlike `Select`, mobiscroll owns the dismissal, so there is no capture-phase
+outside-interaction listener here at all.
+
+### Picking is two taps, not one
+
+Under a coarse pointer `touchUi` gives the anchored calendar **Cancel / Set**
+buttons, so a day is chosen and then committed. That is mobiscroll's touch
+default and it is left alone: it is the behaviour with an explicit way out.
+A single-tap commit is `buttons={[]}` away if the form ever wants it.
+
+### `WEEK_STARTS_ON` moved for this
+
+It was in the main page's `layout-config.ts`. A control in `src/ui` reaching
+into `src/pages` for a preference is the wrong direction, and the value was
+never the main page's to own — it now sits in `config/calendarPreferences.ts`
+beside the other knobs primitives read. Verified: the calendar's header renders
+`MON TUE WED THU FRI SAT SUN`.
+
+---
+
+## `ToggleGroup`
+
+`SegmentedControl`'s sibling, for the fields that hold a **set** rather than one
+value — `recurringByDay` above all.
+
+### It is not a `multiple` mode on `SegmentedControl`
+
+The two cannot draw the same way. That control's selection is a single box
+placed arithmetically from the option count and the selected index, and slid
+between positions — **one box cannot be in three places.** Here the fill belongs
+to each option instead, which is also what says the choices are independent
+rather than exclusive.
+
+### Round and gapped, with no track — and that is the point
+
+The first version shared `SegmentedControl`'s track exactly, reasoning that a
+row of weekdays sitting directly under a row of frequencies should match. That
+was the wrong thing to hold constant. **Matching made the two
+indistinguishable**, so nothing about the weekday row said that more than one
+answer was allowed — a user had to press one and watch what happened to the
+last.
+
+So the shape now carries the difference. A segmented control fills one
+continuous groove because exactly one of its options is ever on; this is a row
+of separate shapes with space between them, which is what a row of independent
+switches looks like. The two are told apart before either is touched.
+
+Unselected is a hairline ring on `--surface`, selected is an `--accent` fill.
+The ring keeps its width and changes only colour, so selecting cannot move
+anything — the rule `FieldShell`'s focus state follows, for the same reason.
+
+The shape itself is `--toggle-option-radius`, a token alongside
+`--toggle-option-size`, which is what let six candidates be compared in the lab
+as the same component with two values changed rather than six forks. Settled on
+a **36px squircle at radius 12** — circles read as the most obviously
+multi-select but were the hardest to hit, and a plain rounded square read as a
+key on a keyboard.
+
+### The options are a fixed size, not flexed
+
+Equal-width segments made sense inside a track that had to be filled edge to
+edge. A separate shape has no such duty, and it has one it cannot escape: it
+has to keep its proportions. Under `flex: 1 1 0` the days grew with their
+container — 220px wide on a desktop, which is neither a squircle nor a weekday.
+
+Fixed, they draw the same at 375px and at 1280px, and the row simply ends where
+it ends instead of tracking a container it has nothing to do with. That removes
+the whole class of "does it still fit" question at large widths; **only the
+small end can bind.**
+
+### What is drawn and what can be hit are different sizes
+
+Only the first is a design decision. A 30px shape in a 44px row claims 30px of
+it and leaves the 4px gaps dead, so a thumb aimed between two days hits neither
+and the control reads as ignoring the tap — which is exactly how it was
+reported.
+
+`.toggle-option::after` takes the full `--touch-target` height and half of each
+neighbouring gap, so adjacent targets meet exactly: no dead strip, and no
+overlap either, which would quietly hand a day's edge to its neighbour. 30×30
+became 33×44 with nothing moving on screen. **Growing the shapes solves the same
+problem by making the control bigger than it wants to be**, so reach for this
+first.
+
+The group carries a cancelling `padding` / negative `margin` pair of half a gap
+so its box contains those targets. Without it the two end options overhang by
+2px, which the group cannot see and an ancestor that scrolls would find. It
+belongs on the group and not on the options row, or the two lines stop agreeing
+where their left edge is.
+
+### Three tiers off one media query, because wrapping is the third
+
+Seven days plus `Select all` need `7 * size + 88px`. That does not fit every
+phone at one size, and the answer is a step down followed by a wrap:
+
+| room | drawn | layout |
+| --- | --- | --- |
+| ≥ 400px viewport | 36px | one line, action after the days |
+| below that | 32px | one line, action after the days |
+| narrower than the row needs | 32px | action wraps under the days |
+
+Only the first row of that table is a media query. **The wrap is flexbox doing
+it**, which is why the arrangement is trustworthy: `flex-wrap` answers to the
+width the control was actually given, where a media query only knows what the
+viewport claims. A narrow container inside a wide window lands on its feet
+without anyone having anticipated it.
+
+The 400px threshold is not a device, it is the width at which 36px stops
+overflowing: 340px of content against the ~318px a 375px phone leaves, and
+~373px on a 430px one. Verified at all three — 430px gives 36px on one line,
+375px gives 32px on one line with 3.9px to spare, 320px wraps.
+
+**The options are one flex item, not seven.** That is the whole reason the days
+survive: let them into the wrapping row individually and a narrow screen breaks
+the week across two lines, four above three, which is the one arrangement
+nobody wants. As a block they wrap or they do not, together.
+
+An earlier pass put the select-all *above* the days with a hairline rule
+between it and the first day when it was inline. Both are gone with the layout
+they belonged to.
+
+### The set comes back in option order
+
+`onChange` emits in `options` order, never in the order things were pressed, so
+a caller always receives the same set written the same way and never has to sort
+it back. `serializeRecurrence` sorts as well, which is not redundant — that one
+is defending against data arriving from the backend.
+
+### `selectAllLabel` is generic, not a weekday shortcut
+
+It turns every option on, and off again once they all are, and it is absent
+unless asked for. That is a multi-select affordance rather than anything about
+days — which is what keeps the domain out of the primitive, even though
+`recurringByDay` is the only caller today.
+
+It is drawn as **text in `--accent`, not as another shape**, and sits after the
+options. As a pill it was the largest, boldest thing in the control while being
+the one part of it that is not a choice — it sets the options rather than being
+one of them, and drawing it like them said the opposite. Being text is also
+what lets it share the row at all: it is the narrowest the affordance can be.
+
+That also settles its semantics: it is a **command, not a toggle**, so it
+carries no `aria-pressed`. Its label states what pressing it will do —
+`selectAllLabel` until everything is on, `clearAllLabel` after — and a pressed
+state on top of that would be a second, quieter answer to the same question.
+`clearAllLabel` falls back to `selectAllLabel` for sets whose two directions do
+not need different words.
+
+It keeps a full `--touch-target` hit area despite being 13px of text, for the
+reason the options do — vertically only, since the words are already a wide
+enough target and a horizontal expansion would overhang the group it now ends.
+
+It stays inside the primitive rather than becoming the caller's job, and the
+reason is that there is nothing for a caller to own: what it shows is a pure
+function of `values`, what it does a pure function of `options`. Split out, it
+is not an independent control whose state happens to be coupled — it is the
+same derivation rewritten at every call site, plus alignment that would have to
+become local CSS.
+
+---
+
 ## Known issues / watch list
 
 | Issue | Detail |
@@ -1102,6 +1295,10 @@ flipped case.
 | An inline `TimeInput` grows its row when opened | The wheels are an in-flow panel, so a `TimeInput` sitting at the right of a row expands that row to ~212 px and takes the width its columns need. Correct for a full-width field, surprising at the end of a line. The fix, if it is wanted, belongs to `TimeInput` (an overlay panel) and not to `Reveal`. |
 | `Reveal` is unmounted by a timer, not by the transition | The exit is `REVEAL_MOTION.durationMs` on a `setTimeout`, so a transition slowed by anything else — a busy main thread, a devtools override — is cut off at that mark. `transitionend` cannot be used: it never fires under reduced motion or in a hidden page. |
 | A block reveal animates its own growth twice over | If content inside an open reveal changes size — a `TimeInput` opening its wheels — the `1fr` track follows it, and that follow is itself transitioned. Two easings over one movement. Harmless today; it would show if the durations ever diverged. |
+| `DateInput` cannot be typed into on a desktop | `Select` and `TimeInput` both become text boxes under a fine pointer; this one stays a button, because a custom `inputComponent` only ever receives an uncontrolled `defaultValue` and letting mobiscroll own the text would take the app's date format with it. A form holding all three offers typing in two of them. |
+| A date is picked in two taps | Under a coarse pointer mobiscroll's `touchUi` puts Cancel / Set on the anchored calendar, so choosing a day does not commit it. Left at the default — it is the behaviour with an explicit way out — but `buttons={[]}` is the one-prop change if a form wants a single tap. |
+| Two pickers anchor two different ways | `DateInput` lets mobiscroll position and dismiss its own popover; `Select` drives an `IonPopover` and carries its own capture-phase dismissal. Both are right where they are, but that is now three panel mechanisms in one form counting `TimeInput`'s in-flow one. |
+| `ToggleGroup` has no keyboard arrow navigation | Same gap as `SegmentedControl` and for the same reason — a group of buttons, each tabbable, with no roving focus. Worth answering for both at once rather than twice. |
 | `TimeInput` has not moved onto the field chrome yet | It is still a full `1px --border-control` box with an accent ring on focus, which is the idiom the hairline replaced. Until it migrates a form holding both draws two different answers to "this is a field" — and the recurrence row is exactly such a form: `on [30 ⌄]` is now hairlined and `At [5:45 PM]` beside it is not. `Field` and `Select` both go through `FieldShell`, so `TimeInput` is the last field still drawing its own box. (`Checkbox` is not a counterexample — it is not a field box at all, and carries its own out-of-flow focus outline.) |
 | A long placeholder can be clipped | The replica carries the value, not the placeholder, so an empty field is `minRows` tall however long its placeholder is. Every current preset fits on one line at 343 px (the phone width), but a longer one would be cut. Replicating the placeholder instead would make an empty field taller than `minRows`, which is worse. |
 | No keyboard arrow navigation | The segmented control is a group of buttons; each is tabbable but arrow keys do not move between them as a native radio group would. Fine for now, worth revisiting when forms get long. |
