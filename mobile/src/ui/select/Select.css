@@ -1,0 +1,188 @@
+/* On :root, not on the component: the popover is portalled to <ion-app> and
+   inherits nothing declared inside the page shell. Same placement, same
+   reason, as Modal.css and HeaderMenu.css. */
+:root {
+  --select-field-padding: var(--space-2);
+  --select-chevron-space: 22px;
+  --select-min-width: 96px;
+  --select-row-height: var(--touch-target);
+  /* Half a row of the next option stays visible, which is what says the list
+     continues past the edge of the panel. */
+  --select-visible-rows: 6.5;
+}
+
+.select {
+  min-width: 0;
+}
+
+/* FieldShell's control box is the positioning context for the chevron, and
+   has to lay the trigger out in a row. Everything about the chrome itself —
+   the hairline, its colour, the fill — is the shell's and is not restated. */
+.select .field-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Open, not merely focused. See the note on rootClassName in Select.tsx: the
+   field blurs for an instant on the way into `present`, so a fill driven by
+   the shell's own `:focus-within` would blink across that gap. */
+.select-is-open .field-control {
+  border-bottom-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+/* No border, radius or fill of its own — those come from the shell, and a
+   second set here would be the fourth copy of one decision. */
+.select-field {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: var(--select-min-width);
+  height: var(--control-height);
+  padding: 0 var(--select-chevron-space) 0 var(--select-field-padding);
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-md);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+/* The shell draws the focus state; the browser's own ring on top of it would
+   be a second, differently-coloured answer. Same reasoning as Field. */
+.select-field:focus {
+  outline: none;
+}
+
+.select-placeholder,
+.select-field::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Outside the field so it is not clipped by the input's own box, and inert so
+   a tap on it still lands on the field underneath. */
+.select-chevron {
+  position: absolute;
+  right: var(--space-2);
+  font-size: 14px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+/* ===== Panel ===== */
+
+.select-popover {
+  /* No --width/--min-width/--max-width here on purpose: `size="cover"` has
+     Ionic write --width from the trigger's measured width, and anything set
+     here would fight it. Sizing the panel to its own rows instead left it
+     narrower than the field and hanging off the left edge. */
+  --backdrop-opacity: 0;
+  --box-shadow: none;
+
+  /* The host is a fixed, full-screen box, so it — not the backdrop — is what
+     would otherwise swallow every touch on the page. The page has to stay live
+     while the panel is open, because on a desktop the field is a text box the
+     user may still be typing into. */
+  pointer-events: none;
+}
+
+/* The skin lives here rather than on the list inside, so the panel is one
+   opaque object. With the fill on the inner list this part stayed transparent,
+   and anything that put the panel mid-animation — it fades in and out — showed
+   the page straight through the gap.
+
+   Nothing here may carry a transform: getPopoverDimensions measures this
+   element synchronously before the position is written, so a transform is read
+   as the real size and throws the anchor off. */
+.select-popover::part(content) {
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  /* Clips the rows to the rounded corners. `visible` is what HeaderMenu needs
+     for its scale animation to escape; this panel has no animation of its own,
+     so it can clip. */
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.select-popover::part(backdrop) {
+  pointer-events: none;
+}
+
+.select-list {
+  max-height: calc(var(--select-row-height) * var(--select-visible-rows));
+  padding: var(--space-1) 0;
+  overflow-y: auto;
+  /* Flicking past the end must not hand the scroll to the modal behind it —
+     and must not fire a scroll event outside the panel, which the dismiss
+     listener would read as the page moving. */
+  overscroll-behavior: contain;
+  background: var(--surface);
+}
+
+/* ===== Rows ===== */
+
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  height: var(--select-row-height);
+  padding: 0 var(--space-3);
+  font-size: var(--font-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* The app's other "selected" idiom, matching .header-button.active rather than
+   SegmentedControl's accent fill. The two disagree; this picks one instead of
+   inventing a third. */
+.select-option-active {
+  background: var(--accent-surface);
+}
+
+.select-option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select-option-mark {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* No finger, so the rows can be tighter and a pointer expects a hover
+   response. Ionic's own .popover-desktop is evaluated once at render and never
+   re-checked, so it misses a mouse plugged in later. */
+@media (hover: hover) and (pointer: fine) {
+  :root {
+    --select-row-height: var(--control-height);
+  }
+
+  .select-field {
+    cursor: pointer;
+  }
+
+  .select-option {
+    cursor: pointer;
+  }
+
+  .select-option:hover {
+    background: var(--surface-sunken);
+  }
+
+  .select-option-active,
+  .select-option-active:hover {
+    background: var(--accent-surface);
+  }
+}

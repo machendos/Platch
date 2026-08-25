@@ -2,19 +2,17 @@
   --field-list-indent: 24px;
   --field-block-gap: var(--space-1);
 
-  /* Deliberately the same numbers ui/checkbox/Checkbox.css uses, so a
-     checklist inside a field and a standalone checkbox in the same form are
-     the same control to look at. They cannot share the component: Lexical
-     renders the <li role="checkbox"> itself and owns the checked state, so a
-     React checkbox inside it would need a decorator node and would put the
-     node tree and the DOM in disagreement about what is ticked. Point these at
-     --checkbox-* once that primitive lands on main. */
-  --field-checkbox-size: 20px;
-  --field-checkbox-tick-size: 14px;
+  /* The box itself comes from the shared --checkbox-* tokens, so a checklist
+     line and a standalone Checkbox are the same control to look at. They
+     cannot share the component: Lexical renders the <li role="checkbox">
+     itself and owns the checked state, so a React checkbox inside it would
+     need a decorator node and would put the node tree and the DOM in
+     disagreement about what is ticked.
 
-  /* Ink, not accent. A checklist here is *content* — part of what the user
-     wrote — while a Checkbox on the same page is a *control* that changes the
-     record. Drawing both in --accent would make them one thing to the eye. */
+     The colour is the one deliberate divergence. Ink, not accent: a checklist
+     here is *content* — part of what the user wrote — while a Checkbox on the
+     same page is a *control* that changes the record. Drawing both in --accent
+     would make them one thing to the eye. */
   --field-checkbox-color: var(--text-primary);
 }
 
@@ -109,7 +107,7 @@
 .field-listitem-unchecked {
   position: relative;
   margin-left: 0;
-  padding-left: calc(var(--field-checkbox-size) + var(--space-2));
+  padding-left: calc(var(--checkbox-size) + var(--checkbox-gap));
   list-style: none;
   outline: none;
 }
@@ -118,10 +116,10 @@
 .field-listitem-unchecked::before {
   content: '';
   position: absolute;
-  top: calc((var(--field-line-height) - var(--field-checkbox-size)) / 2);
+  top: calc((var(--field-line-height) - var(--checkbox-size)) / 2);
   left: 0;
-  width: var(--field-checkbox-size);
-  height: var(--field-checkbox-size);
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
   box-sizing: border-box;
   border: 1px solid var(--field-checkbox-color);
   border-radius: var(--radius-sm);
@@ -143,12 +141,10 @@
 .field-listitem-checked::after {
   content: '';
   position: absolute;
-  top: calc((var(--field-line-height) - var(--field-checkbox-tick-size)) / 2);
-  left: calc(
-    (var(--field-checkbox-size) - var(--field-checkbox-tick-size)) / 2
-  );
-  width: var(--field-checkbox-tick-size);
-  height: var(--field-checkbox-tick-size);
+  top: calc((var(--field-line-height) - var(--checkbox-tick-size)) / 2);
+  left: calc((var(--checkbox-size) - var(--checkbox-tick-size)) / 2);
+  width: var(--checkbox-tick-size);
+  height: var(--checkbox-tick-size);
   background: var(--surface);
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' stroke-width='32' d='M416 128L192 384l-96-96'/%3E%3C/svg%3E");
   mask-size: contain;
