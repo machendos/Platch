@@ -1217,18 +1217,36 @@ so its box contains those targets. Without it the two end options overhang by
 belongs on the group and not on the options row, or the two lines stop agreeing
 where their left edge is.
 
-### The select-all is on its own line, and that is arithmetic
+### Three tiers off one media query, because wrapping is the third
 
-At 36px the seven days need 276px of the ~318px a phone's recurrence row has.
-That leaves 42px, and `Select all` does not fit in 42px however it is drawn —
-as a pill or as text, before any gap at all. It is not a near miss to be tuned
-away.
+Seven days plus `Select all` need `7 * size + 88px`. That does not fit every
+phone at one size, and the answer is a step down followed by a wrap:
 
-This is the trade the whole layout turns on, so it is worth stating plainly:
-**with the select-all beside them the days cannot exceed ~32px; with it above,
-they can be 44px.** Measured, not estimated — 36px inline overflowed by 19px at
-375px. An earlier pass put a hairline rule between an inline select-all and the
-first day, which read well and is gone with the layout it separated.
+| room | drawn | layout |
+| --- | --- | --- |
+| ≥ 400px viewport | 36px | one line, action after the days |
+| below that | 32px | one line, action after the days |
+| narrower than the row needs | 32px | action wraps under the days |
+
+Only the first row of that table is a media query. **The wrap is flexbox doing
+it**, which is why the arrangement is trustworthy: `flex-wrap` answers to the
+width the control was actually given, where a media query only knows what the
+viewport claims. A narrow container inside a wide window lands on its feet
+without anyone having anticipated it.
+
+The 400px threshold is not a device, it is the width at which 36px stops
+overflowing: 340px of content against the ~318px a 375px phone leaves, and
+~373px on a 430px one. Verified at all three — 430px gives 36px on one line,
+375px gives 32px on one line with 3.9px to spare, 320px wraps.
+
+**The options are one flex item, not seven.** That is the whole reason the days
+survive: let them into the wrapping row individually and a narrow screen breaks
+the week across two lines, four above three, which is the one arrangement
+nobody wants. As a block they wrap or they do not, together.
+
+An earlier pass put the select-all *above* the days with a hairline rule
+between it and the first day when it was inline. Both are gone with the layout
+they belonged to.
 
 ### The set comes back in option order
 
@@ -1244,10 +1262,11 @@ unless asked for. That is a multi-select affordance rather than anything about
 days — which is what keeps the domain out of the primitive, even though
 `recurringByDay` is the only caller today.
 
-It is drawn as **text in `--accent`, not as another shape.** As a pill it was
-the largest, boldest thing in the control while being the one part of it that
-is not a choice — it sets the options rather than being one of them, and
-drawing it like them said the opposite.
+It is drawn as **text in `--accent`, not as another shape**, and sits after the
+options. As a pill it was the largest, boldest thing in the control while being
+the one part of it that is not a choice — it sets the options rather than being
+one of them, and drawing it like them said the opposite. Being text is also
+what lets it share the row at all: it is the narrowest the affordance can be.
 
 That also settles its semantics: it is a **command, not a toggle**, so it
 carries no `aria-pressed`. Its label states what pressing it will do —
@@ -1256,8 +1275,9 @@ state on top of that would be a second, quieter answer to the same question.
 `clearAllLabel` falls back to `selectAllLabel` for sets whose two directions do
 not need different words.
 
-It keeps a full `--touch-target` hit area despite being 17px of text, for the
-reason the options do.
+It keeps a full `--touch-target` hit area despite being 13px of text, for the
+reason the options do — vertically only, since the words are already a wide
+enough target and a horizontal expansion would overhang the group it now ends.
 
 It stays inside the primitive rather than becoming the caller's job, and the
 reason is that there is nothing for a caller to own: what it shows is a pure

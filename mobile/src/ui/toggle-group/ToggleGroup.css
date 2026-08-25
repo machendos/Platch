@@ -1,7 +1,20 @@
 :root {
-  --toggle-option-size: 36px;
+  /* The smaller of the two sizes is the base, because the narrow phone is the
+     case that binds — see the sizing note on .toggle-group. */
+  --toggle-option-size: 32px;
   --toggle-option-radius: 12px;
   --toggle-option-gap: var(--space-1);
+}
+
+/* Seven days plus `Select all` need 7 * size + 88px. A 430px phone leaves the
+   recurrence row ~373px, which fits the options at 36px; a 375px one leaves
+   ~318px, which does not — 340px against 318px — but fits them at 32px with
+   6px to spare. Hence the step, and hence 400px as the point it happens: that
+   is the viewport at which 36px stops overflowing. */
+@media (min-width: 400px) {
+  :root {
+    --toggle-option-size: 36px;
+  }
 }
 
 /* Separate, gapped shapes with no track behind them — deliberately not
@@ -13,16 +26,19 @@
    neighbouring rows should match, and that was the wrong thing to hold
    constant: matching made the two indistinguishable.
 
-   A stack, because the select-all cannot sit beside the options. At 36px the
-   seven days need 276px of the ~318px a phone's recurrence row has, which
-   leaves 42px — less than the pill's own width before any gap. It is not a
-   near miss to be tuned away; it is arithmetic, and the second line is the
-   only thing that answers it. */
+   A wrapping row rather than a stack, which is what gives the layout three
+   tiers off one media query. The options are a single flex item, so the only
+   thing that can wrap is `Select all`: it sits after the days where there is
+   room for it, drops to its own line where there is not, and the step down to
+   32px in between is what keeps that second case rare. Wrapping is the honest
+   backstop of the three, because it answers to the width the control actually
+   got rather than to the width the viewport claims — a narrow container inside
+   a wide window still lands on its feet. */
 .toggle-group {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
   min-width: 0;
   /* Cancelling pair, so nothing moves: it exists so the group's box contains
      the hit areas rather than being overhung by them. Each option's target
@@ -38,9 +54,9 @@
 
 .toggle-group-options {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: var(--toggle-option-gap);
-  min-width: 0;
   height: var(--toggle-option-size);
 }
 
@@ -112,6 +128,7 @@
    tap area is exactly the problem the options just had. */
 .toggle-select-all {
   position: relative;
+  flex: 0 0 auto;
   padding: 0;
   border: none;
   background: none;
@@ -125,10 +142,10 @@
   content: '';
   position: absolute;
   top: 50%;
-  left: 50%;
-  width: calc(100% + var(--space-4));
+  left: 0;
+  width: 100%;
   height: var(--touch-target);
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
 }
 
 @media (prefers-reduced-motion: reduce) {

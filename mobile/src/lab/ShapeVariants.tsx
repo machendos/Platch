@@ -77,9 +77,9 @@ export const ShapeVariants = () => (
     <h2 className="shape-variants-heading">Shapes — tap each one</h2>
     <p className="shape-variants-lede">
       All of them have the same 44px-tall hit area whatever is drawn, so what
-      differs is only how they look and how wide the target is. All sits on its
-      own line throughout: measured at 375px, anything above ~32px overflows
-      beside it, and that second line is what buys every size above A.
+      differs is only how they look and how wide the target is. Select all
+      follows the days and wraps under them when the row runs out, which is why
+      the larger sizes here push it onto a second line at this width.
     </p>
 
     {VARIANTS.map((variant) => (

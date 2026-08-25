@@ -56,26 +56,10 @@ export const ToggleGroup = <T extends string>({
 
   return (
     <div className={classes} role="group" aria-label={label}>
-      {/* Above the options rather than beside them, which is not a preference:
-          at the size the options are drawn, seven of them plus this one do not
-          fit a phone's width at all. See ToggleGroup.css.
-
-          No aria-pressed, unlike the options: this is a command and not a
-          toggle. Its label already says what pressing it will do, and a
-          pressed state on top of that would be a second, quieter answer to the
-          same question. */}
-      {selectAllLabel !== undefined && (
-        <button
-          className="toggle-select-all"
-          type="button"
-          onClick={() =>
-            onChange(allSelected ? [] : options.map((option) => option.value))
-          }
-        >
-          {allSelected ? (clearAllLabel ?? selectAllLabel) : selectAllLabel}
-        </button>
-      )}
-
+      {/* One flex item holding all the options, so the days are a block that
+          wraps or does not wrap as a unit. Letting them into the wrapping row
+          individually would break the week across two lines, four days above
+          three, which is the one arrangement nobody wants. */}
       <div className="toggle-group-options">
         {options.map((option) => {
           const selected = values.includes(option.value);
@@ -97,6 +81,22 @@ export const ToggleGroup = <T extends string>({
           );
         })}
       </div>
+
+      {/* After the options, and no aria-pressed: this is a command and not a
+          toggle. Its label already says what pressing it will do, and a
+          pressed state on top of that would be a second, quieter answer to the
+          same question. */}
+      {selectAllLabel !== undefined && (
+        <button
+          className="toggle-select-all"
+          type="button"
+          onClick={() =>
+            onChange(allSelected ? [] : options.map((option) => option.value))
+          }
+        >
+          {allSelected ? (clearAllLabel ?? selectAllLabel) : selectAllLabel}
+        </button>
+      )}
     </div>
   );
 };

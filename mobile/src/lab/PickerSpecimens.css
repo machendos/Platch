@@ -32,19 +32,16 @@
   align-items: flex-start;
 }
 
+/* The real recurrence row's label is `on`, not a 72px column — reserving one
+   here would design the control against a constraint it never meets. The
+   line-height keeps the word on the options' line rather than centred against
+   both when the select-all wraps under them. */
 .picker-specimens-row-wide .picker-specimens-label {
-  /* The control is two lines now; centring the word against the pair leaves it
-     floating between them. */
-  line-height: var(--toggle-option-size, 36px);
+  min-width: 0;
+  line-height: var(--toggle-option-size, 32px);
 }
 
 .picker-specimens-row-wide .toggle-group {
-  min-width: 0;
-}
-
-/* The real recurrence row's label is `on`, not a 72px column — reserving one
-   here would design the control against a constraint it never meets. */
-.picker-specimens-row-wide .picker-specimens-label {
   min-width: 0;
 }
 
