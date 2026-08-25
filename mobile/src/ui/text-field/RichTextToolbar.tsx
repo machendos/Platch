@@ -48,8 +48,10 @@ export const RichTextToolbar = () => {
   const marks = useToolbarMarks(active?.editor ?? null);
 
   // iOS pans the page to lift the caret above the keyboard, which moves the
-  // container the toolbar sticks inside. The rail's ceiling reads this.
-  useVisualViewportTop();
+  // container the toolbar sticks inside. The rail's ceiling reads this, and it
+  // has to be measured from this field's own container — a sheet's ion-content
+  // does not begin where the screen does.
+  useVisualViewportTop(active?.shell ?? null);
 
   if (!active) return null;
 

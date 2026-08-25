@@ -1,43 +1,51 @@
 import { useEffect } from 'react';
 
-/* Publishes how far iOS has panned the page up, as --visual-viewport-top.
+/* Publishes how far a scroll container has been pushed above the top of the
+   screen, as --visual-viewport-top on that container's own field.
 
    Ionic locks the body and scrolls inside ion-content, but the browser's own
    "scroll the focused input above the keyboard" acts on the *document*. It
    drags ion-content — and everything positioned against it, sticky included —
-   off the top of the screen. Measured on a phone with a field focused:
-   ion-content's top at -88 (Chrome) and -122 (Safari), matching
-   document.scrollingElement.scrollTop and visualViewport.offsetTop exactly.
+   off the top. A sticky ceiling measured from ion-content is then measured
+   from somewhere nobody can see.
+
+   Measured, not assumed: the amount is whatever ion-content's own top has gone
+   negative by. An earlier version used visualViewport.offsetTop, which is the
+   same number only when ion-content begins at the top of the screen. In a
+   sheet it does not, and adding the document's pan to a container-relative
+   offset pushed the toolbar a couple of hundred pixels below its field.
 
    Nothing in CSS reports this. env(safe-area-inset-*) describes the device's
-   cutouts and reads 0 in a browser tab; lvh/svh/dvh describe chrome heights
-   and cannot say whether the missing part is at the top or the bottom. The
-   visual viewport is the only thing that knows, and it is JavaScript-only —
-   which is the whole reason this hook exists rather than a CSS expression.
+   cutouts and reads 0 in a browser tab; lvh/svh/dvh give chrome heights
+   without saying whether the missing part is at the top or the bottom.
 
    It is not the per-frame chase that jittered when the toolbar was positioned
-   from JS: this changes when the keyboard opens, closes, or re-pans, a handful
-   of times a minute. Everything reading it stays CSS, so the sticky itself is
-   still handled by the compositor. */
-export const useVisualViewportTop = () => {
+   from JS: this recomputes when the keyboard opens, closes or re-pans, and
+   everything reading it stays CSS, so the sticky is still the compositor's. */
+export const useVisualViewportTop = (field: HTMLElement | null) => {
   useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
+    if (!field) return;
 
-    const write = () =>
-      document.documentElement.style.setProperty(
+    const write = () => {
+      const content = field.closest('ion-content');
+      const top = content ? content.getBoundingClientRect().top : 0;
+
+      field.style.setProperty(
         '--visual-viewport-top',
-        `${Math.max(0, Math.round(viewport.offsetTop))}px`,
+        `${Math.max(0, Math.round(-top))}px`,
       );
+    };
 
     write();
-    viewport.addEventListener('resize', write);
-    viewport.addEventListener('scroll', write);
+
+    const viewport = window.visualViewport;
+    viewport?.addEventListener('resize', write);
+    viewport?.addEventListener('scroll', write);
 
     return () => {
-      viewport.removeEventListener('resize', write);
-      viewport.removeEventListener('scroll', write);
-      document.documentElement.style.removeProperty('--visual-viewport-top');
+      viewport?.removeEventListener('resize', write);
+      viewport?.removeEventListener('scroll', write);
+      field.style.removeProperty('--visual-viewport-top');
     };
-  }, []);
+  }, [field]);
 };
