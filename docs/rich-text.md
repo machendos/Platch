@@ -229,4 +229,3 @@ still the compositor's.
 | Unlisting a nested line does nothing | Outdent first. Asserted as a test so it reads as a decision rather than a gap. |
 | Markdown round-trip normalises | Lexical rewrites `_italic_` as `*italic*`; pinning the transformer array bounds this but does not remove it. |
 | Serialization per keystroke | A long context re-serialises on every key. Debounce if it ever shows. |
-| `/lab` is dev scaffolding | A route in `App.tsx`, the same kind `909a01f` removed when the wheel was done. It leaves with the work it supports. |
