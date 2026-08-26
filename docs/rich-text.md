@@ -128,6 +128,36 @@ Unlisting a **nested** line is deliberately left undone: a paragraph cannot sit
 inside a list item, so it means lifting the line out of every list above it and
 putting it back in the right place. Outdent first.
 
+### The checkbox must not take focus
+
+`CheckListPlugin` needs `disableTakeFocusOnClick`. Without it Lexical calls
+`domNode.focus()` on the `<li role="checkbox">` when a checkbox is clicked,
+moving DOM focus off the contenteditable — and that one line produced four
+symptoms that looked like four separate bugs:
+
+- **The toolbar vanished.** Lexical fires `BLUR_COMMAND` when the editable
+  loses focus, so the field stopped being the active one.
+- **Space toggled the checkbox instead of typing.** `KEY_SPACE_COMMAND` fires
+  whenever a check `<li>` holds focus — that is the accessible checkbox
+  behaviour, and it is wrong when the caret is supposed to be in the text.
+- **iOS showed its Paste / Select callout.** Focus sat on a non-editable
+  element with no text selection, so the OS offered the element menu rather
+  than a caret menu.
+- **It felt random.** Whether focus landed on the `<li>` depended on exactly
+  where the tap fell, and there is a separate touch/pointerup path with its own
+  dedup window.
+
+The cost is the keyboard affordance: you can no longer tab to a checkbox and
+press space. In a text field the caret model matters more, and the toolbar's
+checklist button is the alternative.
+
+### Typing a checkbox needs `[] `, not `- [] `
+
+Markdown shortcuts are first match wins. `- ` matches `UNORDERED_LIST` the
+moment the space lands, so the line is already a bullet before `[]` is typed
+and the dash is gone. `CHECK_LIST`'s pattern makes the bullet optional, so
+`[] ` on its own converts — including inside an existing list item.
+
 ---
 
 ## Where the toolbar sits
