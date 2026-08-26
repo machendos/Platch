@@ -128,11 +128,17 @@ Unlisting a **nested** line is deliberately left undone: a paragraph cannot sit
 inside a list item, so it means lifting the line out of every list above it and
 putting it back in the right place. Outdent first.
 
-### The checkbox must not take focus
+### The checklist interaction is ours, not Lexical's
 
-`CheckListPlugin` needs `disableTakeFocusOnClick`. Without it Lexical calls
-`domNode.focus()` on the `<li role="checkbox">` when a checkbox is clicked,
-moving DOM focus off the contenteditable — and that one line produced four
+`CheckListPlugin` is not used. It is written for a document where a checkbox is
+a control in its own right, and in a text field that model fights the caret.
+`CheckListTapPlugin` replaces it and does exactly one thing: if a click landed
+on the marker, toggle that item. No focus changes, no key handlers.
+
+Two separate defects drove that, and the first was fixable with Lexical's own
+`disableTakeFocusOnClick` while the second was not.
+
+**It moved DOM focus to the `<li role="checkbox">`,** which produced four
 symptoms that looked like four separate bugs:
 
 - **The toolbar vanished.** Lexical fires `BLUR_COMMAND` when the editable
@@ -147,9 +153,36 @@ symptoms that looked like four separate bugs:
   where the tap fell, and there is a separate touch/pointerup path with its own
   dedup window.
 
+**And its touch hit-zone reached into the text.** `clickAreaPadding` is
+hard-coded to 32px on touch. The marker is 20px wide and the text begins 28px
+in, so the checkbox owned everything up to 52px — on a short line, most of the
+word. Tapping to put the caret in your own text toggled the checkbox instead,
+and no option turns that off.
+
+Ours pads by 4px, bounded by the gap rather than chosen for comfort: it may not
+reach the text. That makes the target smaller than the 44px Apple asks for,
+which is the honest cost of a marker this size — the alternative is a target
+that steals taps meant for the words. `checkListTap.test.ts` asserts the
+boundary.
+
 The cost is the keyboard affordance: you can no longer tab to a checkbox and
-press space. In a text field the caret model matters more, and the toolbar's
-checklist button is the alternative.
+press space, and arrow keys no longer step between markers. In a text field the
+caret model matters more, and the toolbar's checklist button is the
+alternative.
+
+### Not every blur means the user left
+
+iOS raises a blur when it puts up its Paste / Select callout — which it does
+for a tap at a caret that is already there, on a plain paragraph as readily as
+on a checklist. The caret stays in the text throughout, so dropping the toolbar
+on that made it flicker away mid-edit.
+
+`ReportFocusPlugin` asks the DOM a tick later instead, once focus has landed
+wherever it is going, and drops the toolbar only if the field really does not
+hold focus any more.
+
+That callout is iOS's own and cannot be suppressed from a web page. It appears
+identically in a plain paragraph, which is how it was ruled out as ours.
 
 ### Typing a checkbox needs `[] `, not `- [] `
 

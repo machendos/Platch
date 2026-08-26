@@ -1,7 +1,6 @@
 import './RichTextField.css';
 
 import { useRef, type CSSProperties } from 'react';
-import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
@@ -11,6 +10,7 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
+import { CheckListTapPlugin } from './richText/CheckListTapPlugin';
 import { ReportFocusPlugin } from './richText/ReportFocusPlugin';
 import { RICH_TEXT_NODES } from './richText/nodes';
 import {
@@ -94,16 +94,7 @@ export const RichTextField = ({
         />
         <HistoryPlugin />
         <ListPlugin />
-        {/* Without this Lexical calls domNode.focus() on the <li> when a
-            checkbox is clicked, moving DOM focus off the contenteditable. That
-            one line caused four separate symptoms: the toolbar vanished
-            (Lexical fires BLUR, so the field stopped being the active one),
-            SPACE toggled the checkbox instead of typing (KEY_SPACE_COMMAND
-            fires whenever a check <li> holds focus), iOS showed its element
-            callout instead of a caret menu, and which of those happened
-            depended on exactly where the tap landed. The caret stays in the
-            text now, and the checkbox toggles without claiming focus. */}
-        <CheckListPlugin disableTakeFocusOnClick />
+        <CheckListTapPlugin />
         <TabIndentationPlugin />
         <ReportFocusPlugin shell={shell} />
         <MarkdownShortcutPlugin transformers={RICH_TEXT_TRANSFORMERS} />
