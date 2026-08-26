@@ -1,0 +1,378 @@
+:root {
+  --time-component-card-surface: var(--surface-subtle);
+  --time-component-card-radius: var(--radius-lg);
+  --time-component-card-padding: var(--space-3);
+  /* A wheel group's flex basis — two groups sit side by side wherever
+     2 × this + the gap fit, and stack below that. With the column floor
+     below, side by side needs ~350px of panel, which a big phone's card has
+     and a small phone's does not. */
+  --time-picker-group-min: 168px;
+  /* Narrower than the wheel's stock 72px floor: three digits and a meridiem
+     need less, and 56px still clears the 44px touch target. */
+  --time-picker-column-min: 56px;
+  /* Field tracks state a min and a max. Between the two the row spreads to
+     fill whatever width it has — a phone — and past the sum of the maxes it
+     stops growing and the row hugs the left edge — a desktop. Below the sum
+     of the mins the container query shrinks the mins and the type instead. */
+  --time-slot-time-min: 76px;
+  --time-slot-time-max: 128px;
+  --time-slot-flex-min: 64px;
+  --time-slot-flex-max: 112px;
+}
+
+/* The block is a section of the form, and sections are separated by the
+   hairline the app already speaks — which is also why the components inside
+   are cards, not more hairlines. */
+.time-components-block {
+  padding-bottom: var(--space-4);
+  border-bottom: var(--hairline-width) solid var(--separator);
+}
+
+/* The top rule shares its row with the edit control: the hairline runs up to
+   the button and stops, instead of passing beneath a floating icon — and the
+   content below gets the full width back. */
+.time-components-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.time-components-head::before {
+  content: '';
+  flex: 1;
+  border-top: var(--hairline-width) solid var(--separator);
+}
+
+.time-components-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Numbered from React rather than CSS counters: the card is a size container,
+   and style containment stops a counter incremented outside it from being
+   read inside. Numbering in the component also lets a deleted card give its
+   number up the moment its exit starts. */
+.time-component-ordinal {
+  margin-right: var(--space-2);
+  color: var(--text-secondary);
+}
+
+.time-components-summaries {
+  gap: var(--space-1);
+}
+
+.time-components-summaries > li {
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+.time-component-incomplete {
+  color: var(--text-secondary);
+}
+
+.time-components-empty {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .time-components-peace,
+  .time-components-head {
+    cursor: pointer;
+  }
+}
+
+/* No gap anywhere an animated entry can leave from: a flex gap sits outside
+   the reveal's clip, so a collapsed item still held its gap until the unmount
+   and the list jumped the last centimetre. Spacing lives inside the entries —
+   padding collapses with the content. */
+.time-components-editors {
+  gap: 0;
+}
+
+.time-component-editor-top .time-component-ordinal {
+  margin-right: var(--space-1);
+  font-size: var(--font-lg);
+}
+
+.time-component-entry {
+  padding-bottom: var(--space-3);
+}
+
+.time-slot-entry {
+  padding-bottom: var(--space-3);
+}
+
+.time-component-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--time-component-card-padding);
+  border-radius: var(--time-component-card-radius);
+  background: var(--time-component-card-surface);
+  container-type: inline-size;
+}
+
+/* The card shares its surface with the shell's focus fill, so inside one the
+   open field lifts to white instead. */
+.time-component-editor .picker-open .field-control,
+.time-component-editor .field:focus-within .field-control {
+  background: var(--surface);
+}
+
+.time-component-editor > .time-component-editor-top,
+.time-component-editor > .time-component-row,
+.time-component-editor > .time-component-exact-row {
+  margin-bottom: var(--space-3);
+}
+
+.time-component-editor-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.time-component-editor-top .time-component-delete {
+  margin-left: auto;
+}
+
+.time-component-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.time-component-row-label {
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+/* The label stays on the chips' line; the group wraps internally instead of
+   dropping below the word "on" whole. */
+.time-component-on-row {
+  flex-wrap: nowrap;
+}
+
+.time-component-on-row > :last-child {
+  min-width: 0;
+}
+
+.time-component-interval {
+  --select-min-width: 64px;
+  width: 64px;
+}
+
+.time-component-frequency {
+  --select-min-width: 112px;
+  width: 112px;
+}
+
+/* Every slot row shares one template, which is what lines the fields up
+   across rows: identical tracks resolve identically at one container width. */
+.time-slot-row {
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(var(--time-slot-time-min), var(--time-slot-time-max))
+    auto
+    minmax(var(--time-slot-time-min), var(--time-slot-time-max))
+    auto
+    auto
+    minmax(var(--time-slot-flex-min), var(--time-slot-flex-max))
+    auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  /* Not the default `normal`: that stretches the auto tracks to absorb any
+     leftover width, which blew the row apart on wide screens. `start` keeps
+     the leftover after the last column — fields grow only to their maxes and
+     the row stays together on the left. */
+  justify-content: start;
+}
+
+.time-slot-row .picker-field {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Two date-and-time rows align the same way; the first track fits "From" so
+   "To" gets the same column. */
+.time-component-exact-row {
+  display: grid;
+  grid-template-columns:
+    2.8em
+    minmax(88px, 132px)
+    minmax(76px, 128px);
+  align-items: center;
+  column-gap: var(--space-2);
+  justify-content: start;
+}
+
+.time-component-exact-row .picker-field {
+  width: 100%;
+  min-width: 0;
+}
+
+@container (max-width: 360px) {
+  .time-slot-row {
+    --time-slot-time-min: 60px;
+    --time-slot-time-max: 112px;
+    --time-slot-flex-min: 52px;
+    --time-slot-flex-max: 96px;
+    column-gap: var(--space-1);
+  }
+
+  .time-slot-row .picker-field,
+  .time-slot-row .time-component-row-label {
+    font-size: var(--font-sm);
+  }
+}
+
+/* One slot is one list entry, and the dot is what says so. */
+.time-slot-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+/* The line between the two sides is what says they are alternatives — filling
+   one empties the other. */
+.time-slot-divider {
+  align-self: stretch;
+  width: var(--hairline-width);
+  margin-block: var(--space-1);
+  margin-inline: var(--space-1);
+  background: var(--separator);
+}
+
+/* Removing one slot is a smaller act than removing the whole component, and
+   its button says so: smaller and grey against the card delete's red. */
+.time-slot-delete {
+  color: var(--text-secondary);
+  font-size: var(--font-md);
+}
+
+.time-slot-dim {
+  opacity: 0.45;
+}
+
+/* No border, radius or fill of its own — the chrome is FieldShell's, exactly
+   as Select's trigger works. */
+.picker-field {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 64px;
+  height: var(--control-height);
+  padding: 0 var(--space-2);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.picker-placeholder {
+  color: var(--text-secondary);
+}
+
+/* Driven by a class, not :focus-within: the wheels and the calendar take the
+   focus while they are up, and the fill must not drop off the field then. */
+.picker-open .field-control {
+  border-bottom-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+.time-picker-panel {
+  max-width: 100%;
+  padding: var(--space-2) 0;
+}
+
+/* Two wheel groups side by side where they fit, stacked where they do not —
+   the wrap answers to the width the panel was actually given, so no screen
+   size needs anticipating. */
+.time-picker-panel-dual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.time-picker-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 var(--time-picker-group-min);
+  min-width: 0;
+  gap: var(--space-1);
+  --wheel-min-column: var(--time-picker-column-min);
+}
+
+.time-picker-group-label {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+/* The calendar sits on the card's own surface and gives up some height: the
+   stock cells are sized for a standalone picker, not for a tray inside a
+   form. Extra ancestor selectors throughout — mobiscroll's CSS loads after
+   ours and wins ties. */
+.time-picker-panel-calendar {
+  padding: var(--space-1) 0;
+}
+
+.time-picker-panel-calendar .mbsc-datepicker,
+.time-picker-panel-calendar .mbsc-calendar {
+  width: 100%;
+  background: transparent;
+  border: none;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-slide,
+.time-picker-panel-calendar .mbsc-calendar-cell {
+  background: transparent;
+  border: none;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-wrapper {
+  border: none;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-controls {
+  padding: var(--space-1) 0;
+  min-height: 0;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-day {
+  height: 30px;
+}
+
+/* The selection circle is em-sized for the stock 39px cell; in a 30px one it
+   clips, so it is stated to fit. */
+.time-picker-panel-calendar .mbsc-calendar-day-text {
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  margin: 2px auto;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-week-day {
+  height: 20px;
+}
+
+.time-component-delete {
+  color: var(--text-destructive);
+  font-size: var(--font-lg);
+}
+
+.time-components-add,
+.time-component-add-slot {
+  color: var(--accent);
+  align-self: flex-start;
+}

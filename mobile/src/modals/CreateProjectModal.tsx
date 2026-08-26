@@ -6,13 +6,13 @@ import { Breadcrumbs } from '../ui/breadcrumbs/Breadcrumbs';
 import type { BreadcrumbItem } from '../ui/breadcrumbs/Breadcrumbs';
 import { SegmentedControl } from '../ui/segmented-control/SegmentedControl';
 import type { SegmentedOption } from '../ui/segmented-control/SegmentedControl';
-import { Select } from '../ui/select/Select';
-import { numberRange } from '../ui/select/selectOptions';
-import type { SelectOption } from '../ui/select/selectOptions';
 import { Field } from '../ui/text-field/Field';
 import { RichTextToolbar } from '../ui/text-field/RichTextToolbar';
 import { ActiveFieldProvider } from '../ui/text-field/richText/activeField';
 import { CONTEXT_FIELD } from './fieldPresets';
+import { TimeComponentsBlock } from './components/TimeComponentsBlock';
+import type { TimeComponentsReport } from './components/timeComponents/timeComponentsState';
+import type { TimeComponentWithSlots } from '../api/structures/TimeComponentWithSlots';
 
 type CreateProjectModalProps = {
   isOpen: boolean;
@@ -26,17 +26,68 @@ const STATUS_OPTIONS: SegmentedOption<ProjectStatus>[] = [
   { value: 'BACKLOG', label: 'Backlog' },
 ];
 
-// TODO: demo mount for the Select primitive until the recurrence form exists.
-const MONTH_DAYS = numberRange(1, 31);
-
-const WEEKDAYS: SelectOption<string>[] = [
-  { value: 'MO', label: 'Monday' },
-  { value: 'TU', label: 'Tuesday' },
-  { value: 'WE', label: 'Wednesday' },
-  { value: 'TH', label: 'Thursday' },
-  { value: 'FR', label: 'Friday' },
-  { value: 'SA', label: 'Saturday' },
-  { value: 'SU', label: 'Sunday' },
+// TODO: demo data until the form binds a real project.
+const SAMPLE_TIME_COMPONENTS: TimeComponentWithSlots[] = [
+  {
+    id: 'sample-absolute',
+    projectId: 'sample-project',
+    type: 'ABSOLUTE',
+    absoluteFrom: '2026-06-19T17:45:00.000Z',
+    absoluteTo: '2026-06-19T18:45:00.000Z',
+    recurringInterval: null,
+    recurringFrequency: null,
+    recurringByDay: [],
+    recurringByMonthDay: null,
+    recurringByMonth: null,
+    recurringStartDate: null,
+    recurringTimeSlots: [],
+  },
+  {
+    id: 'sample-daily',
+    projectId: 'sample-project',
+    type: 'RECURRING',
+    absoluteFrom: null,
+    absoluteTo: null,
+    recurringInterval: 1,
+    recurringFrequency: 'DAY',
+    recurringByDay: [],
+    recurringByMonthDay: null,
+    recurringByMonth: null,
+    recurringStartDate: '2026-06-19T00:00:00.000Z',
+    recurringTimeSlots: [
+      {
+        id: 'sample-daily-slot',
+        type: 'ABSOLUTE',
+        from: '1970-01-01T17:45:00.000Z',
+        to: '1970-01-01T18:45:00.000Z',
+        flexibleMinutesNeeded: null,
+        timeComponentId: 'sample-daily',
+      },
+    ],
+  },
+  {
+    id: 'sample-weekly',
+    projectId: 'sample-project',
+    type: 'RECURRING',
+    absoluteFrom: null,
+    absoluteTo: null,
+    recurringInterval: 1,
+    recurringFrequency: 'WEEK',
+    recurringByDay: ['TU'],
+    recurringByMonthDay: null,
+    recurringByMonth: null,
+    recurringStartDate: '2026-06-19T00:00:00.000Z',
+    recurringTimeSlots: [
+      {
+        id: 'sample-weekly-slot',
+        type: 'ABSOLUTE',
+        from: '1970-01-01T17:45:00.000Z',
+        to: '1970-01-01T18:45:00.000Z',
+        flexibleMinutesNeeded: null,
+        timeComponentId: 'sample-weekly',
+      },
+    ],
+  },
 ];
 
 // TODO: hardcoded ancestry until projects can be nested for real.
@@ -56,9 +107,9 @@ export const CreateProjectModal = ({
 }: CreateProjectModalProps) => {
   const [status, setStatus] = useState<ProjectStatus>('ACTIVE');
   const [currentId, setCurrentId] = useState('this-project');
-  const [monthDay, setMonthDay] = useState<number | null>(30);
-  const [weekday, setWeekday] = useState<string | null>(null);
   const [context, setContext] = useState('');
+  const [timeComponentsReport, setTimeComponentsReport] =
+    useState<TimeComponentsReport | null>(null);
 
   return (
     <Modal
@@ -86,21 +137,22 @@ export const CreateProjectModal = ({
         />
       </div>
 
-      <div className="create-project-row">
-        <span className="create-project-row-label">on</span>
-        <Select
-          options={MONTH_DAYS}
-          value={monthDay}
-          onChange={setMonthDay}
-          label="Day of the month"
+      {/* TODO: demo mount with sample data until the form binds a real project. */}
+      <div className="create-project-time-components">
+        <TimeComponentsBlock
+          initialTimeComponents={SAMPLE_TIME_COMPONENTS}
+          onChange={setTimeComponentsReport}
         />
-        <Select
-          options={WEEKDAYS}
-          value={weekday}
-          onChange={setWeekday}
-          label="Day of the week"
-          placeholder="Any day"
-        />
+        {timeComponentsReport?.isDirty && (
+          <p className="create-project-placeholder">
+            {[
+              timeComponentsReport.isValid ? 'valid' : 'incomplete',
+              `+${timeComponentsReport.changes.createdTimeComponents.length}`,
+              `~${timeComponentsReport.changes.updatedTimeComponents.length}`,
+              `−${timeComponentsReport.changes.deletedTimeComponentIds.length}`,
+            ].join(' · ')}
+          </p>
+        )}
       </div>
 
       {/* One formatted field so the sheet has something to exercise the

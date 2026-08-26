@@ -14,6 +14,15 @@ export const PROJECT_TOTAL_TIME: TimeScale = {
   ],
 };
 
+export const SLOT_FLEXIBLE_TIME: TimeScale = {
+  min: minutes(1),
+  wheelMax: hours(24),
+  bands: [
+    { from: minutes(0), step: minutes(1) },
+    { from: minutes(5), step: minutes(5) },
+  ],
+};
+
 export const TIME_OF_DAY: TimeScale = {
   min: 0,
   wheelMax: hours(24) - 1,

@@ -3,6 +3,12 @@
   --reveal-inline-shift: var(--space-2);
 }
 
+/* A kept-mounted reveal that has finished closing: still in the tree so its
+   content's mount cost is paid once, but invisible and unfocusable. */
+.reveal-hidden {
+  visibility: hidden;
+}
+
 .reveal {
   display: grid;
   opacity: 0;
