@@ -30,13 +30,22 @@ export const ReportFocusPlugin = ({
       COMMAND_PRIORITY_LOW,
     );
 
-    // The toolbar's buttons cancel mousedown so pressing one never blurs the
-    // editor. Anything that does blur it is a real move away, so the toolbar
-    // should go with it.
+    /* Not every blur means the user left. iOS raises one when it puts up its
+       Paste / Select callout — which it does for a tap at a caret that is
+       already there — and the caret stays in the text throughout. Dropping the
+       toolbar on that made it flicker away mid-edit.
+
+       So the question is asked of the DOM a tick later, once focus has landed
+       wherever it is going: the toolbar goes only if the field really does not
+       hold focus any more. The toolbar's own buttons cancel mousedown, so they
+       never blur it in the first place. */
     const blurred = editor.registerCommand(
       BLUR_COMMAND,
       () => {
-        setActive(null);
+        setTimeout(() => {
+          const root = editor.getRootElement();
+          if (!root || !root.contains(document.activeElement)) setActive(null);
+        }, 0);
         return false;
       },
       COMMAND_PRIORITY_LOW,
