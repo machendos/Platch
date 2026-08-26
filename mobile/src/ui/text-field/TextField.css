@@ -21,21 +21,12 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* The box itself is in FieldShell.css, shared with the formatted body. Only
+   what the replica trick needs is here. */
 .field-body::after,
 .field-textarea {
   grid-area: 1 / 1;
-  box-sizing: border-box;
-  min-width: 0;
-  padding: var(--field-padding-block) var(--field-padding-inline);
-  font: inherit;
-  font-size: var(--font-md);
-  line-height: var(--field-line-height);
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  min-height: calc(
-    var(--field-min-rows) * var(--field-line-height) + 2 *
-      var(--field-padding-block)
-  );
 }
 
 .field-body::after {
@@ -51,10 +42,6 @@
   color: var(--text-primary);
   resize: none;
   overflow: hidden;
-}
-
-.field-textarea:focus {
-  outline: none;
 }
 
 .field-textarea::placeholder {

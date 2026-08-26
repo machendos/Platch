@@ -9,6 +9,10 @@ import type { SegmentedOption } from '../ui/segmented-control/SegmentedControl';
 import { Select } from '../ui/select/Select';
 import { numberRange } from '../ui/select/selectOptions';
 import type { SelectOption } from '../ui/select/selectOptions';
+import { Field } from '../ui/text-field/Field';
+import { RichTextToolbar } from '../ui/text-field/RichTextToolbar';
+import { ActiveFieldProvider } from '../ui/text-field/richText/activeField';
+import { CONTEXT_FIELD } from './fieldPresets';
 
 type CreateProjectModalProps = {
   isOpen: boolean;
@@ -54,6 +58,7 @@ export const CreateProjectModal = ({
   const [currentId, setCurrentId] = useState('this-project');
   const [monthDay, setMonthDay] = useState<number | null>(30);
   const [weekday, setWeekday] = useState<string | null>(null);
+  const [context, setContext] = useState('');
 
   return (
     <Modal
@@ -98,7 +103,13 @@ export const CreateProjectModal = ({
         />
       </div>
 
-      <p className="create-project-placeholder">create project</p>
+      {/* One formatted field so the sheet has something to exercise the
+          toolbar against. The provider is per form, not per field: it holds
+          whichever formatted field has the caret and the toolbar reads it. */}
+      <ActiveFieldProvider>
+        <RichTextToolbar />
+        <Field {...CONTEXT_FIELD} value={context} onChange={setContext} />
+      </ActiveFieldProvider>
     </Modal>
   );
 };

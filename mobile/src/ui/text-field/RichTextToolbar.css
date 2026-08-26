@@ -1,0 +1,151 @@
+:root {
+  /* Roughly a quarter larger than the first pass, which puts it in the same
+     range as the formatting bar in Notes. The height is free to change on its
+     own: the bar is anchored by its bottom, so extra height grows upward and
+     the field below never moves. */
+  --rich-toolbar-height: 40px;
+  --rich-toolbar-gap: var(--space-1);
+  --rich-toolbar-button: 32px;
+  --rich-toolbar-icon: 22px;
+  --rich-toolbar-glyph: 20px;
+
+  /* Where the toolbar stops on the way up, measured from ion-content — which
+     is not where the screen begins. iOS pans the whole page to lift the caret
+     above the keyboard, taking ion-content with it, so the container the
+     toolbar sticks inside can be a hundred pixels above the visible area while
+     sticky is doing its job perfectly. --visual-viewport-top is how far it has
+     been panned; see system/viewport/useVisualViewportTop.ts.
+
+     The safe-area term is for the installed app, where there is no pan and the
+     notch is the only thing above the content. It reads 0 in a browser tab. */
+  --rich-toolbar-ceiling: calc(
+    var(--visual-viewport-top, 0px) +
+      max(var(--space-2), env(safe-area-inset-top, 0px))
+  );
+
+  /* How far the toolbar rises above the field's top edge, which is whatever it
+     has that the label's line does not. Negative if it is ever the shorter of
+     the two, and every rule below still holds. */
+  --rich-toolbar-rise: calc(
+    var(--rich-toolbar-height) - var(--field-label-line)
+  );
+}
+
+/* The rail is what sticks; the toolbar only hangs off it.
+
+   Driving the position from JS looked fine on a desktop and jittered on a
+   phone, because iOS scrolls on the compositor and a requestAnimationFrame
+   correction always arrives a frame or two behind the content it is chasing.
+   Sticky is handled by the same compositor that does the scrolling, so there
+   is nothing to chase.
+
+   Zero height and no margin, so a field gains nothing by having one — the
+   toolbar still costs no layout when it appears. `order: -1` puts it at the
+   field's top edge whatever order the portal appended it in.
+
+   Sticky is bounded by its containing block, which is the field, so "never
+   outlive the field" comes free: once the field's bottom rises past the stick
+   point the rail unsticks and leaves with it. */
+.rich-toolbar-rail {
+  position: sticky;
+  top: calc(var(--rich-toolbar-ceiling) + var(--rich-toolbar-rise));
+  z-index: 2;
+  order: -1;
+  height: 0;
+}
+
+/* On the label's line and at the far end of it, rather than floating over
+   whatever sits above the field. The label is short and left-aligned, so the
+   row has the room, and the field keeps its own top edge to itself.
+
+   Anchored by its **bottom**, to the bottom of the label's line. That is what
+   keeps the two heights independent: --rich-toolbar-height is free to change
+   and the bar grows upward from a fixed baseline, never into the input below
+   or into the label's own text. Centring it would have tied the two together
+   and pushed half of any extra height down over the field. */
+.rich-toolbar {
+  position: absolute;
+  bottom: calc(-1 * var(--field-label-line));
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--rich-toolbar-gap);
+  box-sizing: border-box;
+  height: var(--rich-toolbar-height);
+  padding: 0 var(--space-1);
+  border: var(--hairline-width) solid var(--separator);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.rich-toolbar-divider {
+  align-self: stretch;
+  width: var(--hairline-width);
+  margin: var(--space-1) var(--space-1);
+  background: var(--separator);
+}
+
+.rich-toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--rich-toolbar-button);
+  height: var(--rich-toolbar-button);
+  padding: 0 var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  transition: background-color var(--duration-exit) var(--easing-standard);
+}
+
+/* The app's other "this one is chosen" idiom — the accent surface with dark
+   text that .header-button.active uses — rather than a filled accent block. */
+.rich-toolbar-button-active {
+  background: var(--accent-surface);
+  color: var(--accent);
+}
+
+.rich-toolbar-button ion-icon {
+  font-size: var(--rich-toolbar-icon);
+}
+
+/* Serif for the two letter glyphs, because "B" and "I" are only legible as
+   formatting marks when the weight and the slant are unmistakable. */
+.rich-toolbar-glyph {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: var(--rich-toolbar-glyph);
+  line-height: 1;
+}
+
+.rich-toolbar-glyph-bold {
+  font-weight: 700;
+}
+
+.rich-toolbar-glyph-italic {
+  font-style: italic;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rich-toolbar-button {
+    cursor: pointer;
+  }
+
+  .rich-toolbar-button:hover {
+    background: var(--surface-subtle);
+  }
+
+  .rich-toolbar-button-active:hover {
+    background: var(--accent-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rich-toolbar-button {
+    transition: none;
+  }
+}

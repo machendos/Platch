@@ -54,6 +54,15 @@
   --icon-button-size: 28px;
   --touch-target: 44px;
 
+  /* The checkbox box, shared: the Checkbox primitive draws it, and a checklist
+     line inside a formatted Field draws the same one. Here rather than in
+     Checkbox.css because a component's stylesheet only exists once something
+     imports it, and the field must not lose its marker's size to whether a
+     Checkbox happens to be on the page. */
+  --checkbox-size: 20px;
+  --checkbox-tick-size: 14px;
+  --checkbox-gap: var(--space-2);
+
   /* Motion */
   --easing-standard: cubic-bezier(0.32, 0.72, 0, 1);
   --duration-enter: 300ms;

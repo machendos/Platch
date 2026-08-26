@@ -46,7 +46,7 @@ export const TextField = ({
     >
       <textarea
         id={id}
-        className="field-textarea"
+        className="field-textarea field-input"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}

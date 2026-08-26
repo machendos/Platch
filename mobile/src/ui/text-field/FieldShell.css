@@ -3,17 +3,55 @@
   --field-padding-block: var(--space-2);
   --field-padding-inline: var(--space-2);
   --field-label-gap: var(--space-1);
+  /* Stated rather than left to the font, because the formatting toolbar sits
+     on this line and centres itself against it. */
+  --field-label-line: 18px;
 }
 
+/* Positioned so the formatting toolbar can anchor to the whole field — label
+   included — rather than to the editable inside it.
+
+   Spaced with a margin on the label rather than `gap`, because the toolbar
+   arrives as a zero-height flex item and `gap` would space that too: focusing
+   a formatted field would nudge everything below it by 4px, which is the one
+   thing this control may not do. */
 .field {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--field-label-gap);
 }
 
 .field-label {
+  margin-bottom: var(--field-label-gap);
   font-size: var(--font-sm);
+  line-height: var(--field-label-line);
   color: var(--text-secondary);
+}
+
+/* One box for every body, because the shell owns the dimensions and the two
+   bodies have to be interchangeable: flipping a field from plain to formatted
+   must not move a pixel. `.field-body::after` is in the list rather than
+   carrying the class because a pseudo-element cannot have one, and it is the
+   replica the plain body is sized from — if its metrics drift from the
+   textarea's, it sizes the row for a wrap the reader never sees. */
+.field-input,
+.field-body::after {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--field-padding-block) var(--field-padding-inline);
+  font: inherit;
+  font-size: var(--font-md);
+  line-height: var(--field-line-height);
+  overflow-wrap: anywhere;
+  min-height: calc(
+    var(--field-min-rows) * var(--field-line-height) + 2 *
+      var(--field-padding-block)
+  );
+}
+
+.field-input:focus,
+.field-input:focus-visible {
+  outline: none;
 }
 
 /* Focus changes paint, never layout: the border keeps its width and only its
