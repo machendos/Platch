@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { LexicalEditor } from 'lexical';
+import type { EditorAdapter } from './adapter';
 
 export type ActiveField = {
-  editor: LexicalEditor;
+  adapter: EditorAdapter;
   shell: HTMLElement;
 };
 

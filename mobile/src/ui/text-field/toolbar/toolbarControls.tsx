@@ -6,44 +6,35 @@ import {
   chevronForward,
   listOutline,
 } from 'ionicons/icons';
-import {
-  FORMAT_TEXT_COMMAND,
-  INDENT_CONTENT_COMMAND,
-  OUTDENT_CONTENT_COMMAND,
-  type LexicalEditor,
-} from 'lexical';
-import type { ListType } from '@lexical/list';
-import { $removeLineList, $setLineListType } from './lineList';
-import type { Marks } from './useToolbarMarks';
+import type { EditorAdapter, ListType, Marks } from './adapter';
 
 /* Everything the toolbar can do, as a list. The component that renders it
    decides where the bar sits and nothing else, so adding or removing a control
-   is an edit to this file alone. */
+   is an edit to this file alone. Controls speak to an EditorAdapter, never to
+   an editor directly. */
 export type Control = {
   label: string;
   icon: ReactNode;
   isActive?: (marks: Marks) => boolean;
-  press: (editor: LexicalEditor, marks: Marks) => void;
+  press: (editor: EditorAdapter) => void;
 };
 
 const bold: Control = {
   label: 'Bold',
   icon: <span className="rich-toolbar-glyph rich-toolbar-glyph-bold">B</span>,
   isActive: (marks) => marks.bold,
-  press: (editor) => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
+  press: (editor) => editor.toggleBold(),
 };
 
 const italic: Control = {
   label: 'Italic',
   icon: <span className="rich-toolbar-glyph rich-toolbar-glyph-italic">I</span>,
   isActive: (marks) => marks.italic,
-  press: (editor) => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
+  press: (editor) => editor.toggleItalic(),
 };
 
-/* Toggles the caret's line, and only that line. Lexical's own INSERT_*_LIST
-   and REMOVE_LIST are written for a document toolbar: the first takes the
-   whole containing list, the second the whole top-level one at every depth.
-   lineList.ts has the per-line versions and the reasoning. */
+/* Toggles the caret's line, and only that line — `toggleList` means "make this
+   line this kind, or plain if it already is". */
 const listControl = (
   label: string,
   type: ListType,
@@ -52,10 +43,7 @@ const listControl = (
   label,
   icon,
   isActive: (marks) => marks.list === type,
-  press: (editor, marks) =>
-    editor.update(() =>
-      marks.list === type ? $removeLineList() : $setLineListType(type),
-    ),
+  press: (editor) => editor.toggleList(type),
 });
 
 const numberedList = listControl(
@@ -76,13 +64,13 @@ const checklist = listControl(
 const outdent: Control = {
   label: 'Outdent',
   icon: <IonIcon icon={chevronBack} />,
-  press: (editor) => editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined),
+  press: (editor) => editor.outdent(),
 };
 
 const indent: Control = {
   label: 'Indent',
   icon: <IonIcon icon={chevronForward} />,
-  press: (editor) => editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined),
+  press: (editor) => editor.indent(),
 };
 
 /** Grouped as they are drawn: a divider goes between each pair of groups. */

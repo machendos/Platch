@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { FieldShell } from './FieldShell';
-import { RichTextField } from './RichTextField';
 import { TextField } from './TextField';
+import { RichTextField } from './richText/RichTextField';
 
 export type FieldProps = {
   value: string;

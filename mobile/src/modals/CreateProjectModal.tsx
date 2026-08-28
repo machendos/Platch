@@ -8,7 +8,7 @@ import { SegmentedControl } from '../ui/segmented-control/SegmentedControl';
 import type { SegmentedOption } from '../ui/segmented-control/SegmentedControl';
 import { Field } from '../ui/text-field/Field';
 import { RichTextToolbar } from '../ui/text-field/RichTextToolbar';
-import { ActiveFieldProvider } from '../ui/text-field/richText/activeField';
+import { ActiveFieldProvider } from '../ui/text-field/toolbar/activeField';
 import { CONTEXT_FIELD } from './fieldPresets';
 import { TimeComponentsBlock } from './components/TimeComponentsBlock';
 import type { TimeComponentsReport } from './components/timeComponents/timeComponentsState';

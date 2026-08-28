@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import { IonContent, IonModal, useIonAlert } from '@ionic/react';
+import { useKeyboardInset } from '../../system/keyboard/useKeyboardInset';
+import { useReleaseKeyboardPan } from '../../system/keyboard/useReleaseKeyboardPan';
 
 export type ModalPresentation = 'sheet' | 'page';
 
@@ -56,6 +58,16 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(
   const isSheet = presentation === 'sheet';
   const [presentAlert] = useIonAlert();
   const element = useRef<HTMLIonModalElement>(null);
+  const body = useRef<HTMLIonContentElement>(null);
+
+  /* The keyboard costs the content reach at both ends, for two unrelated
+     reasons, and neither half works without the other: iOS pans the locked
+     document to lift the caret, which puts that many pixels beyond any
+     scroller's reach at the top, and the keyboard covers the bottom of the
+     viewport without shrinking it, leaving nowhere to scroll the last lines
+     to. One hook each. */
+  useReleaseKeyboardPan(body);
+  useKeyboardInset();
 
   useImperativeHandle(
     ref,
@@ -114,7 +126,7 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(
         </div>
       </header>
 
-      <IonContent className="modal-body">
+      <IonContent ref={body} className="modal-body">
         <div className="modal-form">{children}</div>
       </IonContent>
 

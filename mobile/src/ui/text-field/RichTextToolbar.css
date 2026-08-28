@@ -9,20 +9,6 @@
   --rich-toolbar-icon: 22px;
   --rich-toolbar-glyph: 20px;
 
-  /* Where the toolbar stops on the way up, measured from ion-content — which
-     is not where the screen begins. iOS pans the whole page to lift the caret
-     above the keyboard, taking ion-content with it, so the container the
-     toolbar sticks inside can be a hundred pixels above the visible area while
-     sticky is doing its job perfectly. --visual-viewport-top is how far it has
-     been panned; see system/viewport/useVisualViewportTop.ts.
-
-     The safe-area term is for the installed app, where there is no pan and the
-     notch is the only thing above the content. It reads 0 in a browser tab. */
-  --rich-toolbar-ceiling: calc(
-    var(--visual-viewport-top, 0px) +
-      max(var(--space-2), env(safe-area-inset-top, 0px))
-  );
-
   /* How far the toolbar rises above the field's top edge, which is whatever it
      has that the label's line does not. Negative if it is ever the shorter of
      the two, and every rule below still holds. */
@@ -39,6 +25,16 @@
    Sticky is handled by the same compositor that does the scrolling, so there
    is nothing to chase.
 
+   The stop point is just a gap. It used to carry a correction for how far iOS
+   had panned the document out from under ion-content, which was a long and
+   losing argument with the platform. useReleaseKeyboardPan removes that pan
+   at source instead, so there is nothing left to correct for.
+
+   An inline (non-sticky) bar was also tried, to delete sticky as well. It is
+   correct everywhere and useless where it matters: on a long field, editing
+   the last lines leaves the bar scrolled off the top, so every formatting
+   action costs a scroll up and back.
+
    Zero height and no margin, so a field gains nothing by having one — the
    toolbar still costs no layout when it appears. `order: -1` puts it at the
    field's top edge whatever order the portal appended it in.
@@ -48,7 +44,7 @@
    point the rail unsticks and leaves with it. */
 .rich-toolbar-rail {
   position: sticky;
-  top: calc(var(--rich-toolbar-ceiling) + var(--rich-toolbar-rise));
+  top: calc(var(--space-2) + var(--rich-toolbar-rise));
   z-index: 2;
   order: -1;
   height: 0;
