@@ -2,12 +2,7 @@ import './TimeComponentsBlock.css';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IonIcon } from '@ionic/react';
-import {
-  addCircleOutline,
-  chevronDownOutline,
-  createOutline,
-} from 'ionicons/icons';
-import { REVEAL_MOTION } from '../../config/revealMotion';
+import { addCircleOutline, chevronDownOutline } from 'ionicons/icons';
 import { IconButton } from '../../ui/buttons/IconButton';
 import { Reveal } from '../../ui/reveal/Reveal';
 import type { TimeComponentWithSlots } from '../../api/structures/TimeComponentWithSlots';
@@ -67,19 +62,12 @@ export const TimeComponentsBlock = ({
 
   const isEditing = editOrder !== null;
 
-  // The two modes are deliberately asymmetric: the editors animate open and
-  // closed, while the summary never animates — it leaves at once and returns
-  // only after the editors have finished collapsing.
-  const [isCollapsing, setIsCollapsing] = useState(false);
-  const collapseTimer = useRef<number | undefined>(undefined);
-  useEffect(() => () => clearTimeout(collapseTimer.current), []);
-
-  const startEditing = () => {
-    clearTimeout(collapseTimer.current);
-    setIsCollapsing(false);
+  const startEditing = () =>
     setEditOrder(displayOrder(drafts).map((draft) => draft.key));
-  };
 
+  // The modes are deliberately asymmetric: the editors animate open and
+  // closed, the summary never animates. It appears the moment the collapse
+  // starts, so the cards read as shrinking into the lines above them.
   const stopEditing = () => {
     setDrafts((current) =>
       current.filter((draft) => !leavingKeys.includes(draft.key)),
@@ -87,11 +75,6 @@ export const TimeComponentsBlock = ({
     setLeavingKeys([]);
     setEditOrder(null);
     spawnedKeys.clear();
-    setIsCollapsing(true);
-    collapseTimer.current = window.setTimeout(
-      () => setIsCollapsing(false),
-      REVEAL_MOTION.durationMs,
-    );
   };
 
   const addComponent = () => {
@@ -129,19 +112,25 @@ export const TimeComponentsBlock = ({
           else startEditing();
         }}
       >
-        {isEditing ? (
-          <IconButton label="Done editing time components" onClick={stopEditing}>
+        {isEditing && (
+          <IconButton
+            label="Done editing time components"
+            onClick={stopEditing}
+          >
             <IonIcon icon={chevronDownOutline} aria-hidden="true" />
-          </IconButton>
-        ) : (
-          <IconButton label="Edit time components" onClick={startEditing}>
-            <IonIcon icon={createOutline} aria-hidden="true" />
           </IconButton>
         )}
       </div>
 
-      {!isEditing && !isCollapsing && (
+      {!isEditing && (
         <div className="time-components-peace" onClick={startEditing}>
+          <button
+            className="time-components-edit"
+            type="button"
+            onClick={startEditing}
+          >
+            Edit
+          </button>
           {ordered.length > 0 ? (
             <ol className="time-components-list time-components-summaries">
               {ordered.map((draft, index) => (

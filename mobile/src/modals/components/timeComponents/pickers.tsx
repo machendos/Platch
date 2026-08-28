@@ -5,11 +5,13 @@ import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/
 import type { Temporal } from 'temporal-polyfill';
 import { WEEK_STARTS_ON } from '../../../config/calendarPreferences';
 import { SLOT_FLEXIBLE_TIME, TIME_OF_DAY } from '../../../config/timeScales';
+import { serializeDuration } from '../../../system/helpers/dateTimeSerializers';
 import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
 import { FieldShell } from '../../../ui/text-field/FieldShell';
 import { Reveal } from '../../../ui/reveal/Reveal';
 import { TimeWheels } from '../../../ui/time-input/TimeInput';
 import type { TimeInputValue } from '../../../ui/time-input/timeInputLogic';
+import { slotDurationMinutes } from './timeComponentsState';
 
 type PickerTriggerProps = {
   label: string;
@@ -18,6 +20,8 @@ type PickerTriggerProps = {
   onPress: () => void;
   placeholder?: string;
   className?: string;
+  /** A small marker after the value — "+1" on a next-day end. */
+  badge?: string;
 };
 
 export const PickerTrigger = ({
@@ -27,6 +31,7 @@ export const PickerTrigger = ({
   onPress,
   placeholder = 'Not set',
   className,
+  badge,
 }: PickerTriggerProps) => {
   const controlId = `picker-${useId().replace(/[^\w-]/g, '')}`;
 
@@ -46,6 +51,7 @@ export const PickerTrigger = ({
         onClick={onPress}
       >
         {text ?? <span className="picker-placeholder">{placeholder}</span>}
+        {badge && <span className="picker-badge">{badge}</span>}
       </button>
     </FieldShell>
   );
@@ -76,39 +82,46 @@ export const InlineTimeRangePanel = ({
   to,
   onFrom,
   onTo,
-}: InlineTimeRangePanelProps) => {
-  const endScale = useMemo(() => afterTimeScale(from), [from]);
-
-  return (
-    <Reveal when={open} intoView>
-      <div className="time-picker-panel time-picker-panel-dual">
-        <div className="time-picker-group">
-          <span className="time-picker-group-label">Start</span>
-          <TimeWheels
-            mode="time"
-            scale={TIME_OF_DAY}
-            value={asTime(from)}
-            onChange={({ time }) => time && onFrom(time)}
-            open
-          />
-        </div>
-        <div className="time-picker-group">
-          <span className="time-picker-group-label">End</span>
-          <TimeWheels
-            mode="time"
-            scale={endScale}
-            value={asTime(to)}
-            onChange={({ time }) => time && onTo(time)}
-            open
-            defaultValue={
-              asTime(from ? from.add({ hours: 1 }) : null) ?? undefined
-            }
-          />
-        </div>
+}: InlineTimeRangePanelProps) => (
+  <Reveal when={open} intoView>
+    <div className="time-picker-panel time-picker-panel-dual">
+      <div className="time-picker-group">
+        <span className="time-picker-group-label">Start</span>
+        <TimeWheels
+          mode="time"
+          scale={TIME_OF_DAY}
+          value={asTime(from)}
+          onChange={({ time }) => time && onFrom(time)}
+          open
+        />
       </div>
-    </Reveal>
-  );
-};
+      <div className="time-picker-group">
+        <div className="time-picker-group-head">
+          <span className="time-picker-group-label">End</span>
+          {from && to && (
+            <span className="time-picker-duration">
+              Duration:{' '}
+              <span className="time-picker-duration-value">
+                {serializeDuration(slotDurationMinutes(from, to))}
+              </span>
+            </span>
+          )}
+        </div>
+        <TimeWheels
+          mode="time"
+          scale={TIME_OF_DAY}
+          value={asTime(to)}
+          onChange={({ time }) => time && onTo(time)}
+          open
+          defaultValue={
+            asTime(from ? from.add({ hours: 1 }) : null) ?? undefined
+          }
+          windowStart={from ? from.hour * 60 + from.minute : undefined}
+        />
+      </div>
+    </div>
+  </Reveal>
+);
 
 type InlineTimePanelProps = {
   open: boolean;
@@ -127,7 +140,7 @@ export const InlineTimePanel = ({
 
   return (
     <Reveal when={open} intoView>
-      <div className="time-picker-panel">
+      <div className="time-picker-panel time-picker-panel-single">
         <TimeWheels
           mode="time"
           scale={scale}
@@ -152,11 +165,13 @@ export const InlineDurationPanel = ({
   onChange,
 }: InlineDurationPanelProps) => (
   <Reveal when={open} intoView>
-    <div className="time-picker-panel">
+    <div className="time-picker-panel time-picker-panel-single">
       <TimeWheels
         mode="duration"
         scale={SLOT_FLEXIBLE_TIME}
-        value={minutes === null ? null : { time: null, durationMinutes: minutes }}
+        value={
+          minutes === null ? null : { time: null, durationMinutes: minutes }
+        }
         onChange={({ durationMinutes }) =>
           durationMinutes !== null && onChange(durationMinutes)
         }

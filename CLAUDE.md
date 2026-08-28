@@ -205,6 +205,13 @@ something that already ships.
   the shell, and inherit nothing applied there. A component with tokens of its
   own puts them in a `:root` block at the top of its stylesheet
   (`Modal.css`, `HeaderMenu.css`).
+- **Responsive UI**: every visual decision — colours, sizes, distances — comes
+  from the centralized tokens in `index.css`; nothing responsive is decided
+  ad hoc inside a component. A component large enough to act as a container
+  (a modal, a form block) may re-value those tokens for its own subtree with a
+  `@container` query in its stylesheet, the way `Modal.css` switches the
+  density set. Every layout must be tested and look nice at 360px and 410px
+  screen widths.
 - **Comments**: We don't add comments to the code. In very rare cases, we can
   make an exception only when it's justified by an unexpected or unclear
   solution or decision that needs to survive refactoring and could otherwise be 

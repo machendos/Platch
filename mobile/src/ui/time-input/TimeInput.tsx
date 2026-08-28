@@ -12,14 +12,23 @@ import {
 import { isCoarsePointer } from '../../system/helpers/pointerKind';
 import { Wheel } from '../wheel/Wheel';
 import {
+  DAY_MINUTES,
   applyColumn,
+  applyEndColumn,
   buildColumns,
+  buildEndTimeColumns,
   clampToScale,
+  endWindowTotal,
   snapTo,
   toTotalMinutes,
   toValue,
 } from './timeInputLogic';
-import type { PickerMode, TimeInputValue, TimeScale } from './timeInputLogic';
+import type {
+  ColumnKey,
+  PickerMode,
+  TimeInputValue,
+  TimeScale,
+} from './timeInputLogic';
 
 type TimeInputProps = {
   mode: PickerMode;
@@ -44,6 +53,11 @@ type TimeWheelsProps = {
   onChange: (value: TimeInputValue) => void;
   open: boolean;
   defaultValue?: TimeInputValue;
+  /** Total minutes of a range's start: the wheels then read the clock
+      relative to it — values at or before the start mean the next day and
+      the hour rows carry a "+1" badge. The emitted value stays a plain
+      clock time; the wrap is implied by the comparison with the start. */
+  windowStart?: number;
 };
 
 // The wheels panel alone, split out so a form can anchor it somewhere other
@@ -56,6 +70,7 @@ export const TimeWheels = ({
   onChange,
   open,
   defaultValue,
+  windowStart,
 }: TimeWheelsProps) => {
   const [lingering, setLingering] = useState(false);
   const mounted = open || lingering;
@@ -77,12 +92,22 @@ export const TimeWheels = ({
   const stored = value === null ? null : toTotalMinutes(value);
   const fallback =
     defaultValue === undefined ? scale.min : toTotalMinutes(defaultValue);
-  const total = snapTo(scale, stored ?? fallback);
+  const clock = snapTo(scale, stored ?? fallback);
+  const total =
+    windowStart === undefined ? clock : endWindowTotal(windowStart, clock);
 
   const columns = useMemo(
-    () => buildColumns(mode, scale, total),
-    [mode, scale, total],
+    () =>
+      windowStart === undefined
+        ? buildColumns(mode, scale, total)
+        : buildEndTimeColumns(scale, windowStart, total),
+    [mode, scale, total, windowStart],
   );
+
+  const apply = (key: ColumnKey, next: number) =>
+    windowStart === undefined
+      ? applyColumn(scale, total, key, next)
+      : applyEndColumn(scale, windowStart, total, key, next) % DAY_MINUTES;
 
   return (
     <div
@@ -110,9 +135,7 @@ export const TimeWheels = ({
               label={column.label}
               unit={column.unit}
               onChange={(next) =>
-                onChange(
-                  toValue(mode, applyColumn(scale, total, column.key, next)),
-                )
+                onChange(toValue(mode, apply(column.key, next)))
               }
             />
           ))}

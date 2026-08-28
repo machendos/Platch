@@ -26,6 +26,8 @@ import {
 import {
   WEEKDAYS,
   newSlotDraft,
+  slotWrapsMidnight,
+  withExactFrom,
   withFrequency,
   withSlotChanged,
   withSlotFlex,
@@ -108,6 +110,7 @@ const useOutsideClose = (
     if (!active) return;
 
     let armed = false;
+    let insideGesture = false;
 
     const inside = (event: Event) =>
       event.target instanceof Node &&
@@ -118,16 +121,22 @@ const useOutsideClose = (
     // pointer sits when the gesture ends. Same rule TimeInput follows.
     const noticePointerDown = (event: Event) => {
       armed = !inside(event);
+      insideGesture = !armed;
     };
 
     const closeAfterGesture = () => {
+      insideGesture = false;
       if (!armed) return;
       armed = false;
       close();
     };
 
+    // A focus change during a gesture that started inside is not the user
+    // leaving: a mouse-down on the non-focusable wheel blurs the trigger and
+    // Ionic's focus trap re-focuses the modal host — outside this editor —
+    // which used to close the panel the moment a desktop drag began.
     const closeOnFocusElsewhere = (event: Event) => {
-      if (armed || inside(event)) return;
+      if (armed || insideGesture || inside(event)) return;
       close();
     };
 
@@ -188,20 +197,12 @@ const SlotEditor = ({
           label="End time"
           text={slot.to ? serializeTimeOfDay(slot.to) : null}
           placeholder="End"
+          badge={slotWrapsMidnight(slot) ? '+1' : undefined}
           open={open === 'times'}
           onPress={() => onOpen('times')}
           className={flexOwns ? 'time-slot-dim' : undefined}
         />
-        <span className="time-slot-divider" aria-hidden="true" />
-        <span
-          className={
-            timesOwn
-              ? 'time-component-row-label time-slot-dim'
-              : 'time-component-row-label'
-          }
-        >
-          flex
-        </span>
+        <span className="time-component-row-label time-slot-or">or</span>
         <PickerTrigger
           label="Flexible time needed"
           text={
@@ -209,6 +210,7 @@ const SlotEditor = ({
               ? serializeDuration(slot.flexibleMinutesNeeded)
               : null
           }
+          placeholder="Flexible"
           open={open === 'flex'}
           onPress={() => onOpen('flex')}
           className={timesOwn ? 'time-slot-dim' : undefined}
@@ -333,14 +335,16 @@ export const TimeComponentEditor = ({
             open={isOpen({ kind: 'from-date' })}
             value={draft.fromDate}
             onChange={(fromDate) => {
-              onChange({ ...draft, fromDate });
+              onChange(withExactFrom(draft, fromDate, draft.fromTime));
               closePicker();
             }}
           />
           <InlineTimePanel
             open={isOpen({ kind: 'from-time' })}
             value={draft.fromTime}
-            onChange={(fromTime) => onChange({ ...draft, fromTime })}
+            onChange={(fromTime) =>
+              onChange(withExactFrom(draft, draft.fromDate, fromTime))
+            }
           />
           <div className="time-component-exact-row">
             <span className="time-component-row-label">To</span>

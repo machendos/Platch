@@ -54,6 +54,16 @@
   --icon-button-size: 28px;
   --touch-target: 44px;
 
+  /* Chrome — the surfaces grouped content sits on. Part of the density
+     vocabulary: a compact context re-values these along with type and control
+     sizes, so card padding and radius shrink with everything else. The
+     surface is stated once here and reused by everything drawn on a card —
+     the card itself, and the pickers (wheels, calendar) that open inside
+     one and must blend with it. */
+  --card-surface: var(--surface-subtle);
+  --card-padding: var(--space-3);
+  --card-radius: var(--radius-lg);
+
   /* The checkbox box, shared: the Checkbox primitive draws it, and a checklist
      line inside a formatted Field draws the same one. Here rather than in
      Checkbox.css because a component's stylesheet only exists once something

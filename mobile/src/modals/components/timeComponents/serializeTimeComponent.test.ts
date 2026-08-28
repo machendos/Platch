@@ -101,7 +101,12 @@ describe('recurring cadences', () => {
 
   it('names a single weekday in full', () => {
     const text = serializeTimeComponent(
-      draft({ frequency: 'WEEK', interval: 1, byDay: ['TU'], slots: [eveningSlot] }),
+      draft({
+        frequency: 'WEEK',
+        interval: 1,
+        byDay: ['TU'],
+        slots: [eveningSlot],
+      }),
       TODAY,
     );
 
@@ -163,6 +168,32 @@ describe('recurring cadences', () => {
     );
 
     expect(text).toBe('Every Jan 30 · 5:45–6:45 PM');
+  });
+
+  it('marks an overnight slot with +1', () => {
+    const text = serializeTimeComponent(
+      draft({
+        frequency: 'DAY',
+        interval: 1,
+        slots: [slot({ from: time(22, 0), to: time(2, 0) })],
+      }),
+      TODAY,
+    );
+
+    expect(text).toBe('Daily · 10 PM–2 AM +1');
+  });
+
+  it('marks a full-day slot the same way', () => {
+    const text = serializeTimeComponent(
+      draft({
+        frequency: 'DAY',
+        interval: 1,
+        slots: [slot({ from: time(17, 45), to: time(17, 45) })],
+      }),
+      TODAY,
+    );
+
+    expect(text).toBe('Daily · 5:45–5:45 PM +1');
   });
 
   it('joins several slots after one cadence', () => {

@@ -7,7 +7,7 @@ import {
   serializeTimeRange,
   serializeWeekday,
 } from '../../../system/helpers/dateTimeSerializers';
-import { sortWeekdays } from './timeComponentsState';
+import { slotWrapsMidnight, sortWeekdays } from './timeComponentsState';
 import type {
   SlotDraft,
   TimeComponentDraft,
@@ -60,7 +60,10 @@ const serializeDayInYear = (
   byMonth === null
     ? null
     : joinPresent(
-        [MONTH_NAMES[byMonth - 1], byMonthDay === null ? null : String(byMonthDay)],
+        [
+          MONTH_NAMES[byMonth - 1],
+          byMonthDay === null ? null : String(byMonthDay),
+        ],
         ' ',
       );
 
@@ -88,7 +91,8 @@ const serializeCadence = (draft: TimeComponentDraft): string => {
   }
 
   if (draft.frequency === 'MONTH') {
-    const day = draft.byMonthDay === null ? null : `on the ${ordinal(draft.byMonthDay)}`;
+    const day =
+      draft.byMonthDay === null ? null : `on the ${ordinal(draft.byMonthDay)}`;
     return joinPresent(
       [interval === 1 ? 'Monthly' : `Every ${interval} months`, day],
       ' ',
@@ -109,7 +113,10 @@ const serializeSlot = (slot: SlotDraft): string | null => {
   if (slot.flexibleMinutesNeeded !== null) {
     return `${serializeDuration(slot.flexibleMinutesNeeded)} flex`;
   }
-  if (slot.from && slot.to) return serializeTimeRange(slot.from, slot.to);
+  if (slot.from && slot.to) {
+    const range = serializeTimeRange(slot.from, slot.to);
+    return slotWrapsMidnight(slot) ? `${range} +1` : range;
+  }
   if (slot.from) return serializeClockTime(slot.from);
   return null;
 };

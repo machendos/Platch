@@ -1,7 +1,16 @@
+/* A custom property that references another one resolves WHERE IT IS
+   DECLARED — an alias like `--a: var(--b)` on :root bakes :root's value of
+   --b for good, and a density context re-valuing --b further down never
+   reaches it. So: density tokens are read directly at their use sites, and
+   any formula over them is re-declared inside every scope that re-values an
+   input. */
 :root {
-  --time-component-card-surface: var(--surface-subtle);
-  --time-component-card-radius: var(--radius-lg);
-  --time-component-card-padding: var(--space-3);
+  /* PickerTrigger's published contract: the least a trigger field can be and
+     still show "12:45 AM" on one line at the current type size, and the width
+     past which more adds nothing. Rows reference these instead of restating
+     them — the numbers live once. */
+  --picker-field-min: 84px;
+  --picker-field-max: 110px;
   /* A wheel group's flex basis — two groups sit side by side wherever
      2 × this + the gap fit, and stack below that. With the column floor
      below, side by side needs ~350px of panel, which a big phone's card has
@@ -10,14 +19,17 @@
   /* Narrower than the wheel's stock 72px floor: three digits and a meridiem
      need less, and 56px still clears the 44px touch target. */
   --time-picker-column-min: 56px;
-  /* Field tracks state a min and a max. Between the two the row spreads to
-     fill whatever width it has — a phone — and past the sum of the maxes it
-     stops growing and the row hugs the left edge — a desktop. Below the sum
-     of the mins the container query shrinks the mins and the type instead. */
-  --time-slot-time-min: 76px;
-  --time-slot-time-max: 128px;
-  --time-slot-flex-min: 64px;
+  /* Field tracks state the row's offer: at least the primitive's floor (plus
+     this row's own preference), at most the primitive's ceiling. Between the
+     two the row spreads to fill a phone; past the maxes it hugs the left. */
+  --time-slot-time-min: max(var(--picker-field-min), 76px);
+  --time-slot-time-max: var(--picker-field-max);
+  --time-slot-flex-min: var(--picker-field-min);
   --time-slot-flex-max: 112px;
+  --time-exact-date-min: max(var(--picker-field-min), 88px);
+  --time-exact-date-max: 110px;
+  /* The air between the From/To label, the date and the time. */
+  --time-exact-field-gap: var(--space-4);
 }
 
 /* The block is a section of the form, and sections are separated by the
@@ -80,9 +92,32 @@
   color: var(--text-secondary);
 }
 
+.time-components-peace {
+  position: relative;
+  /* Room for the Edit control so a long first summary does not run under it. */
+  padding-right: var(--touch-target);
+}
+
+/* The iOS answer to "edit this list" is the word, not a glyph: an accent
+   text button sitting just below the section rule, where a list's Edit
+   control lives on the platform. */
+.time-components-edit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--accent);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .time-components-peace,
-  .time-components-head {
+  .time-components-head,
+  .time-components-edit {
     cursor: pointer;
   }
 }
@@ -112,10 +147,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: var(--time-component-card-padding);
-  border-radius: var(--time-component-card-radius);
-  background: var(--time-component-card-surface);
-  container-type: inline-size;
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
+  background: var(--card-surface);
 }
 
 /* The card shares its surface with the shell's focus fill, so inside one the
@@ -183,7 +217,6 @@
     auto
     minmax(var(--time-slot-time-min), var(--time-slot-time-max))
     auto
-    auto
     minmax(var(--time-slot-flex-min), var(--time-slot-flex-max))
     auto;
   align-items: center;
@@ -206,10 +239,10 @@
   display: grid;
   grid-template-columns:
     2.8em
-    minmax(88px, 132px)
-    minmax(76px, 128px);
+    minmax(var(--time-exact-date-min), var(--time-exact-date-max))
+    minmax(var(--time-slot-time-min), var(--time-slot-time-max));
   align-items: center;
-  column-gap: var(--space-2);
+  column-gap: var(--time-exact-field-gap);
   justify-content: start;
 }
 
@@ -218,19 +251,50 @@
   min-width: 0;
 }
 
-@container (max-width: 360px) {
-  .time-slot-row {
-    --time-slot-time-min: 60px;
-    --time-slot-time-max: 112px;
-    --time-slot-flex-min: 52px;
+/* The same switch as the modal's density set — the `form` container is the
+   modal body and 448 is the shared phone threshold (derived in Modal.css).
+   Type and control sizes come from the density tokens; only the field
+   contract and gaps change here: 76px still fits "12:45 AM" at the compact
+   14px type. */
+@container form (max-width: 448px) {
+  .time-components-block {
+    --picker-field-min: 76px;
+    --picker-field-max: 112px;
+    /* Re-stated, not inherited: the :root formulas baked against the normal
+       --picker-field-min (see the aliasing note at the top). */
+    --time-slot-time-min: max(var(--picker-field-min), 76px);
+    /* The flex field's own honesty floor: "23h 55m" at the compact type. */
+    --time-slot-flex-min: 74px;
     --time-slot-flex-max: 96px;
-    column-gap: var(--space-1);
+    --time-exact-field-gap: var(--space-2);
+    /* Start and End wheels stay side by side down to the 360 floor, where the
+       card leaves 320: a group may claim at most (320 − gap) / 2 = 154, and
+       50px columns — still clear of the 44px touch target — put a group at
+       3 × 50 = 150. */
+    --time-picker-group-min: 150px;
+    --time-picker-column-min: 50px;
   }
 
-  .time-slot-row .picker-field,
-  .time-slot-row .time-component-row-label {
-    font-size: var(--font-sm);
+  .time-slot-row {
+    column-gap: var(--space-1);
   }
+}
+
+/* The last step before the floor: tighter field padding and a slightly
+   narrower flex track keep the row closed down to 360. */
+@container form (max-width: 372px) {
+  .time-components-block {
+    --time-slot-flex-min: 66px;
+  }
+
+  .time-slot-row .picker-field {
+    padding-inline: var(--space-1);
+  }
+}
+
+/* The choice needs air: the connector stands clear of both sides it joins. */
+.time-slot-or {
+  margin-inline: var(--space-2);
 }
 
 /* One slot is one list entry, and the dot is what says so. */
@@ -239,16 +303,6 @@
   height: 5px;
   border-radius: 50%;
   background: var(--text-secondary);
-}
-
-/* The line between the two sides is what says they are alternatives — filling
-   one empties the other. */
-.time-slot-divider {
-  align-self: stretch;
-  width: var(--hairline-width);
-  margin-block: var(--space-1);
-  margin-inline: var(--space-1);
-  background: var(--separator);
 }
 
 /* Removing one slot is a smaller act than removing the whole component, and
@@ -267,8 +321,9 @@
 .picker-field {
   display: flex;
   align-items: center;
+  justify-content: center;
   box-sizing: border-box;
-  min-width: 64px;
+  min-width: var(--picker-field-min);
   height: var(--control-height);
   padding: 0 var(--space-2);
   border: none;
@@ -277,11 +332,27 @@
   font-size: var(--font-md);
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  text-align: left;
+  text-align: center;
 }
 
+/* One size down from the value text: a placeholder is a hint, and the longer
+   words ("Flexible") must fit the same narrow track a set value does. */
 .picker-placeholder {
+  overflow: hidden;
   color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The next-day marker on an end field, matching the wheel rows' one. */
+.picker-badge {
+  margin-left: 2px;
+  align-self: flex-start;
+  padding-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-destructive);
 }
 
 /* Driven by a class, not :focus-within: the wheels and the calendar take the
@@ -294,6 +365,15 @@
 .time-picker-panel {
   max-width: 100%;
   padding: var(--space-2) 0;
+}
+
+/* A lone wheel group reads like the platform picker: the white tray and its
+   pill span the row, but the columns stop flexing and cluster at the centre
+   (the panel already centers non-growing children), so the values sit next
+   to each other instead of at opposite edges. The dual panel keeps its
+   filling columns. */
+.time-picker-panel-single .wheel {
+  flex: 0 0 76px;
 }
 
 /* Two wheel groups side by side where they fit, stacked where they do not —
@@ -319,6 +399,26 @@
   color: var(--text-secondary);
 }
 
+.time-picker-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* The length of the range, live at the End header's far edge — the one
+   reading that keeps a five-minute spin across the start honest about being
+   a day-long jump. */
+.time-picker-duration {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.time-picker-duration-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 /* The calendar sits on the card's own surface and gives up some height: the
    stock cells are sized for a standalone picker, not for a tray inside a
    form. Extra ancestor selectors throughout — mobiscroll's CSS loads after
@@ -330,7 +430,7 @@
 .time-picker-panel-calendar .mbsc-datepicker,
 .time-picker-panel-calendar .mbsc-calendar {
   width: 100%;
-  background: transparent;
+  background: var(--card-surface);
   border: none;
 }
 

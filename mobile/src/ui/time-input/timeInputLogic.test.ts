@@ -4,8 +4,11 @@ import {
   allowedHours,
   allowedMinutes,
   applyColumn,
+  applyEndColumn,
   buildColumns,
+  buildEndTimeColumns,
   clampToScale,
+  endWindowTotal,
   hours,
   isAllowed,
   minutes,
@@ -296,5 +299,31 @@ describe('every value the wheels can produce', () => {
       expect(isAllowed(SCALE, value)).toBe(true);
       expect(Math.floor(value / 60)).toBe(hour);
     }
+  });
+});
+
+describe('the end-of-range window', () => {
+  const start = hours(17) + 45;
+
+  it('reads a clock after the start as the same day, at or before as the next', () => {
+    expect(endWindowTotal(start, start + 5)).toBe(start + 5);
+    expect(endWindowTotal(start, start - 5)).toBe(start - 5 + hours(24));
+    expect(endWindowTotal(start, start)).toBe(start + hours(24));
+  });
+
+  it('lets the wheels land on the start itself, meaning a full day', () => {
+    expect(applyEndColumn(TIME_OF_DAY, start, start + 5, 'minutes', 45)).toBe(
+      start + hours(24),
+    );
+  });
+
+  it('badges the hours that land next day, following the minutes column', () => {
+    const badged = (value: number) =>
+      buildEndTimeColumns(TIME_OF_DAY, start, value)[0]
+        .options.filter((option) => option.badge === '+1')
+        .map((option) => option.label);
+
+    expect(badged(start + 5)).toEqual(['12', '1', '2', '3', '4']);
+    expect(badged(start + hours(24))).toEqual(['12', '1', '2', '3', '4', '5']);
   });
 });

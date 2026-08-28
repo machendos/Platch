@@ -8,6 +8,8 @@ import {
   isDraftValid,
   isSlotValid,
   newTimeComponentDraft,
+  slotDurationMinutes,
+  withExactFrom,
   withSlotFlex,
   withSlotRemoved,
   withSlotTime,
@@ -16,6 +18,9 @@ import {
 
 const time = (hour: number, minute: number) =>
   new Temporal.PlainTime(hour, minute);
+
+const date = (year: number, month: number, day: number) =>
+  new Temporal.PlainDate(year, month, day);
 
 const ANCHOR = new Temporal.PlainDate(2026, 6, 19);
 
@@ -119,7 +124,9 @@ describe('buildReport', () => {
         recurringByMonthDay: undefined,
         recurringByMonth: undefined,
         recurringStartDate: '2026-06-19',
-        recurringTimeSlots: [{ type: 'ABSOLUTE', from: undefined, to: undefined }],
+        recurringTimeSlots: [
+          { type: 'ABSOLUTE', from: undefined, to: undefined },
+        ],
       },
     ]);
     expect(report.isDirty).toBe(true);
@@ -128,7 +135,10 @@ describe('buildReport', () => {
 
   it('adding and removing again leaves the report clean', () => {
     const initial = [recurring()];
-    const drafts = [...initial.map(fromApiComponent), newTimeComponentDraft(ANCHOR)];
+    const drafts = [
+      ...initial.map(fromApiComponent),
+      newTimeComponentDraft(ANCHOR),
+    ];
     const report = buildReport(
       drafts.filter((draft) => draft.id !== undefined),
       initial,
@@ -144,7 +154,12 @@ describe('buildReport', () => {
       ...draft,
       slots: [
         withSlotTime(draft.slots[0], 'from', time(9, 0)),
-        { key: 'new', from: time(20, 0), to: time(21, 0), flexibleMinutesNeeded: null },
+        {
+          key: 'new',
+          from: time(20, 0),
+          to: time(21, 0),
+          flexibleMinutesNeeded: null,
+        },
       ],
     };
     const report = buildReport([edited], initial);
@@ -155,7 +170,7 @@ describe('buildReport', () => {
       id: 's1',
       type: 'ABSOLUTE',
       from: '09:00',
-      to: '18:45',
+      to: '10:00',
     });
     expect(updated.recurringTimeSlots[1].id).toBeUndefined();
   });
@@ -195,6 +210,61 @@ describe('slot ownership', () => {
       flexibleMinutesNeeded: null,
     });
   });
+
+  it('the end follows the start, keeping the current duration', () => {
+    const empty = {
+      key: 's',
+      from: null,
+      to: null,
+      flexibleMinutesNeeded: null,
+    };
+
+    expect(withSlotTime(empty, 'from', time(9, 0)).to).toEqual(time(10, 0));
+    expect(withSlotTime(empty, 'from', time(23, 30)).to).toEqual(time(0, 30));
+    expect(withSlotTime(slot, 'from', time(8, 0)).to).toEqual(time(9, 0));
+
+    const long = { ...slot, to: time(11, 30) };
+    expect(withSlotTime(long, 'from', time(10, 0)).to).toEqual(time(12, 30));
+    expect(withSlotTime(long, 'from', time(23, 0)).to).toEqual(time(1, 30));
+
+    const overnight = { ...slot, from: time(23, 0), to: time(1, 0) };
+    expect(withSlotTime(overnight, 'from', time(22, 0)).to).toEqual(time(0, 0));
+
+    const fullDay = { ...slot, from: time(9, 0), to: time(9, 0) };
+    expect(withSlotTime(fullDay, 'from', time(11, 0)).to).toEqual(time(11, 0));
+  });
+
+  it('measures a slot wrap-aware', () => {
+    expect(slotDurationMinutes(time(9, 0), time(10, 30))).toBe(90);
+    expect(slotDurationMinutes(time(23, 0), time(1, 0))).toBe(120);
+    expect(slotDurationMinutes(time(9, 0), time(9, 0))).toBe(24 * 60);
+  });
+
+  it('an exact range slides whole, dates included', () => {
+    const range = fromApiComponent(absolute());
+
+    const laterTime = withExactFrom(range, range.fromDate, time(9, 0));
+    expect(laterTime.toTime).toEqual(time(10, 0));
+    expect(laterTime.toDate).toEqual(range.fromDate);
+
+    const otherDay = withExactFrom(range, date(2026, 6, 21), range.fromTime);
+    expect(otherDay.toDate).toEqual(date(2026, 6, 21));
+    expect(otherDay.toTime).toEqual(time(18, 45));
+
+    const overMidnight = withExactFrom(range, range.fromDate, time(23, 30));
+    expect(overMidnight.toDate).toEqual(date(2026, 6, 20));
+    expect(overMidnight.toTime).toEqual(time(0, 30));
+  });
+
+  it('a partial exact start still brings sensible defaults', () => {
+    const empty = newTimeComponentDraft(ANCHOR);
+
+    const dateOnly = withExactFrom(empty, date(2026, 6, 19), null);
+    expect(dateOnly.toDate).toEqual(date(2026, 6, 19));
+
+    const timeOnly = withExactFrom(empty, null, time(23, 30));
+    expect(timeOnly.toTime).toEqual(time(23, 55));
+  });
 });
 
 describe('validity', () => {
@@ -203,13 +273,13 @@ describe('validity', () => {
 
     expect(isDraftValid(draft)).toBe(true);
     expect(isDraftValid({ ...draft, toTime: null })).toBe(false);
-    expect(isDraftValid({ ...draft, toDate: new Temporal.PlainDate(2026, 6, 18) })).toBe(
-      false,
-    );
+    expect(
+      isDraftValid({ ...draft, toDate: new Temporal.PlainDate(2026, 6, 18) }),
+    ).toBe(false);
     expect(isDraftValid({ ...draft, toTime: time(17, 45) })).toBe(false);
   });
 
-  it('requires a slot to end after it starts', () => {
+  it('reads an end at or before the start as next day, equality as a full day', () => {
     const slot = {
       key: 's',
       from: time(10, 0),
@@ -217,8 +287,8 @@ describe('validity', () => {
       flexibleMinutesNeeded: null,
     };
 
-    expect(isSlotValid(slot)).toBe(false);
-    expect(isSlotValid({ ...slot, to: time(10, 0) })).toBe(false);
+    expect(isSlotValid(slot)).toBe(true);
+    expect(isSlotValid({ ...slot, to: time(10, 0) })).toBe(true);
     expect(isSlotValid({ ...slot, to: time(11, 0) })).toBe(true);
   });
 
@@ -238,7 +308,11 @@ describe('draft structure', () => {
 
   it('fills recurring defaults from the anchor when switching type', () => {
     const exact = withType(newTimeComponentDraft(ANCHOR), 'ABSOLUTE');
-    const back = withType({ ...exact, byDay: [], slots: [] }, 'RECURRING', ANCHOR);
+    const back = withType(
+      { ...exact, byDay: [], slots: [] },
+      'RECURRING',
+      ANCHOR,
+    );
 
     expect(back.byDay).toEqual(['FR']);
     expect(back.byMonthDay).toBe(19);

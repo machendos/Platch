@@ -33,6 +33,13 @@
   height: 100%;
   overflow: hidden;
 
+  /* The viewport shrink-wraps to the digits, and overflow clips at that same
+     edge — which would take the badge hanging off a label with it. The padding
+     widens the clip box so the badge stays visible; the margin gives the room
+     back so nothing beside the wheel moves. */
+  padding-inline: 16px;
+  margin-inline: -16px;
+
   /* The falloff is this mask rather than per-item opacity written from the
      animation loop — nothing has to run while the wheel is moving. */
   -webkit-mask-image: linear-gradient(
@@ -72,6 +79,25 @@
 
 .wheel-item-selected {
   font-weight: 600;
+}
+
+/* The badge hangs off the label instead of sitting beside it, so the digits
+   stay centred exactly as if it were not there — the wrapper is the anchor
+   and adds no width. */
+.wheel-item-label {
+  position: relative;
+  display: inline-block;
+}
+
+/* The next-day marker on an hour row: small, red, riding the top of the
+   digits so it reads as an index rather than part of the number. */
+.wheel-item-badge {
+  position: absolute;
+  top: -3px;
+  left: calc(100% + 2px);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-destructive);
 }
 
 .wheel-unit {

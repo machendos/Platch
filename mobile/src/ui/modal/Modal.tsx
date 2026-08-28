@@ -114,7 +114,9 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(
         </div>
       </header>
 
-      <IonContent className="modal-body">{children}</IonContent>
+      <IonContent className="modal-body">
+        <div className="modal-form">{children}</div>
+      </IonContent>
 
       {footer && <footer className="modal-footer">{footer}</footer>}
     </IonModal>

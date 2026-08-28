@@ -128,14 +128,103 @@ export const withFrequency = (
   anchor: Temporal.PlainDate = currentRecurrenceAnchor(),
 ): TimeComponentDraft => withRecurringDefaults({ ...draft, frequency }, anchor);
 
+const DAY_MINUTES = 24 * 60;
+
+const minutesOf = (time: Temporal.PlainTime) => time.hour * 60 + time.minute;
+
+const laterBy = (
+  time: Temporal.PlainTime,
+  minutes: number,
+): Temporal.PlainTime => {
+  const later = time.add({ minutes });
+  // Wrapped past midnight — a slot stays within its day, so stop at the top
+  // of the grid instead.
+  return Temporal.PlainTime.compare(later, time) > 0
+    ? later
+    : new Temporal.PlainTime(23, 55);
+};
+
+// The exact-range twin of the slot rule below: moving From moves the whole
+// range, keeping its duration — dates included, so an end may roll past
+// midnight, which an exact range (unlike a slot) is allowed to do. Editing To
+// is what changes the length.
+export const withExactFrom = (
+  draft: TimeComponentDraft,
+  fromDate: Temporal.PlainDate | null,
+  fromTime: Temporal.PlainTime | null,
+): TimeComponentDraft => {
+  const moved = { ...draft, fromDate, fromTime };
+
+  if (fromDate && fromTime) {
+    const start = fromDate.toPlainDateTime(fromTime);
+    const gap =
+      draft.fromDate && draft.fromTime && draft.toDate && draft.toTime
+        ? draft.fromDate
+            .toPlainDateTime(draft.fromTime)
+            .until(draft.toDate.toPlainDateTime(draft.toTime))
+            .total({ unit: 'minutes' })
+        : 0;
+    const end = start.add({ minutes: gap > 0 ? gap : 60 });
+    return { ...moved, toDate: end.toPlainDate(), toTime: end.toPlainTime() };
+  }
+
+  if (fromDate) {
+    const dayGap =
+      draft.fromDate && draft.toDate
+        ? draft.fromDate.until(draft.toDate).total({ unit: 'days' })
+        : 0;
+    return { ...moved, toDate: fromDate.add({ days: Math.max(dayGap, 0) }) };
+  }
+
+  if (fromTime) {
+    const gap =
+      draft.fromTime &&
+      draft.toTime &&
+      Temporal.PlainTime.compare(draft.toTime, draft.fromTime) > 0
+        ? minutesOf(draft.toTime) - minutesOf(draft.fromTime)
+        : 60;
+    return { ...moved, toTime: laterBy(fromTime, gap) };
+  }
+
+  return moved;
+};
+
+/* A slot whose end clock-time is at or before its start ends the next day.
+   Equal times are the far edge of that reading: exactly 24 hours, the longest
+   a slot can be. */
+export const slotWrapsMidnight = (slot: SlotDraft): boolean =>
+  slot.from !== null &&
+  slot.to !== null &&
+  Temporal.PlainTime.compare(slot.to, slot.from) <= 0;
+
+export const slotDurationMinutes = (
+  from: Temporal.PlainTime,
+  to: Temporal.PlainTime,
+): number =>
+  (minutesOf(to) - minutesOf(from) + DAY_MINUTES) % DAY_MINUTES || DAY_MINUTES;
+
 export const withSlotTime = (
   slot: SlotDraft,
   field: 'from' | 'to',
   time: Temporal.PlainTime,
-): SlotDraft =>
-  field === 'from'
-    ? { ...slot, from: time, flexibleMinutesNeeded: null }
-    : { ...slot, to: time, flexibleMinutesNeeded: null };
+): SlotDraft => {
+  if (field === 'to') return { ...slot, to: time, flexibleMinutesNeeded: null };
+
+  // The end travels with the start, keeping whatever duration the slot
+  // currently has (an hour when there is none yet) — moving a start is moving
+  // the slot, not stretching it. Editing the end is what changes the length.
+  // The gap is wrap-aware: an overnight slot keeps its overnight length, and
+  // a full-day slot (equal ends) stays a full day.
+  const gap =
+    slot.from && slot.to ? slotDurationMinutes(slot.from, slot.to) : 60;
+
+  return {
+    ...slot,
+    from: time,
+    to: time.add({ minutes: gap }),
+    flexibleMinutesNeeded: null,
+  };
+};
 
 export const withSlotFlex = (slot: SlotDraft, minutes: number): SlotDraft => ({
   ...slot,
@@ -166,9 +255,7 @@ export const withSlotChanged = (
 export const isSlotValid = (slot: SlotDraft): boolean =>
   slot.flexibleMinutesNeeded !== null
     ? slot.flexibleMinutesNeeded > 0
-    : slot.from !== null &&
-      slot.to !== null &&
-      Temporal.PlainTime.compare(slot.from, slot.to) < 0;
+    : slot.from !== null && slot.to !== null;
 
 export const isDraftValid = (draft: TimeComponentDraft): boolean => {
   if (draft.type === 'ABSOLUTE') {
@@ -322,7 +409,9 @@ export const toUpdated = (draft: PersistedDraft): UpdatedTimeComponent => {
         : null,
     recurringByMonth:
       recurring && draft.frequency === 'YEAR' ? draft.byMonth : null,
-    recurringStartDate: recurring ? (draft.startDate?.toString() ?? null) : null,
+    recurringStartDate: recurring
+      ? (draft.startDate?.toString() ?? null)
+      : null,
     recurringTimeSlots: recurring
       ? draft.slots.map((slot) => ({ ...toTimeSlot(slot), id: slot.id }))
       : [],

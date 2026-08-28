@@ -130,16 +130,54 @@
 /* ===== Body ===== */
 
 /* index.css paints every ion-content with the page's sunken grey. A modal is
-   an elevated surface, so it takes the raised one back. */
+   an elevated surface, so it takes the raised one back.
+
+   Also the density container: its width is the sheet's width, which on a
+   phone is the screen's, so the compact threshold below is the product
+   number itself — no chrome arithmetic to re-derive. */
 .modal .modal-body {
   --background: var(--surface);
   --color: var(--text-primary);
-  --padding-start: var(--space-4);
-  --padding-end: var(--space-4);
   --padding-top: var(--space-4);
   --padding-bottom: var(--space-4);
   flex: 1;
   min-height: 0;
+  container: form / inline-size;
+}
+
+/* The horizontal padding lives here rather than on ion-content: the body is
+   the density container and a container query cannot style the container
+   itself, so the inline breathing room has to sit one level down for the
+   compact set to reach it. */
+.modal-form {
+  padding-inline: var(--space-4);
+}
+
+/* The compact density set. One switch re-values the shared vocabulary for
+   everything in the form — type, control heights, chip sizes, card chrome —
+   so the whole surface steps down together. Interaction guarantees stay put:
+   --touch-target and --hairline-width are deliberately absent.
+
+   Compact is the PHONE density, not an edge-case degrade. The boundary is
+   derived, not chosen: a full-size one-line slot row measures ~392px, plus
+   56px of modal-and-card chrome = 448 — below that, normal density cannot
+   fit, so every portrait phone (444px Maxes included) is compact and normal
+   belongs to tablets, landscape and desktop. 360 remains the floor compact
+   itself must still fit. A query condition cannot read var(), so the number
+   is a literal; re-derive it if the row or the chrome changes. */
+@container form (max-width: 448px) {
+  .modal-form {
+    --font-sm: 12px;
+    --font-md: 14px;
+    --font-lg: 15px;
+    --font-xl: 18px;
+    --control-height: 30px;
+    --icon-button-size: 24px;
+    --toggle-option-size: 28px;
+    --card-padding: var(--space-2);
+    --card-radius: var(--radius-md);
+    padding-inline: var(--space-3);
+  }
 }
 
 /* ===== Safe areas =====

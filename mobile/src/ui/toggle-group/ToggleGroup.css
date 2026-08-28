@@ -1,20 +1,14 @@
 :root {
-  /* The smaller of the two sizes is the base, because the narrow phone is the
-     case that binds — see the sizing note on .toggle-group. */
+  /* The wide-screen size is the default; a compact density context (the
+     form's container query in Modal.css) re-values the token on phones.
+     The old in-house viewport media query is gone deliberately: it measured
+     the window while the wrap measured the container, and the two crossing at
+     different widths is what made resizing flicker. 32 rather than the old
+     36 because seven chips plus an inline label and "Select all" never fit a
+     phone at 36 — 36 was only ever wide-screen air. */
   --toggle-option-size: 32px;
   --toggle-option-radius: 12px;
   --toggle-option-gap: var(--space-1);
-}
-
-/* Seven days plus `Select all` need 7 * size + 88px. A 430px phone leaves the
-   recurrence row ~373px, which fits the options at 36px; a 375px one leaves
-   ~318px, which does not — 340px against 318px — but fits them at 32px with
-   6px to spare. Hence the step, and hence 400px as the point it happens: that
-   is the viewport at which 36px stops overflowing. */
-@media (min-width: 400px) {
-  :root {
-    --toggle-option-size: 36px;
-  }
 }
 
 /* Separate, gapped shapes with no track behind them — deliberately not
