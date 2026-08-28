@@ -590,7 +590,7 @@ edge falloff and a masked pill would fade with them.
 
 The text input. One **shell** and — once formatting lands — two **bodies**:
 `FieldShell` owns the label, the chrome and every dimension, `TextField` is a
-`<textarea>`, and a Lexical body will slot in beside it. The shell is what makes
+`<textarea>`, and the TipTap body slots in beside it. The shell is what makes
 them look like one control; the split is what stops name and goal being dragged
 into a `contenteditable`, which is where WebKit caret and IME bugs live and
 which would forfeit native autocorrect, dictation, selection handles and Look

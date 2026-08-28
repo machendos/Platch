@@ -11,7 +11,7 @@ import { numberRange } from '../ui/select/selectOptions';
 import type { SelectOption } from '../ui/select/selectOptions';
 import { Field } from '../ui/text-field/Field';
 import { RichTextToolbar } from '../ui/text-field/RichTextToolbar';
-import { ActiveFieldProvider } from '../ui/text-field/richText/activeField';
+import { ActiveFieldProvider } from '../ui/text-field/toolbar/activeField';
 import { CONTEXT_FIELD } from './fieldPresets';
 
 type CreateProjectModalProps = {

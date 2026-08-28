@@ -4,23 +4,23 @@ The formatted body of `Field`, and the toolbar that drives it. Covers the
 decisions that are **not** obvious from reading the code — mostly places where
 the straightforward approach was tried and does not work.
 
-Code: `mobile/src/ui/text-field/RichTextField.tsx`, `RichTextToolbar.tsx`,
-`richText/`. The shell it sits in is in [`ui-primitives.md`](ui-primitives.md).
+Code: `mobile/src/ui/text-field/richText/`, `RichTextToolbar.tsx`, `toolbar/`.
+The shell it sits in is in [`ui-primitives.md`](ui-primitives.md).
 
 ---
 
 ## Shape of the thing
 
 ```
-Field                       dispatches on `formatting`, one prop shape either way
-└─ FieldShell               label, chrome, geometry — knows nothing about its body
-   └─ RichTextField         Lexical: composer, plugins, markdown in and out
-      └─ ReportFocusPlugin  tells the provider this field has the caret
+Field                     dispatches on `formatting`, one prop shape either way
+└─ FieldShell             label, chrome, geometry — knows nothing about its body
+   └─ RichTextField       TipTap: extensions, markdown in and out, focus report
 
-ActiveFieldProvider         holds whichever formatted field has focus
-└─ RichTextToolbar          one bar for the whole form, portalled into that field
-   ├─ toolbarControls       what the buttons are and what they do
-   └─ useToolbarMarks       what is currently on, read from the selection
+ActiveFieldProvider       holds whichever formatted field has focus
+└─ RichTextToolbar        one bar for the whole form, portalled into that field
+   ├─ toolbarControls     what the buttons are and what they do
+   ├─ useToolbarMarks     what is currently on, read through the adapter
+   └─ adapter             the only thing the bar knows about an editor
 ```
 
 One toolbar per **form**, not per field. A form with two formatted fields draws
@@ -32,36 +32,58 @@ is on, and where to sit. Adding or removing a button is an edit to
 
 ---
 
-## Lexical, and the node set
+## TipTap, and the extension set
 
-Chosen because the required features map onto built-ins rather than custom
-nodes: checklists are a first-class list type, list Enter/backspace-outdent
-comes with `@lexical/list`, and it was written for Facebook's mobile web, so
-WebKit is a first-class target rather than an afterthought.
+TipTap (headless, over ProseMirror) replaced Lexical. Both are frameworks
+rather than finished editors — neither ships a toolbar — so the swap cost
+nothing above `toolbar/adapter.ts`. What it bought was the checklist and links.
 
-The node set is deliberately **only what the pinned transformers can produce** —
-core paragraph/text plus `ListNode` / `ListItemNode`. Bold and italic are text
-formats and need no node. Registering nodes the markdown set cannot write would
-let a paste introduce content the field is unable to store.
+**The checklist is a real `<input type="checkbox">`** in a
+`contenteditable="false"` label. Lexical's is an `<li role="checkbox"
+tabindex="-1">` that takes DOM focus when tapped, which cost the caret, the
+toolbar, the space key and iOS's Paste callout in four different-looking ways,
+and its 32px touch hit-zone swallowed taps meant for the words. A real input
+has native hit-testing and never touches the caret.
+
+**Structural toolbar actions apply across a multi-line selection.** In Lexical
+they silently applied to the caret's line only.
+
+**Links are a maintained extension** rather than a TODO.
+
+What the swap did *not* fix, because none of it is the editor's doing: the
+white bands between selected list items, the sheet claiming selection-handle
+drags, and iOS's Paste callout. Those are properties of a contenteditable
+inside an `IonModal` on iOS and behave identically either way.
+
+The extension set is deliberately **only what the markdown serializer can
+write** — paragraphs, ordered/bulleted/task lists, bold, italic, links.
+Headings, code, quotes, rules, strike and underline are off. So is `hardBreak`:
+markdown has no unambiguous single-line break, so a soft break would not
+survive a save. Registering anything else would let a paste introduce content
+the field is unable to store.
 
 ## Markdown is the stored format
 
 `Project.context` stays a `String` that reads in the database, renders in any
-future client, needs no HTML sanitisation, and is not coupled to Lexical's
+future client, needs no HTML sanitisation, and is not coupled to any editor's
 serialization version.
 
-`richText/markdown.ts` **pins** the transformer array rather than using
-Lexical's `TRANSFORMERS`, which grows with the library: an upgrade could
-otherwise start writing headings or code fences into a field nothing else can
-render back.
+`richText/markdown.ts` is hand-written, both directions. `tiptap-markdown` was
+rejected on maintenance grounds: 0.9.0, one maintainer, last published
+September 2025 while TipTap itself shipped through 3.30 — not a dependency to
+put directly on the persistence layer. The format is five features wide, which
+is small enough to own.
 
-**`CHECK_LIST` must precede `UNORDERED_LIST`.** Its pattern begins with the
-same bullet, so reversed, `- [ ] buy milk` parses as a plain bullet whose text
-starts `"[ ]"`. Lexical deliberately leaves `CHECK_LIST` out of
-`ELEMENT_TRANSFORMERS` rather than ordering it for anyone.
+**The task-list rule must be tried before the bullet rule.** A checklist line
+begins with the same `- ` a bullet does, so read in the other order
+`- [ ] buy milk` becomes a plain bullet whose text starts `"[ ]"`. That
+ordering **cannot be tested through the round trip** — the mis-parse exports to
+identical markdown. The test asserts on the node type instead.
 
-That ordering **cannot be tested through the round trip** — a mis-parse exports
-to the identical markdown. The test asserts on the node type instead.
+Escaping is symmetrical and deliberately small: `\`, `*`, `_`, `[` and `]` are
+escaped on the way out and unescaped on the way back, which is what makes the
+round trip settle. Backticks are *not* escaped, because no code node exists for
+them to be promoted into.
 
 ### What a save and a reopen actually do
 
@@ -73,8 +95,8 @@ normalises exactly once (underscore emphasis onto stars, a two-space indent
 flattening to a sibling because it is not deep enough to nest).
 
 The one thing the format cannot carry: markdown has no way to write "this
-paragraph merely begins with the characters `1.`", and Lexical does not escape
-a leading list marker on export the way it escapes a backtick. So a paragraph
+paragraph merely begins with the characters `1.`", and the serializer does not
+escape a leading list marker the way it escapes an asterisk. So a paragraph
 that looks like a list **is** one after a reopen. Asserted rather than
 described, since it is the sort of thing that otherwise gets rediscovered as a
 bug.
@@ -92,83 +114,30 @@ starts rendering as formatting.
 
 ---
 
-## One line at a time
+## Lists and checklists
 
-Lexical's list commands are written for a document toolbar, where the unit of
-formatting is a block of selected text. Both are too broad for a per-line
-toggle:
+Per-line toggling is built in: the list commands act on the block the caret is
+in, split the list around it themselves, and apply across a multi-line
+selection. `toggleList` in the adapter means "make this line this kind, or
+plain if it already is", so one button both sets and clears.
 
-- `$insertList` takes the whole containing `ListNode`, moves every child into a
-  new list of the target type and replaces it — ticking one line turned all of
-  its siblings into checkboxes.
-- `$removeList` climbs to the *top* list and flattens every item at every depth
-  into paragraphs — unticking one line collapsed the whole field into loose
-  lines.
+This was the single largest piece of custom code under Lexical — a list type
+belongs to the *list*, not the item, so changing one line meant splitting the
+list around it, keeping the nesting wrapper in step, and renumbering only the
+siblings that draw a number. All of it went with the swap.
 
-What makes this awkward is that **a list type belongs to the list, not to the
-item**. One line cannot differ from its siblings while it shares their
-`ListNode`, so changing a single line means splitting the list around it.
-Everything in `lineList.ts` is built on that one operation.
+**Ticking a box never moves the caret.** The checkbox is a real input in a
+`contenteditable="false"` label, so it has native hit-testing: no synthetic tap
+zone to steal taps meant for the words, and nothing that takes DOM focus away
+from the editable. Tapping a box leaves the caret, the toolbar and the keyboard
+exactly where they were.
 
-Three things fell out of it that were not obvious:
-
-- **Nesting is a list inside a list *item*, and an item may hold only one
-  list.** At depth the wrapper has to split alongside the list it holds, or two
-  lists land in one item and Lexical merges their text together.
-- **Only siblings that draw a number may be counted** when renumbering the
-  remainder. A nesting wrapper is a sibling in the tree that shows nothing of
-  its own, so counting it leaves a visible gap: `1.` / `a. b.` / `[ ]` / `3.`
-- **A line that leaves a list has to be able to rejoin one.** The first version
-  only handled a line that was already a list item, so the buttons did nothing
-  on a line that had just been unlisted. A line arriving from outside joins the
-  run beside it when that run is the same type — without that the toggle is not
-  reversible and leaves three lists where there was one.
-
-Unlisting a **nested** line is deliberately left undone: a paragraph cannot sit
-inside a list item, so it means lifting the line out of every list above it and
-putting it back in the right place. Outdent first.
-
-### The checklist interaction is ours, not Lexical's
-
-`CheckListPlugin` is not used. It is written for a document where a checkbox is
-a control in its own right, and in a text field that model fights the caret.
-`CheckListTapPlugin` replaces it and does exactly one thing: if a click landed
-on the marker, toggle that item. No focus changes, no key handlers.
-
-Two separate defects drove that, and the first was fixable with Lexical's own
-`disableTakeFocusOnClick` while the second was not.
-
-**It moved DOM focus to the `<li role="checkbox">`,** which produced four
-symptoms that looked like four separate bugs:
-
-- **The toolbar vanished.** Lexical fires `BLUR_COMMAND` when the editable
-  loses focus, so the field stopped being the active one.
-- **Space toggled the checkbox instead of typing.** `KEY_SPACE_COMMAND` fires
-  whenever a check `<li>` holds focus — that is the accessible checkbox
-  behaviour, and it is wrong when the caret is supposed to be in the text.
-- **iOS showed its Paste / Select callout.** Focus sat on a non-editable
-  element with no text selection, so the OS offered the element menu rather
-  than a caret menu.
-- **It felt random.** Whether focus landed on the `<li>` depended on exactly
-  where the tap fell, and there is a separate touch/pointerup path with its own
-  dedup window.
-
-**And its touch hit-zone reached into the text.** `clickAreaPadding` is
-hard-coded to 32px on touch. The marker is 20px wide and the text begins 28px
-in, so the checkbox owned everything up to 52px — on a short line, most of the
-word. Tapping to put the caret in your own text toggled the checkbox instead,
-and no option turns that off.
-
-Ours pads by 4px, bounded by the gap rather than chosen for comfort: it may not
-reach the text. That makes the target smaller than the 44px Apple asks for,
-which is the honest cost of a marker this size — the alternative is a target
-that steals taps meant for the words. `checkListTap.test.ts` asserts the
-boundary.
-
-The cost is the keyboard affordance: you can no longer tab to a checkbox and
-press space, and arrow keys no longer step between markers. In a text field the
-caret model matters more, and the toolbar's checklist button is the
-alternative.
+**Tab never leaves the editor** (`tabGuard.ts`). When an item cannot sink any
+further the list extensions decline the key, and with nothing claiming it the
+browser falls back to focus traversal — which walks into the checklist's real
+inputs and lights them up one by one, looking exactly like a screen reader had
+switched itself on. The guard is registered at the lowest priority, so real
+sink and lift still run first.
 
 ### Not every blur means the user left
 
@@ -177,21 +146,80 @@ for a tap at a caret that is already there, on a plain paragraph as readily as
 on a checklist. The caret stays in the text throughout, so dropping the toolbar
 on that made it flicker away mid-edit.
 
-`ReportFocusPlugin` asks the DOM a tick later instead, once focus has landed
+`RichTextField` asks the DOM a tick later instead, once focus has landed
 wherever it is going, and drops the toolbar only if the field really does not
 hold focus any more.
+
+When focus has genuinely gone it also **drops the selection**
+(`staleSelection.ts`). A selection left behind in an unfocused field strands
+that callout on screen, and tapping the highlighted text to get back in
+re-raises the callout instead of placing the caret — leaving the field
+reachable only by tapping text *outside* the old selection, which nobody would
+guess.
 
 That callout is iOS's own and cannot be suppressed from a web page. It appears
 identically in a plain paragraph, which is how it was ruled out as ours.
 
 ### Typing a checkbox needs `[] `, not `- [] `
 
-Markdown shortcuts are first match wins. `- ` matches `UNORDERED_LIST` the
-moment the space lands, so the line is already a bullet before `[]` is typed
-and the dash is gone. `CHECK_LIST`'s pattern makes the bullet optional, so
-`[] ` on its own converts — including inside an existing list item.
+The task-item input rule is `/^\s*(\[([( |x])?\])\s$/` — anchored at the
+start of the line, and it accepts no bullet at all. Typing `- ` first would
+convert the line to a bullet the moment the space lands anyway. So `[] ` on its
+own is the shortcut, including inside an existing list item.
 
 ---
+
+## Block spacing, and why list lines are tighter
+
+A selection highlight is painted block by block. WebKit fills the gap between
+two selected **paragraphs**, so a paragraph break inside a selection is
+invisible — but it paints an `<li>`'s selection at the **font box** (about
+`1.17 x font-size`) rather than the line box, and does not gap-fill between
+items. Whatever leading the item carries is left unpainted and shows as a
+white band straight through the highlight.
+
+Two things follow.
+
+`--field-block-gap` is `0`, applied by `.field-editor > * + *` rather than by
+a rule per block type, so no block boundary contributes a gap of its own.
+
+`--field-list-line-height` is `18px` against the `22px` prose line, because
+the band only closes at or below the font box:
+
+```
+band = line-height - 1.17 x font-size      22px -> ~4.5px,  18px -> 0
+```
+
+Prose keeps the roomier line; only list lines tighten. **Checklists are the
+exception** and keep `--field-line-height`: `--checkbox-size` is `20px`, so a
+line short enough to close the band is shorter than the box and consecutive
+boxes collide. A checklist therefore keeps a hairline band when selected. A
+numbered or bulleted line has no such floor, because its marker is text.
+
+The structural fixes do not work. Each of these was tried on the simulator,
+alone and in combination, and changed nothing — do not spend the afternoon on
+them again:
+
+- `display: block` on the item, with CSS counters instead of a native marker;
+- `display: contents` on the `<ol>`, taking the list box out of the flow;
+- moving the indent from the item's `margin-left` to the list's `padding-left`.
+
+The combination also breaks numbering, since `display: contents` loses the
+counter scope. Line height is the only lever.
+
+### Markers cannot be styled from CSS
+
+A list marker inherits from the `<li>`, not from the text inside it, so a fully
+bold line drew an upright `1.`. The obvious fix is a selector —
+`li:has(> p > strong:only-child)` — and it is wrong: `:only-child` counts
+*elements*, so `plain **bold**` matches it too, and there is no selector for
+"contains no unmarked text". CSS cannot express the question.
+
+`richTextTiptap/markerFormatting.ts` asks the document instead, and decorates
+the item with `field-listitem-bold` / `field-listitem-italic` when every text
+node on its own line carries the mark. Nested lists are excluded — an item's
+marker answers to its own line only. An empty line carries nothing, which is
+why the marker is plain for the beat between pressing Enter and typing.
 
 ## Where the toolbar sits
 
@@ -224,20 +252,40 @@ remembering: `ion-content` scrolls in its shadow root and only hands the
 scroller over asynchronously, and iOS does not deliver scroll events during
 momentum the way a desktop browser does.
 
-### It is a sticky rail
+### It is a sticky rail, and the stop point is just a gap
 
-The toolbar hangs off a zero-height, zero-margin element at the field's top
-edge, `order: -1` so the portal may append it anywhere. Sticky is bounded by
-its containing block — the field — so all three rules fall out of the browser
-rather than out of arithmetic:
+The bar sticks to the top of the field's own box at `--space-2`. There is no
+viewport arithmetic in it at all — no measured pan, no `env()`, no correction.
 
-- it sits above the field,
-- it stops at the top of the scrolling area,
-- it leaves when the field's bottom rises past the stick point.
+It took a long time to get there, because the stop point is measured from
+`ion-content` and `ion-content` was not where the visible area began: iOS pans
+the locked document to lift the caret, dragging the container and everything
+sticky inside it off the top. Four corrections were written for that, and each
+was wrong on a surface it had not been tested on — clipped in both mobile
+browsers, then 39px low in the installed app where `env(safe-area-inset-top)`
+double-counted an inset Ionic had already spent, then gone off the top of a
+real iPhone when that term was removed, since the inset reads `0` in simulator
+Safari but not on a device.
 
-`FieldShell` spaces its label with a **margin rather than `gap`** because of
-this. A zero-height flex item is still an item, and `gap` would space it —
-focusing a formatted field would nudge everything below it by 4px.
+None of it was fixable at this end. The pan is now released at source
+(`system/keyboard/useReleaseKeyboardPan.ts`), so `ion-content` stays where it
+is laid out and the stop point is simply a gap.
+
+Two other placements were tried and are worse:
+
+- **Inline, no sticky.** Correct on every surface and useless where it matters:
+  on a long field, editing the last lines leaves the bar scrolled off the top,
+  so every formatting action costs a scroll up and back.
+- **Docked in the modal chrome.** `ion-modal` applies a transform, and a
+  transformed ancestor makes `position: fixed` resolve against *it* rather than
+  the viewport — so chrome inside the modal scrolls away exactly like content.
+  Nothing placed inside the modal can be pinned to the screen.
+
+> `env(safe-area-inset-top)` reads `0` in a browser tab and is real on a
+> device, so a safe-area term verifies clean and ships broken. And the iOS
+> Simulator hides the software keyboard whenever input is injected, so any
+> keyboard test there passes against a viewport with nothing covering it —
+> if the keyboard is not visible in the screenshot, the test proved nothing.
 
 ### It is anchored by its bottom
 
@@ -249,46 +297,15 @@ tied them together and pushed half of any extra height down over the field.
 `--field-label-line` is a stated token rather than whatever the font gives,
 because the bar is positioned against it.
 
-### The ceiling is the keyboard pan, not the browser chrome
-
-The last bug, and the two wrong diagnoses before it are worth recording.
-
-The toolbar was clipped at the top of the screen in both mobile browsers.
-It is **not** browser chrome covering the layout viewport: measured on both,
-`visualViewport.offsetTop`, `env(safe-area-inset-top)` and `lvh - dvh` were all
-`0`. It is **not** the sticky offset: clearance from `ion-content` held at
-exactly 24 the whole time.
-
-`ion-content` itself was off screen. The browser's own "scroll the focused
-input above the keyboard" acts on the **document**, and drags `ion-content` —
-with everything sticky inside it — up past the top. Its top read `-88` in
-Chrome and `-122` in Safari, matching `document.scrollingElement.scrollTop` and
-`visualViewport.offsetTop` exactly in both.
-
-So the ceiling adds `--visual-viewport-top`
-(`system/viewport/useVisualViewportTop.ts`). **Nothing in CSS reports this:**
-`env(safe-area-inset-*)` describes the device's cutouts and reads 0 in a
-browser tab; `lvh`/`svh`/`dvh` give chrome heights without saying whether the
-missing part is at the top or the bottom. The visual viewport is the only thing
-that knows, and it is JavaScript-only.
-
-It is **not** the per-frame chase that jittered: it changes when the keyboard
-opens, closes or re-pans, and everything reading it stays CSS, so the sticky is
-still the compositor's.
-
-> A synthetic scroll proves the arithmetic and says nothing about whether the
-> real event ever arrives. Setting `scrollTop` and dispatching a `scroll` event
-> is how a broken version passed its check twice. Anything scroll-driven or
-> keyboard-driven has to be seen on a device.
-
----
-
 ## Known issues / watch list
 
 | Issue | Detail |
 |---|---|
 | Chevrons stand in for indent icons | ionicons has no indent/outdent glyph, and none for bold or italic either — those are serif `B` and `I`, which is the universal convention. The chevrons read as navigation and carry their meaning only in the `aria-label`. |
 | Buttons are below the touch target | 32px in a 40px bar, against `--touch-target: 44px`. The bar sits on a line built for 13px text; going bigger means giving the label row its own height. |
-| Unlisting a nested line does nothing | Outdent first. Asserted as a test so it reads as a decision rather than a gap. |
-| Markdown round-trip normalises | Lexical rewrites `_italic_` as `*italic*`; pinning the transformer array bounds this but does not remove it. |
+| Markdown round-trip normalises | `_italic_` is rewritten as `*italic*` and bullet markers converge on `-`. Bounded by the serializer being ours and asserted as settling after one pass, but not removed. |
+| Checklists keep a hairline band when selected | Closing it needs a line at or below the font box (~17.5px), but the 20px checkbox needs more, so the two cannot both hold. Ordered and bulleted lists are fixed via `--field-list-line-height`; checklists are not. |
+| A list item cannot indent twice | ProseMirror's `sinkListItem` needs a preceding sibling to nest into, and after one sink the item is the first child of the new inner list. iOS Notes has no such limit. Fixing it means letting a list item hold a bare list (`content: 'block+'`), a custom sink that wraps when `sinkListItem` declines, a markerless item in CSS, and a serializer that can write an item with no line of its own. |
+| The modal header shifts up on the first focus | Only the first; blur restores it and the second focus is clean. Proportional to the browser's top chrome, so most likely the URL bar collapsing and the resulting document scroll being taken for a keyboard pan. Unconfirmed — the guard would be to release only while the keyboard actually covers the viewport. |
+| The iOS edit menu overlaps the toolbar | The Cut/Copy/Paste callout is drawn by the OS next to the selection and cannot be suppressed, moved, or detected from a web view. The toolbar sits above the field, which is where the callout lands. The only real mitigation is moving the bar out of that zone — docking it above the keyboard. |
 | Serialization per keystroke | A long context re-serialises on every key. Debounce if it ever shows. |

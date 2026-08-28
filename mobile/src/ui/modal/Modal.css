@@ -137,7 +137,11 @@
   --padding-start: var(--space-4);
   --padding-end: var(--space-4);
   --padding-top: var(--space-4);
-  --padding-bottom: var(--space-4);
+  /* Room for the keyboard, which covers the bottom of the layout viewport
+     without shrinking it. Without this the scroll range ends at the content's
+     end and the last lines cannot be lifted clear of the keys. See
+     system/keyboard/useKeyboardInset.ts. */
+  --padding-bottom: calc(var(--space-4) + var(--keyboard-inset, 0px));
   flex: 1;
   min-height: 0;
 }

@@ -2,10 +2,10 @@ import './RichTextToolbar.css';
 
 import { Fragment } from 'react';
 import { createPortal } from 'react-dom';
-import { useVisualViewportTop } from '../../system/viewport/useVisualViewportTop';
-import { useActiveField } from './richText/activeField';
-import { TOOLBAR_GROUPS, type Control } from './richText/toolbarControls';
-import { useToolbarMarks, type Marks } from './richText/useToolbarMarks';
+import type { Marks } from './toolbar/adapter';
+import { useActiveField } from './toolbar/activeField';
+import { TOOLBAR_GROUPS, type Control } from './toolbar/toolbarControls';
+import { useToolbarMarks } from './toolbar/useToolbarMarks';
 
 const ToolbarButton = ({
   control,
@@ -42,16 +42,11 @@ const ToolbarButton = ({
 /* One toolbar for the whole form, bound to whichever formatted field has
    focus. It answers three questions and nothing else: what to draw
    (toolbarControls), what is currently on (useToolbarMarks), and where to put
-   it (the rail in RichTextToolbar.css). */
+   it (the rail in RichTextToolbar.css). It reaches the editor only through an
+   EditorAdapter, so it is the same bar whichever body is mounted. */
 export const RichTextToolbar = () => {
   const { active } = useActiveField();
-  const marks = useToolbarMarks(active?.editor ?? null);
-
-  // iOS pans the page to lift the caret above the keyboard, which moves the
-  // container the toolbar sticks inside. The rail's ceiling reads this, and it
-  // has to be measured from this field's own container — a sheet's ion-content
-  // does not begin where the screen does.
-  useVisualViewportTop(active?.shell ?? null);
+  const marks = useToolbarMarks(active?.adapter ?? null);
 
   if (!active) return null;
 
@@ -70,8 +65,8 @@ export const RichTextToolbar = () => {
                 control={control}
                 marks={marks}
                 onPress={() => {
-                  active.editor.focus();
-                  control.press(active.editor, marks);
+                  active.adapter.focus();
+                  control.press(active.adapter);
                 }}
               />
             ))}

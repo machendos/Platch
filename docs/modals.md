@@ -126,6 +126,37 @@ arrived at, and the same class of bug `index.css` records for `font-family`.
 
 ---
 
+## The keyboard costs reach at both ends, and the modal pays it
+
+A modal with a text field in it mounts two hooks from `system/keyboard/`.
+Neither is optional and neither works without the other — they fix opposite
+ends of the same session.
+
+**`useReleaseKeyboardPan`** — Ionic locks the body and scrolls inside
+`ion-content`. iOS does not know that: to lift the caret above the keyboard it
+pans the *document*, and on a locked body that pan belongs to no scroller, so
+nothing can scroll it back. That many pixels of the top are simply unreachable.
+The hook moves the offset into `ion-content`'s own `scrollTop`, where it is an
+ordinary scroll, and resets the document to zero. Net position is unchanged, so
+there is nothing to see; the content just becomes reachable.
+
+**`useKeyboardInset`** — a mobile browser does not shrink the layout viewport
+when the keyboard opens, it covers the bottom of it. So the scroll range ends
+where the content ends, with nowhere to lift the last lines to. The hook
+publishes the covered height as `--keyboard-inset` and `.modal-body` reserves
+it as bottom padding.
+
+Both formulas are self-correcting across surfaces, so neither branches on
+platform. In the installed app Capacitor's `native` keyboard resize shrinks the
+webview itself, so there is no pan to release and `--keyboard-inset` computes
+to `0` — correct, because the layout has already been made smaller. Measured:
+`innerHeight` 844 -> 509 with `visualViewport.height` matching.
+
+The symptom that identifies this whole class: **the unreachable amount at the
+top and at the bottom always sum to the keyboard's height**, and how it splits
+depends on where the caret was when the keyboard opened. If someone reports
+"I can scroll almost to the end and it springs back", it is this.
+
 ## Known issues / watch list
 
 | Issue | Detail |

@@ -1,12 +1,19 @@
 :root {
   --field-list-indent: 24px;
-  --field-block-gap: var(--space-1);
+
+  /* Tighter than --field-line-height on purpose, and it is not taste. WebKit
+     paints a list item's selection at the font box while a paragraph gets the
+     whole line box, so any leading on an <li> is left unpainted and shows as a
+     white band through the highlight. At or below the font box (~1.17x the
+     font size) there is no leading left to strand. Prose keeps the roomier
+     --field-line-height; only list lines tighten. */
+  --field-list-line-height: 18px;
+  --field-block-gap: 0px;
 
   /* The box itself comes from the shared --checkbox-* tokens, so a checklist
      line and a standalone Checkbox are the same control to look at. They
-     cannot share the component: Lexical renders the <li role="checkbox">
-     itself and owns the checked state, so a React checkbox inside it would
-     need a decorator node and would put the node tree and the DOM in
+     cannot share the component: the editor renders and owns the input, so a
+     React checkbox in its place would put the document and the DOM in
      disagreement about what is ticked.
 
      The colour is the one deliberate divergence. Ink, not accent: a checklist
@@ -16,8 +23,6 @@
   --field-checkbox-color: var(--text-primary);
 }
 
-/* Relative because Lexical renders the placeholder as a sibling of the
-   editable, not inside it. */
 .field-rich {
   position: relative;
 }
@@ -30,16 +35,6 @@
   white-space: pre-wrap;
 }
 
-.field-placeholder {
-  position: absolute;
-  top: var(--field-padding-block);
-  left: var(--field-padding-inline);
-  pointer-events: none;
-  font-size: var(--font-md);
-  line-height: var(--field-line-height);
-  color: var(--text-secondary);
-  user-select: none;
-}
 
 /* ===== Blocks ===== */
 
@@ -47,7 +42,12 @@
   margin: 0;
 }
 
-.field-paragraph + .field-paragraph {
+/* One value for every block boundary, not a rule per block type. A selection
+   is painted per block, so any gap between two of them shows up as a white
+   band through the highlight — and paragraphs carrying --space-1 while list
+   items carried nothing put those bands in some places and not others. Zero
+   also matches Notes, where Return starts a line rather than opening a gap. */
+.field-editor > * + * {
   margin-top: var(--field-block-gap);
 }
 
@@ -71,17 +71,7 @@
 .field-listitem {
   margin: 0 0 0 var(--field-list-indent);
   padding: 0;
-}
-
-/* A nested list arrives as a list item holding a list. It must draw no marker
-   of its own, or every nested level shows an empty bullet above its children. */
-.field-listitem-nested {
-  list-style: none;
-}
-
-.field-listitem-nested::before,
-.field-listitem-nested::after {
-  display: none;
+  line-height: var(--field-list-line-height);
 }
 
 /* Numbering restarts per level so a nested ordered list reads 1. / 1.1 rather
@@ -98,28 +88,86 @@
   list-style-type: lower-roman;
 }
 
-/* ===== Checklists ===== */
+/* ===== Markers follow the line's formatting ===== */
 
-/* Marker drawn on the item rather than with an <input>: Lexical owns the
-   checked state and toggles it from a pointer handler, so a real checkbox
-   would be a second source of truth that the undo stack does not know about. */
-.field-listitem-checked,
-.field-listitem-unchecked {
-  position: relative;
-  margin-left: 0;
-  padding-left: calc(var(--checkbox-size) + var(--checkbox-gap));
-  list-style: none;
+/* The classes come from the markerFormatting plugin, which is the only thing
+   that can tell a fully formatted line from a partly formatted one — see the
+   comment there for why a `:has()` selector cannot. A marker that cannot be
+   half bold is only ever all or nothing. */
+.field-listitem-bold::marker {
+  font-weight: 600;
+}
+
+.field-listitem-italic::marker {
+  font-style: italic;
+}
+
+/* A list item holds its text in a paragraph. The block-gap rule only reaches
+   top-level children, so these are already flush; this keeps them that way if
+   an item ever holds two blocks. */
+.field-editor li > .field-paragraph + .field-paragraph {
+  margin-top: 0;
+}
+
+.field-editor:focus,
+.field-editor:focus-visible {
   outline: none;
 }
 
-.field-listitem-checked::before,
-.field-listitem-unchecked::before {
-  content: '';
-  position: absolute;
-  top: calc((var(--field-line-height) - var(--checkbox-size)) / 2);
-  left: 0;
+/* ===== Placeholder ===== */
+
+/* The extension marks the empty node and carries the text in an attribute; it
+   draws nothing itself. Floated with zero height so it occupies no line and
+   the caret sits at the start of the real one. */
+.field-editor p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-secondary);
+}
+
+/* ===== Checklists ===== */
+
+.field-checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field-checkitem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--checkbox-gap);
+  margin: 0;
+  padding: 0;
+  /* Not --field-list-line-height: the box is --checkbox-size tall and a line
+     tight enough to close the selection band is shorter than the box, so
+     consecutive boxes would collide. See docs/rich-text.md. */
+  line-height: var(--field-line-height);
+}
+
+.field-checkitem > label {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: var(--field-line-height);
+}
+
+.field-checkitem > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A real <input>, restyled rather than replaced — that is the point of this
+   body. Native hit-testing means no synthetic tap zone, and no element that
+   steals the caret when it is pressed. */
+.field-checkitem input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
   width: var(--checkbox-size);
   height: var(--checkbox-size);
+  margin: 0;
   box-sizing: border-box;
   border: 1px solid var(--field-checkbox-color);
   border-radius: var(--radius-sm);
@@ -129,37 +177,30 @@
     border-color var(--duration-exit) var(--easing-standard);
 }
 
-.field-listitem-checked::before {
+/* ionicons' `checkmark`, the same path the Checkbox component draws, so the
+   two ticks are the same shape rather than merely similar. Drawn as a
+   background here because an <input> has no reliable pseudo-element. */
+.field-checkitem input[type='checkbox']:checked {
   border-color: var(--field-checkbox-color);
-  background: var(--field-checkbox-color);
+  background-color: var(--field-checkbox-color);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='44' d='M416 128L192 384l-96-96'/%3E%3C/svg%3E");
+  background-size: var(--checkbox-tick-size) var(--checkbox-tick-size);
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
-/* ionicons' `checkmark`, the glyph Checkbox.tsx renders through IonIcon, as a
-   mask so it can be painted on a pseudo-element — an <ion-icon> cannot be put
-   inside a node Lexical owns. Same path data, same stroke, so the two ticks
-   are the same shape rather than merely similar. */
-.field-listitem-checked::after {
-  content: '';
-  position: absolute;
-  top: calc((var(--field-line-height) - var(--checkbox-tick-size)) / 2);
-  left: calc((var(--checkbox-size) - var(--checkbox-tick-size)) / 2);
-  width: var(--checkbox-tick-size);
-  height: var(--checkbox-tick-size);
-  background: var(--surface);
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='none' stroke='black' stroke-linecap='round' stroke-linejoin='round' stroke-width='32' d='M416 128L192 384l-96-96'/%3E%3C/svg%3E");
-  mask-size: contain;
-  mask-repeat: no-repeat;
-  mask-position: center;
-}
-
-.field-listitem-checked {
+.field-checkitem[data-checked='true'] > div {
   color: var(--text-secondary);
   text-decoration: line-through;
 }
 
+/* A nested checklist indents under its parent's text, not under its box. */
+.field-checkitem .field-checklist {
+  margin-top: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .field-listitem-checked::before,
-  .field-listitem-unchecked::before {
+  .field-checkitem input[type='checkbox'] {
     transition: none;
   }
 }
