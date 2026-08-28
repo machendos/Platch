@@ -233,6 +233,25 @@ something that already ships.
 
 ## Gotchas
 
+- **`@floating-ui/dom` is a direct dependency that nothing imports.** Do not
+  remove it. `@tiptap/react` declares `extension-bubble-menu` and
+  `extension-floating-menu` as *optional* dependencies, and both require
+  `@floating-ui/dom`. npm resolves optional subtrees differently per
+  environment: on macOS it installs those two extensions but omits their
+  dependency, leaving a tree that only works because we never use BubbleMenu —
+  while the Linux CI runner resolves it correctly and `npm ci` then fails with
+  `Missing: @floating-ui/dom from lock file`. Declaring it directly is what
+  keeps the lockfile complete on both. `npm install` and
+  `npm install --package-lock-only` will *not* add it back on macOS.
+- **`npm ci` is the only check that catches a bad lockfile.** `npm run verify`
+  passes happily against an inconsistent one, because `npm install` is lenient
+  where `npm ci` is strict. After changing dependencies, run `npm ci` locally
+  before pushing.
+- **Never delete `mobile/package-lock.json` to regenerate it.** `@mobiscroll/react`
+  is an alias for the private `@mobiscroll/react-trial`, and a full regeneration
+  loses that resolution — the next install then asks the private registry for
+  `@mobiscroll/react` itself and gets a 403. To repair a lockfile, restore it
+  from git and let `npm install` sync it forward.
 - **mobiscroll CSS loads after ours.** At equal specificity mobiscroll wins, so
   overrides of `.mbsc-*` classes need an extra selector (`.calendar .mbsc-…`).
   Silent failure — the rule simply does nothing.
