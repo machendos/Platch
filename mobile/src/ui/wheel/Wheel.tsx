@@ -21,6 +21,8 @@ import type { PointerSample } from './wheelPhysics';
 export type WheelOption = {
   value: number;
   label: string;
+  /** A small marker rendered after the label — e.g. "+1" on next-day rows. */
+  badge?: string;
 };
 
 type WheelProps = {
@@ -330,6 +332,27 @@ export const Wheel = ({
     return () => document.removeEventListener('visibilitychange', settleNow);
   }, []);
 
+  // The spin is this wheel's gesture and nobody else's. touch-action only
+  // stops native scrolling; Ionic's own gestures — the sheet modal's drag
+  // above all — listen for the legacy touchstart/mousedown pairs on ancestor
+  // elements, so a spin read as "drag the sheet down" and dismissed the modal
+  // mid-pick. React's delegated handlers run at the root, after Ionic's
+  // element listeners, which is why this must be a native element-level
+  // listener and not stopPropagation in the pointer handlers above.
+  useEffect(() => {
+    const element = surface.current;
+    if (!element) return;
+
+    const claim = (event: Event) => event.stopPropagation();
+    element.addEventListener('touchstart', claim);
+    element.addEventListener('mousedown', claim);
+
+    return () => {
+      element.removeEventListener('touchstart', claim);
+      element.removeEventListener('mousedown', claim);
+    };
+  }, []);
+
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     stop();
     armTicks();
@@ -450,7 +473,12 @@ export const Wheel = ({
               role="option"
               aria-selected={option.value === value}
             >
-              {option.label}
+              <span className="wheel-item-label">
+                {option.label}
+                {option.badge && (
+                  <span className="wheel-item-badge">{option.badge}</span>
+                )}
+              </span>
             </div>
           ))}
         </div>

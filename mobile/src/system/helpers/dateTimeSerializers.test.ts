@@ -3,10 +3,13 @@ import { Temporal } from 'temporal-polyfill';
 import {
   parseDuration,
   parseTimeOfDay,
+  serializeClockTime,
   serializeDate,
   serializeDuration,
   serializeRange,
   serializeTimeOfDay,
+  serializeTimeRange,
+  serializeWeekday,
 } from './dateTimeSerializers';
 
 const date = (year: number, month: number, day: number) =>
@@ -140,5 +143,40 @@ describe('parseTimeOfDay', () => {
     for (const text of ['25:00', '10:75', '13:00 pm', '0:30 am', 'noon', '']) {
       expect(parseTimeOfDay(text)).toBeNull();
     }
+  });
+});
+
+describe('serializeWeekday', () => {
+  it('names the day of the week in three letters', () => {
+    expect(serializeWeekday(date(2026, 8, 11))).toBe('Tue');
+    expect(serializeWeekday(date(2026, 8, 16))).toBe('Sun');
+  });
+});
+
+describe('serializeClockTime', () => {
+  it('keeps real minutes and drops zero ones', () => {
+    expect(serializeClockTime(new Temporal.PlainTime(17, 45))).toBe('5:45 PM');
+    expect(serializeClockTime(new Temporal.PlainTime(20, 0))).toBe('8 PM');
+    expect(serializeClockTime(new Temporal.PlainTime(0, 0))).toBe('12 AM');
+  });
+});
+
+describe('serializeTimeRange', () => {
+  it('says a shared meridiem once, at the end', () => {
+    expect(
+      serializeTimeRange(
+        new Temporal.PlainTime(17, 45),
+        new Temporal.PlainTime(18, 45),
+      ),
+    ).toBe('5:45–6:45 PM');
+  });
+
+  it('keeps both meridiems when the range crosses noon', () => {
+    expect(
+      serializeTimeRange(
+        new Temporal.PlainTime(11, 30),
+        new Temporal.PlainTime(13, 0),
+      ),
+    ).toBe('11:30 AM–1 PM');
   });
 });

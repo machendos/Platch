@@ -12,14 +12,23 @@ import {
 import { isCoarsePointer } from '../../system/helpers/pointerKind';
 import { Wheel } from '../wheel/Wheel';
 import {
+  DAY_MINUTES,
   applyColumn,
+  applyEndColumn,
   buildColumns,
+  buildEndTimeColumns,
   clampToScale,
+  endWindowTotal,
   snapTo,
   toTotalMinutes,
   toValue,
 } from './timeInputLogic';
-import type { PickerMode, TimeInputValue, TimeScale } from './timeInputLogic';
+import type {
+  ColumnKey,
+  PickerMode,
+  TimeInputValue,
+  TimeScale,
+} from './timeInputLogic';
 
 type TimeInputProps = {
   mode: PickerMode;
@@ -37,6 +46,105 @@ const serialize = (value: TimeInputValue) =>
     ? serializeDuration(value.durationMinutes)
     : serializeTimeOfDay(value.time);
 
+type TimeWheelsProps = {
+  mode: PickerMode;
+  scale: TimeScale;
+  value: TimeInputValue | null;
+  onChange: (value: TimeInputValue) => void;
+  open: boolean;
+  defaultValue?: TimeInputValue;
+  /** Total minutes of a range's start: the wheels then read the clock
+      relative to it — values at or before the start mean the next day and
+      the hour rows carry a "+1" badge. The emitted value stays a plain
+      clock time; the wrap is implied by the comparison with the start. */
+  windowStart?: number;
+};
+
+// The wheels panel alone, split out so a form can anchor it somewhere other
+// than directly under this component's own field — the time components block
+// opens one shared panel under a whole row of fields.
+export const TimeWheels = ({
+  mode,
+  scale,
+  value,
+  onChange,
+  open,
+  defaultValue,
+  windowStart,
+}: TimeWheelsProps) => {
+  const [lingering, setLingering] = useState(false);
+  const mounted = open || lingering;
+
+  useEffect(() => {
+    if (open) {
+      setLingering(true);
+      return;
+    }
+
+    const timer = setTimeout(
+      () => setLingering(false),
+      TIME_INPUT_PANEL.durationMs,
+    );
+
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  const stored = value === null ? null : toTotalMinutes(value);
+  const fallback =
+    defaultValue === undefined ? scale.min : toTotalMinutes(defaultValue);
+  const clock = snapTo(scale, stored ?? fallback);
+  const total =
+    windowStart === undefined ? clock : endWindowTotal(windowStart, clock);
+
+  const columns = useMemo(
+    () =>
+      windowStart === undefined
+        ? buildColumns(mode, scale, total)
+        : buildEndTimeColumns(scale, windowStart, total),
+    [mode, scale, total, windowStart],
+  );
+
+  const apply = (key: ColumnKey, next: number) =>
+    windowStart === undefined
+      ? applyColumn(scale, total, key, next)
+      : applyEndColumn(scale, windowStart, total, key, next) % DAY_MINUTES;
+
+  return (
+    <div
+      className={
+        open ? 'time-input-wheels time-input-wheels-open' : 'time-input-wheels'
+      }
+      aria-hidden={!open}
+      style={
+        {
+          '--wheel-item-height': `${WHEEL_FEEL.itemHeight}px`,
+          '--wheel-rows': WHEEL_FEEL.visibleRows,
+          '--time-input-panel-duration': `${TIME_INPUT_PANEL.durationMs}ms`,
+        } as CSSProperties
+      }
+    >
+      {mounted && (
+        <>
+          <span className="time-input-pill" aria-hidden="true" />
+
+          {columns.map((column) => (
+            <Wheel
+              key={column.key}
+              options={column.options}
+              value={column.value}
+              label={column.label}
+              unit={column.unit}
+              onChange={(next) =>
+                onChange(toValue(mode, apply(column.key, next)))
+              }
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+};
+
 export const TimeInput = ({
   mode,
   scale,
@@ -51,28 +159,6 @@ export const TimeInput = ({
   const [typed, setTyped] = useState<string | null>(null);
   const editable = !isCoarsePointer();
   const root = useRef<HTMLDivElement>(null);
-
-  // The panel element is permanent so the class toggle has two states to
-  // transition between, but **the rows inside it are not**: leaving every
-  // field's rows mounted multiplies the DOM across a form and puts all of them
-  // through a re-render on every detent a spin crosses, which is enough to make
-  // the spin itself stutter on a phone.
-  const [lingering, setLingering] = useState(false);
-  const mounted = isOpen || lingering;
-
-  useEffect(() => {
-    if (isOpen) {
-      setLingering(true);
-      return;
-    }
-
-    const timer = setTimeout(
-      () => setLingering(false),
-      TIME_INPUT_PANEL.durationMs,
-    );
-
-    return () => clearTimeout(timer);
-  }, [isOpen]);
 
   // A field low on the page would otherwise open its wheels below the fold, and
   // reaching them means scrolling, which dismisses them — so they could not be
@@ -149,22 +235,6 @@ export const TimeInput = ({
     };
   }, [isOpen]);
 
-  // A stored value is shown exactly as stored, but the wheels can only sit on
-  // values the scale allows — so an off-grid one opens on its nearest neighbour
-  // without being reported back. Nothing here emits until a wheel moves.
-  const stored = value === null ? null : toTotalMinutes(value);
-  const fallback =
-    defaultValue === undefined ? scale.min : toTotalMinutes(defaultValue);
-  const total = snapTo(scale, stored ?? fallback);
-
-  // A fling reports every detent it crosses, so this runs dozens of times a
-  // second during one throw; the option lists only actually change when the
-  // hour does.
-  const columns = useMemo(
-    () => buildColumns(mode, scale, total),
-    [mode, scale, total],
-  );
-
   // Typing wins over the value while the caret is in the field, so the text
   // does not fight back mid-edit; committing or leaving hands control back.
   // A typed value is kept as typed, only held inside the scale's range. The
@@ -197,16 +267,6 @@ export const TimeInput = ({
     <div
       ref={root}
       className={className ? `time-input ${className}` : 'time-input'}
-      // On the root rather than the panel so that both can use them: the panel
-      // inherits them for its open height, and the root reserves the same space
-      // below itself when it is scrolled into view.
-      style={
-        {
-          '--wheel-item-height': `${WHEEL_FEEL.itemHeight}px`,
-          '--wheel-rows': WHEEL_FEEL.visibleRows,
-          '--time-input-panel-duration': `${TIME_INPUT_PANEL.durationMs}ms`,
-        } as CSSProperties
-      }
     >
       {editable ? (
         <input
@@ -256,35 +316,14 @@ export const TimeInput = ({
         </button>
       )}
 
-      <div
-        className={
-          isOpen
-            ? 'time-input-wheels time-input-wheels-open'
-            : 'time-input-wheels'
-        }
-        aria-hidden={!isOpen}
-      >
-        {mounted && (
-          <>
-            <span className="time-input-pill" aria-hidden="true" />
-
-            {columns.map((column) => (
-              <Wheel
-                key={column.key}
-                options={column.options}
-                value={column.value}
-                label={column.label}
-                unit={column.unit}
-                onChange={(next) =>
-                  onChange(
-                    toValue(mode, applyColumn(scale, total, column.key, next)),
-                  )
-                }
-              />
-            ))}
-          </>
-        )}
-      </div>
+      <TimeWheels
+        mode={mode}
+        scale={scale}
+        value={value}
+        onChange={onChange}
+        open={isOpen}
+        defaultValue={defaultValue}
+      />
     </div>
   );
 };

@@ -33,3 +33,20 @@ have to be made before turning it on, and neither is about the editor:
 **One storage consequence already in effect:** a bare URL round-trips as
 `[https://example.com](https://example.com)` rather than staying bare. Correct
 and reversible, just verbose in the database.
+
+---
+
+## First and last date of a recurring time component
+
+A recurring cadence is stored with `recurringStartDate`, and an interval above
+one is ambiguous without it — "every 2 weeks on Tu" needs to know which week
+counts. The editor shows no field for it, and nothing yet says whether a
+cadence can end.
+
+Until that is decided, `currentRecurrenceAnchor()` in
+`mobile/src/modals/components/timeComponents/timeComponentsState.ts` stands in:
+the current day anchors a created component's `recurringStartDate` and prefills
+the weekday / day of month / month a new cadence starts from. It is the one
+place to replace when first and last dates become a real decision — whether
+they get fields of their own, follow the project's earliest/deadline dates, or
+stay implicit.

@@ -1,6 +1,6 @@
 import { Temporal } from 'temporal-polyfill';
 
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   'Jan',
   'Feb',
   'Mar',
@@ -79,6 +79,32 @@ export const serializeDuration = (totalMinutes: number): string => {
 
   return `${hours}h ${minutes}m`;
 };
+
+const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export const serializeWeekday = (date: Temporal.PlainDate): string =>
+  WEEKDAY_NAMES[date.dayOfWeek - 1];
+
+const clockDigits = (time: Temporal.PlainTime) =>
+  `${time.hour % 12 || 12}${
+    time.minute ? `:${String(time.minute).padStart(2, '0')}` : ''
+  }`;
+
+const meridiem = (time: Temporal.PlainTime) => (time.hour < 12 ? 'AM' : 'PM');
+
+// Summary spellings: minutes drop when zero and a meridiem the two ends share
+// is said once. The field spelling below keeps its minutes — a control shows
+// the exact value it holds.
+export const serializeClockTime = (time: Temporal.PlainTime): string =>
+  `${clockDigits(time)} ${meridiem(time)}`;
+
+export const serializeTimeRange = (
+  from: Temporal.PlainTime,
+  to: Temporal.PlainTime,
+): string =>
+  meridiem(from) === meridiem(to)
+    ? `${clockDigits(from)}–${clockDigits(to)} ${meridiem(to)}`
+    : `${serializeClockTime(from)}–${serializeClockTime(to)}`;
 
 export const serializeTimeOfDay = (time: Temporal.PlainTime): string =>
   `${time.hour % 12 || 12}:${String(time.minute).padStart(2, '0')} ${

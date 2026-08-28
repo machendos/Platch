@@ -21,6 +21,8 @@ export type TimeInputValue =
 export type WheelOption = {
   value: number;
   label: string;
+  /** A small marker after the label — "+1" on next-day hours. */
+  badge?: string;
 };
 
 export type ColumnKey = 'hours' | 'minutes' | 'meridiem';
@@ -38,6 +40,8 @@ export const hours = (count: number) => count * 60;
 export const minutes = (count: number) => count;
 
 const MINUTES_PER_HOUR = 60;
+
+export const DAY_MINUTES = 24 * MINUTES_PER_HOUR;
 
 const bandAt = (scale: TimeScale, value: number): ScaleBand => {
   let match = scale.bands[0];
@@ -190,41 +194,13 @@ const pad = (value: number) => String(value).padStart(2, '0');
 
 const halfDayOf = (hour: number) => (hour < 12 ? 0 : 1);
 
-export const buildColumns = (
-  mode: PickerMode,
+const timeColumns = (
   scale: TimeScale,
-  value: number,
+  clock: number,
+  hourBadge?: (hour: number) => string | undefined,
 ): PickerColumn[] => {
-  const hour = Math.floor(value / MINUTES_PER_HOUR);
-  const minute = value % MINUTES_PER_HOUR;
-
-  const minuteColumn: PickerColumn = {
-    key: 'minutes',
-    label: 'Minutes',
-    unit: mode === 'duration' ? 'min' : undefined,
-    options: allowedMinutes(scale, hour).map((option) => ({
-      value: option,
-      label: mode === 'time' ? pad(option) : String(option),
-    })),
-    value: minute,
-  };
-
-  if (mode === 'duration') {
-    return [
-      {
-        key: 'hours',
-        label: 'Hours',
-        unit: 'h',
-        options: allowedHours(scale).map((option) => ({
-          value: option,
-          label: String(option),
-        })),
-        value: hour,
-      },
-      minuteColumn,
-    ];
-  }
-
+  const hour = Math.floor(clock / MINUTES_PER_HOUR);
+  const minute = clock % MINUTES_PER_HOUR;
   const meridiem = halfDayOf(hour);
   const scaleHours = allowedHours(scale);
 
@@ -234,10 +210,22 @@ export const buildColumns = (
       label: 'Hour',
       options: scaleHours
         .filter((option) => halfDayOf(option) === meridiem)
-        .map((option) => ({ value: option, label: String(option % 12 || 12) })),
+        .map((option) => ({
+          value: option,
+          label: String(option % 12 || 12),
+          badge: hourBadge?.(option),
+        })),
       value: hour,
     },
-    minuteColumn,
+    {
+      key: 'minutes',
+      label: 'Minutes',
+      options: allowedMinutes(scale, hour).map((option) => ({
+        value: option,
+        label: pad(option),
+      })),
+      value: minute,
+    },
     {
       key: 'meridiem',
       label: 'AM or PM',
@@ -252,6 +240,39 @@ export const buildColumns = (
   ];
 };
 
+export const buildColumns = (
+  mode: PickerMode,
+  scale: TimeScale,
+  value: number,
+): PickerColumn[] => {
+  if (mode === 'time') return timeColumns(scale, value);
+
+  const hour = Math.floor(value / MINUTES_PER_HOUR);
+
+  return [
+    {
+      key: 'hours',
+      label: 'Hours',
+      unit: 'h',
+      options: allowedHours(scale).map((option) => ({
+        value: option,
+        label: String(option),
+      })),
+      value: hour,
+    },
+    {
+      key: 'minutes',
+      label: 'Minutes',
+      unit: 'min',
+      options: allowedMinutes(scale, hour).map((option) => ({
+        value: option,
+        label: String(option),
+      })),
+      value: value % MINUTES_PER_HOUR,
+    },
+  ];
+};
+
 export const applyColumn = (
   scale: TimeScale,
   value: number,
@@ -261,4 +282,39 @@ export const applyColumn = (
   if (key === 'hours') return withHours(scale, value, next);
   if (key === 'minutes') return withMinutes(scale, value, next);
   return withMeridiem(scale, value, next);
+};
+
+/* An end-of-range wheel reads the same clock relative to a start: values live
+   in (start, start + 24h], and a clock time at or before the start means the
+   next day. Selecting the start's own time is the window's far edge — a full
+   day, the longest an end can be. */
+export const endWindowTotal = (start: number, clock: number): number =>
+  clock > start ? clock : clock + DAY_MINUTES;
+
+/* Time-mode columns with one addition: an hour row is badged "+1" when
+   picking it — with the other columns as they stand — lands on the next day.
+   The badge is a function of the sibling columns' positions, recomputed as
+   they move, exactly the way the minute options already follow the hour. */
+export const buildEndTimeColumns = (
+  scale: TimeScale,
+  start: number,
+  value: number,
+): PickerColumn[] => {
+  const clock = value % DAY_MINUTES;
+  const minute = clock % MINUTES_PER_HOUR;
+
+  return timeColumns(scale, clock, (hour) =>
+    hour * MINUTES_PER_HOUR + minute <= start ? '+1' : undefined,
+  );
+};
+
+export const applyEndColumn = (
+  scale: TimeScale,
+  start: number,
+  value: number,
+  key: ColumnKey,
+  next: number,
+): number => {
+  const clock = value % DAY_MINUTES;
+  return endWindowTotal(start, applyColumn(scale, clock, key, next));
 };
