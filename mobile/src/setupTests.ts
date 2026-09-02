@@ -7,3 +7,15 @@ import '@testing-library/jest-dom';
    callback, which vitest reports as an unhandled error and warns can mask real
    failures — so it is a no-op here rather than absent. */
 Element.prototype.scrollIntoView = () => {};
+
+/* jsdom implements no ResizeObserver, and @dnd-kit/dom constructs one as soon
+   as it is imported — so a component that merely renders a sortable row fails
+   to load without this, before a single assertion runs. */
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+globalThis.ResizeObserver ??=
+  ResizeObserverStub as unknown as typeof ResizeObserver;

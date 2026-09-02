@@ -1,3 +1,4 @@
+import { useSortable } from '@dnd-kit/react/sortable';
 import { ellipsisVertical } from 'ionicons/icons';
 import { projectName } from '../../../../config/labels';
 import { IconButton } from '../../../../ui/buttons/IconButton';
@@ -13,6 +14,7 @@ import './ProjectRow.css';
 
 type ProjectRowProps = {
   row: ProjectRowModel;
+  index: number;
   status: ProjectStatus;
   isExpanded: boolean;
   onToggleExpanded: (id: string) => void;
@@ -20,6 +22,7 @@ type ProjectRowProps = {
 
 export const ProjectRow = ({
   row,
+  index,
   status,
   isExpanded,
   onToggleExpanded,
@@ -27,9 +30,29 @@ export const ProjectRow = ({
   const { project, depth, isSpine, hasChildren } = row;
   const name = projectName(project.name);
 
+  /* A spine is an ancestor borrowed from the other section; it has no position
+     in this one to change, so it is not a drag source. It stays a drop target,
+     because rows do land under it. */
+  const { ref, isDragSource } = useSortable({
+    id: project.id,
+    index,
+    group: status,
+    type: 'project',
+    accept: 'project',
+    disabled: { draggable: isSpine },
+    data: { depth },
+  });
+
   return (
     <div
-      className={isSpine ? 'project-row project-row-spine' : 'project-row'}
+      ref={ref}
+      className={[
+        'project-row',
+        isSpine && 'project-row-spine',
+        isDragSource && 'project-row-dragging',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{
         marginInlineStart: `calc(var(--project-indent-step) * ${depth})`,
       }}

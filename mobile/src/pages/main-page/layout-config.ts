@@ -28,6 +28,9 @@ export const PROJECT_STRIP_WIDTH_NESTED = 2;
    just the variable, because it offsets the panel by exactly this much. */
 export const PROJECT_MENU_TRIGGER_SIZE = 28;
 
+/* The line drawn in the gap a dragged project would drop into. */
+export const PROJECT_CONSEQUENCE_LINE_HEIGHT = 2;
+
 // TODO: dynamic default pane weights
 export const DEFAULT_PANE_WEIGHTS = { dispatcher: 1, calendar: 2 };
 
@@ -40,4 +43,5 @@ export const layoutCssVariables = {
   '--project-indent-step': `${PROJECT_INDENT_STEP}px`,
   '--project-strip-width': `${PROJECT_STRIP_WIDTH}px`,
   '--project-strip-width-nested': `${PROJECT_STRIP_WIDTH_NESTED}px`,
+  '--project-consequence-line-height': `${PROJECT_CONSEQUENCE_LINE_HEIGHT}px`,
 } as CSSProperties;

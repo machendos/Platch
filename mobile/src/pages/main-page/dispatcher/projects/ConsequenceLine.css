@@ -1,0 +1,18 @@
+/* Sits in the gap the row would drop into, and slides sideways as the depth
+   changes. The transition is on the indent alone: it should read as one line
+   moving between parents, not as a line replacing another. */
+.consequence-line {
+  height: var(--project-consequence-line-height);
+  margin-block: calc(
+    (var(--project-row-gap) - var(--project-consequence-line-height)) / 2
+  );
+  border-radius: var(--project-consequence-line-height);
+  background: var(--accent);
+  transition: margin-inline-start 120ms var(--easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consequence-line {
+    transition: none;
+  }
+}

@@ -24,6 +24,12 @@
   color: var(--text-secondary);
 }
 
+/* The row keeps its place in the list while its copy follows the finger, so
+   the list does not collapse and reflow under the drag. */
+.project-row-dragging {
+  opacity: 0.4;
+}
+
 .project-row-chevron-slot {
   flex-shrink: 0;
   width: var(--icon-button-size);
