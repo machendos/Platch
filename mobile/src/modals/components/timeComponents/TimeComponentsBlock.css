@@ -1,0 +1,338 @@
+/* A custom property that references another one resolves WHERE IT IS
+   DECLARED — an alias like `--a: var(--b)` on :root bakes :root's value of
+   --b for good, and a density context re-valuing --b further down never
+   reaches it. Which is why nothing below is declared on :root: the sizing
+   contract is read straight from pickers.css at the use sites, and the two
+   values that depart from it sit on the block, inside the density scope. */
+
+/* The block is a section of the form, and sections are separated by the
+   hairline the app already speaks — which is also why the components inside
+   are cards, not more hairlines. */
+.time-components-block {
+  /* Every field in this block is a picker, so every one of them takes the
+     picker contract's floor and ceiling from pickers.css unchanged. That is
+     what makes a time here and a time in the target block the same width
+     without either block stating a number.
+
+     Two floors depart from it and no ceiling does — a ceiling that differs is
+     how the flexible field ended up 2px wider than every other field on the
+     form. */
+
+  /* Below the contract, and only in the compact tiers at the foot of this
+     file: the three-field slot row is the most crowded line on the form, and
+     this is the field that gives so it stays closed down to 360. */
+  --time-slot-flex-min: var(--picker-field-min);
+  /* Above it, as measured. */
+  --time-exact-date-min: 88px;
+  /* The air between the From/To label, the date and the time. */
+  --time-exact-field-gap: var(--space-4);
+
+  border-bottom: var(--hairline-width) solid var(--separator);
+}
+
+/* The rule above the block, with the collapse control sitting on it. */
+.time-components-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The rule itself, drawn by a flex child rather than as a border on the row,
+   which is what lets it end where the control begins instead of passing
+   underneath a floating icon. It is one line whose length answers to whether
+   there is a control: `flex: 1` takes the full width back when the chevron is
+   not there.
+
+   Whatever sits above must not draw this boundary as well, or there are two
+   hairlines a few pixels apart — see CreateProjectModal.css. */
+.time-components-head::before {
+  content: '';
+  flex: 1;
+  border-top: var(--hairline-width) solid var(--separator);
+}
+
+.time-components-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Numbered from React rather than CSS counters: the card is a size container,
+   and style containment stops a counter incremented outside it from being
+   read inside. Numbering in the component also lets a deleted card give its
+   number up the moment its exit starts. */
+.time-component-ordinal {
+  margin-right: var(--space-2);
+  color: var(--text-secondary);
+}
+
+/* No gap: each summary is a row and a row's own height is the spacing. */
+.time-components-summaries {
+  gap: 0;
+}
+
+.time-components-summaries > li,
+.time-components-empty {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+.time-component-incomplete {
+  color: var(--text-secondary);
+}
+
+.time-components-empty {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.time-components-peace {
+  position: relative;
+  /* Room for the Edit control so a long first summary does not run under it. */
+  padding-right: var(--touch-target);
+}
+
+/* The iOS answer to "edit this list" is the word, not a glyph: an accent
+   text button sitting just below the section rule, where a list's Edit
+   control lives on the platform. */
+.time-components-edit {
+  position: absolute;
+  /* Centred on the first summary row rather than pinned to its top edge, now
+     that a row is taller than its text. */
+  top: 0;
+  height: var(--touch-target);
+  right: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .time-components-peace,
+  .time-components-head,
+  .time-components-edit,
+  .time-component-add-card {
+    cursor: pointer;
+  }
+}
+
+/* No gap anywhere an animated entry can leave from: a flex gap sits outside
+   the reveal's clip, so a collapsed item still held its gap until the unmount
+   and the list jumped the last centimetre. Spacing lives inside the entries —
+   padding collapses with the content. */
+.time-components-editors {
+  gap: 0;
+  /* Cards are not rows, so they state the row's air themselves rather than
+     sitting flush against the rules above and below them. */
+  padding-block: var(--row-air);
+}
+
+.time-component-editor-top .time-component-ordinal,
+.time-component-add-card .time-component-ordinal {
+  margin-right: var(--space-1);
+  font-size: var(--font-lg);
+}
+
+/* The next component, waiting to exist. Same card as a real one, holding only
+   the number it would take and the control that makes it — which is what lets
+   the number mean anything; a loose "+" under the last card could as easily
+   belong to that card as to a new one. */
+.time-component-add-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--card-padding);
+  border: none;
+  border-radius: var(--card-radius);
+  background: var(--card-surface);
+  font: inherit;
+  font-size: var(--font-lg);
+  color: var(--accent);
+}
+
+.time-component-entry {
+  padding-bottom: var(--space-3);
+}
+
+.time-slot-entry {
+  padding-bottom: var(--space-3);
+}
+
+.time-component-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
+  background: var(--card-surface);
+}
+
+/* The card shares its surface with the shell's focus fill, so inside one the
+   open field lifts to white instead. */
+.time-component-editor .picker-open .field-control,
+.time-component-editor .field:focus-within .field-control {
+  background: var(--surface);
+}
+
+.time-component-editor > .time-component-editor-top,
+.time-component-editor > .time-component-row,
+.time-component-editor > .time-component-exact-row {
+  margin-bottom: var(--space-3);
+}
+
+.time-component-editor-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.time-component-editor-top .time-component-delete {
+  margin-left: auto;
+}
+
+.time-component-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.time-component-row-label {
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+/* The label stays on the chips' line; the group wraps internally instead of
+   dropping below the word "on" whole. */
+.time-component-on-row {
+  flex-wrap: nowrap;
+}
+
+.time-component-on-row > :last-child {
+  min-width: 0;
+}
+
+.time-component-interval {
+  --select-min-width: 64px;
+  width: 64px;
+}
+
+.time-component-frequency {
+  --select-min-width: 112px;
+  width: 112px;
+}
+
+/* Every slot row shares one template, which is what lines the fields up
+   across rows: identical tracks resolve identically at one container width. */
+.time-slot-row {
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(var(--picker-field-min), var(--picker-field-max))
+    auto
+    minmax(var(--picker-field-min), var(--picker-field-max))
+    auto
+    minmax(var(--time-slot-flex-min), var(--picker-field-max))
+    auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  /* Not the default `normal`: that stretches the auto tracks to absorb any
+     leftover width, which blew the row apart on wide screens. `start` keeps
+     the leftover after the last column — fields grow only to their maxes and
+     the row stays together on the left. */
+  justify-content: start;
+}
+
+.time-slot-row .picker-field {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Two date-and-time rows align the same way; the first track fits "From" so
+   "To" gets the same column. */
+.time-component-exact-row {
+  display: grid;
+  grid-template-columns:
+    2.8em
+    minmax(var(--time-exact-date-min), var(--picker-field-max))
+    minmax(var(--picker-field-min), var(--picker-field-max));
+  align-items: center;
+  column-gap: var(--time-exact-field-gap);
+  justify-content: start;
+}
+
+.time-component-exact-row .picker-field {
+  width: 100%;
+  min-width: 0;
+}
+
+/* The same switch as the modal's density set — the `form` container is the
+   modal body and 448 is the shared phone threshold (derived in Modal.css).
+   Type, control sizes and the field contract itself all step down with the
+   density tokens; what is left here is this block's own two departures from
+   them, and the gaps. */
+@container form (max-width: 448px) {
+  .time-components-block {
+    /* The flex field's own honesty floor: "23h 55m" at the compact type. */
+    --time-slot-flex-min: 74px;
+    --time-exact-field-gap: var(--space-2);
+  }
+
+  .time-slot-row,
+  .time-slot-add-row {
+    column-gap: var(--space-1);
+  }
+}
+
+/* The last step before the floor: tighter field padding and a slightly
+   narrower flex track keep the row closed down to 360. */
+@container form (max-width: 372px) {
+  .time-components-block {
+    --time-slot-flex-min: 66px;
+  }
+
+  .time-slot-row .picker-field {
+    padding-inline: var(--space-1);
+  }
+}
+
+/* The choice needs air: the connector stands clear of both sides it joins. */
+.time-slot-or {
+  margin-inline: var(--space-2);
+}
+
+/* One slot is one list entry, and the dot is what says so. */
+/* The add control reads as the next slot, already laid out and waiting to be
+   filled: the same bullet on the same left edge as the rows above it. */
+.time-slot-add-row {
+  display: flex;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.time-slot-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+/* Removing one slot is a smaller act than removing the whole component, and
+   its button says so: smaller and grey against the card delete's red. */
+.time-slot-delete {
+  color: var(--text-secondary);
+  font-size: var(--font-md);
+}
+
+.time-slot-dim {
+  opacity: 0.45;
+}

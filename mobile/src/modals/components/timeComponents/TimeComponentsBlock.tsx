@@ -3,26 +3,33 @@ import './TimeComponentsBlock.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IonIcon } from '@ionic/react';
 import { addCircleOutline, chevronDownOutline } from 'ionicons/icons';
-import { IconButton } from '../../ui/buttons/IconButton';
-import { Reveal } from '../../ui/reveal/Reveal';
-import type { TimeComponentWithSlots } from '../../api/structures/TimeComponentWithSlots';
-import { AnimatedEntry } from './timeComponents/AnimatedEntry';
-import { TimeComponentEditor } from './timeComponents/TimeComponentEditor';
-import { serializeTimeComponent } from './timeComponents/serializeTimeComponent';
+import { IconButton } from '../../../ui/buttons/IconButton';
+import { Reveal } from '../../../ui/reveal/Reveal';
+import type { TimeComponentWithSlots } from '../../../api/structures/TimeComponentWithSlots';
+import { AnimatedEntry } from './AnimatedEntry';
+import { TimeComponentEditor } from './TimeComponentEditor';
+import { serializeTimeComponent } from './serializeTimeComponent';
 import {
   buildReport,
   displayOrder,
   fromApiComponent,
   isDraftValid,
   newTimeComponentDraft,
-} from './timeComponents/timeComponentsState';
+  withType,
+} from './timeComponentsState';
 import type {
   TimeComponentDraft,
   TimeComponentsReport,
-} from './timeComponents/timeComponentsState';
+} from './timeComponentsState';
 
 type TimeComponentsBlockProps = {
   initialTimeComponents: TimeComponentWithSlots[];
+  /** Opens on one empty exact-time component when there are none to show.
+      For a form creating something: nothing has been saved yet, so "No time
+      components" would be a fact about the form rather than about the record.
+      Left off, an empty list shows the empty state — which is still the right
+      answer for an existing record that genuinely has none. */
+  seedFirstComponent?: boolean;
   onChange: (report: TimeComponentsReport) => void;
 };
 
@@ -34,16 +41,26 @@ const summaryText = (draft: TimeComponentDraft) => {
 
 export const TimeComponentsBlock = ({
   initialTimeComponents,
+  seedFirstComponent = false,
   onChange,
 }: TimeComponentsBlockProps) => {
+  const seeded = seedFirstComponent && initialTimeComponents.length === 0;
+
   const [baseline] = useState(initialTimeComponents);
   const [drafts, setDrafts] = useState<TimeComponentDraft[]>(() =>
-    initialTimeComponents.map(fromApiComponent),
+    seeded
+      ? [withType(newTimeComponentDraft(), 'ABSOLUTE')]
+      : initialTimeComponents.map(fromApiComponent),
   );
   // The order components are shown in while editing, frozen when the session
   // starts: switching a component's type must not teleport it mid-edit. Peace
   // mode re-sorts every time.
-  const [editOrder, setEditOrder] = useState<string[] | null>(null);
+  //
+  // A seeded component opens straight into the editor: it exists to be filled
+  // in, and peace mode would file it behind an Edit link as "Incomplete".
+  const [editOrder, setEditOrder] = useState<string[] | null>(() =>
+    seeded ? drafts.map((draft) => draft.key) : null,
+  );
   const [leavingKeys, setLeavingKeys] = useState<string[]>([]);
   const spawnedKeys = useRef(new Set<string>()).current;
 
@@ -101,6 +118,9 @@ export const TimeComponentsBlock = ({
     );
 
   const ordered = displayOrder(drafts);
+  const activeCount = (editOrder ?? []).filter(
+    (key) => !leavingKeys.includes(key),
+  ).length;
 
   return (
     <section className="time-components-block">
@@ -188,13 +208,15 @@ export const TimeComponentsBlock = ({
             });
           })()}
           <li>
-            <IconButton
-              className="time-components-add"
-              label="Add time component"
+            <button
+              className="time-component-add-card"
+              type="button"
+              aria-label="Add time component"
               onClick={addComponent}
             >
+              <span className="time-component-ordinal">{activeCount + 1}.</span>
               <IonIcon icon={addCircleOutline} aria-hidden="true" />
-            </IconButton>
+            </button>
           </li>
         </ol>
       </Reveal>

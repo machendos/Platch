@@ -16,13 +16,15 @@ import { useCallback, useMemo, useState } from 'react';
    Both are seeded once. A modal reused for a different record remounts with a
    `key`, the same discipline a formatted field needs for its seed — see
    docs/rich-text.md. */
-export const useFormState = <T extends Record<string, string>>(initial: T) => {
+export const useFormState = <T extends Record<string, string | boolean>>(
+  initial: T,
+) => {
   const [values, setValues] = useState<T>(initial);
   const [baseline, setBaseline] = useState<T>(initial);
 
   const set = useCallback(
-    <K extends keyof T>(key: K, value: T[K]) =>
-      setValues((current) => ({ ...current, [key]: value })),
+    <K extends keyof T>(data: Record<K, T[K]>) =>
+      setValues((current) => ({ ...current, ...data })),
     [],
   );
 

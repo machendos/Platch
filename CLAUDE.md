@@ -115,12 +115,29 @@ select: { id: true, name: true, timeComponents: { select: { id: true } } }
 ```
 
 Anything returning a whole `Project` (17 scalars) is over the limit however it
-is written, so it needs a name. Named types — Prisma models, interfaces, DTOs —
-are emitted as-is and never synthesised, which is why `Promise<Event[]>` and
-friends are always safe.
+is written, so it needs a name. Prisma models and DTO classes are emitted as-is
+and never synthesised, which is why `Promise<Event[]>` and friends are always
+safe.
 
-Name it by extending the Prisma model and listing only the relations, so scalar
-fields still come from Prisma and a new column needs no edit here.
+**Reach for a name only once the unnamed version has actually failed.** Most
+projections are under the limit and need nothing; adding a type for a shape the
+generator was already handling is a second place for the same fields to live.
+Run `npm run sdk` first and look at what it emitted.
+
+When one *is* needed, **this is the exception to `type` over `interface`, and it
+is not a preference — it was measured.** A `type` alias here does not survive:
+the checker resolves it to its structural form, the name is gone before nestia
+looks, and the shape is flattened into an identifier. Converting these two to
+`Project & { … }` and regenerating produced
+
+```
+mobile/src/api/structures/idstringtypeTimeComponentTypeabsoluteFrom….ts
+```
+
+containing `export namespace  {` and `export namespace 4more {` — invalid
+TypeScript, which then aborts the semantic pass for the *whole* program and
+hides every real type error in `src/`. An `interface` is a real declaration, so
+its name reaches the generator intact:
 
 ```ts
 export interface ProjectWithTimeSlots extends Project {
@@ -131,6 +148,15 @@ getProjectsWithTimeSlots(
   where: Prisma.ProjectWhereInput,
 ): Promise<ProjectWithTimeSlots[]> { … }
 ```
+
+Extending the model and listing only the relations keeps scalar fields coming
+from Prisma, so a new column needs no edit here.
+
+**Do not widen this exception by analogy.** It is earned per type, by
+regenerating and looking at `mobile/src/api/structures/`: a synthesised
+filename, or a missing one, is the evidence. `Prisma.UserGetPayload<{ select: …
+}>` fails the same way for the same reason; a three-field projection needs no
+name at all.
 
 Excluding the bad files by name does not work — the name follows the shape and
 lands somewhere new each time.
@@ -212,6 +238,12 @@ something that already ships.
   `@container` query in its stylesheet, the way `Modal.css` switches the
   density set. Every layout must be tested and look nice at 360px and 410px
   screen widths.
+- **Types**: `type`, not `interface`, unless something concrete breaks without
+  one — and "breaks" means observed, not anticipated. One exception is on
+  record: a named nestia return type (see *Repository return types must be
+  named*), where an alias loses its name before the generator sees it and emits
+  invalid TypeScript. It was earned by converting it, regenerating, and reading
+  the output, which is the only way to earn another.
 - **Comments**: We don't add comments to the code. In very rare cases, we can
   make an exception only when it's justified by an unexpected or unclear
   solution or decision that needs to survive refactoring and could otherwise be 
@@ -259,6 +291,16 @@ something that already ships.
   loses that resolution — the next install then asks the private registry for
   `@mobiscroll/react` itself and gets a 403. To repair a lockfile, restore it
   from git and let `npm install` sync it forward.
+- **`npm run sdk` needs `backend/logs/` to exist.** With `ENV=local` the pino
+  logger writes to `./logs/log.json`, and `pino.destination` opens that file
+  asynchronously. In a fresh worktree the directory is not there (it is
+  gitignored), the descriptor never opens, and the generator dies on exit with
+  `Error: sonic boom is not ready yet` — a stack trace entirely about pino,
+  naming nothing to do with the SDK. **Nothing is written, and the exit code
+  looks like a normal failure.** `mkdir -p backend/logs` fixes it. Worth knowing
+  that nestia reports genuine *type* errors the same way it reports success —
+  by printing and exiting — so always check whether `mobile/src/api` actually
+  changed rather than trusting a quiet run.
 - **mobiscroll CSS loads after ours.** At equal specificity mobiscroll wins, so
   overrides of `.mbsc-*` classes need an extra selector (`.calendar .mbsc-…`).
   Silent failure — the rule simply does nothing.

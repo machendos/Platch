@@ -1,3 +1,4 @@
+import { ProjectStatus } from '../../../prisma-client';
 import {
   DateString,
   Int,
@@ -15,9 +16,11 @@ import {
 } from '../../system/common/date.mappers';
 
 export class CreateProjectDto {
-  name: string;
+  name?: string;
   goal?: string;
   context?: string;
+
+  projectStatus: ProjectStatus;
 
   timeNeededMinutes?: Int;
   minBlockMinutes?: Int;

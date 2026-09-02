@@ -11,6 +11,8 @@ import './MainPage.css';
 import type { DateRange } from '../../system/helpers/dateRange';
 import type { PanesVisible } from './layoutStorage';
 import { layoutStorage } from './layoutStorage';
+import { apiClient, getConnection } from '../../system/api.client';
+import type { CurrentUser } from '../../api/structures/CurrentUser';
 import { useVisibleRange } from './useVisibleRange';
 import { useWorkspaceLayout } from './useWorkspaceLayout';
 import { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
@@ -30,6 +32,11 @@ export const MainPage = () => {
   const [dateFrame, setDateFrame] = useState(DEFAULT_RANGE);
 
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    apiClient.user.getCurrentUser(getConnection()).then(setCurrentUser);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -82,7 +89,7 @@ export const MainPage = () => {
   return (
     <IonPage>
       <IonContent scrollY={false}>
-        {isLoaded && (
+        {isLoaded && currentUser && (
           <div className="main-page-shell" style={layoutCssVariables}>
             <Header
               isDispatcherVisible={panes.dispatcher}
@@ -105,7 +112,7 @@ export const MainPage = () => {
               ref={workspaceRef}
               style={{ gridTemplateColumns }}
             >
-              {panes.dispatcher && <Dispatcher />}
+              {panes.dispatcher && <Dispatcher currentUser={currentUser} />}
 
               {panes.dispatcher && panes.calendar && (
                 <Divider

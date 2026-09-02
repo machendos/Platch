@@ -19,11 +19,24 @@ export class ProjectsService {
     return this.projectsRepository.getProjectsWithTimeSlots({ userId });
   }
 
+  async getProjectColors(userId: string) {
+    const colors = await this.projectsRepository.getColorsForUser(userId);
+
+    return colors.map((color) => ({
+      id: color.id,
+      hexCode: color.hexCode,
+      placement: color.placement,
+      projects: color.projects.map(({ id, name }) => ({ id, name })),
+    }));
+  }
+
   async createProject(dto: CreateProject, userId: string) {
     const createdProject = await this.projectsRepository.createProject({
       name: dto.name,
       goal: dto.goal,
       context: dto.context,
+
+      projectStatus: dto.projectStatus,
 
       timeNeededMinutes: dto.timeNeededMinutes,
       minBlockMinutes: dto.minBlockMinutes,

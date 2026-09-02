@@ -11,6 +11,10 @@ import {
 import type { ReactNode } from 'react';
 import { IonPopover } from '@ionic/react';
 import { planBreadcrumbs } from './breadcrumbLayout';
+import { buildAncestry } from './projectAncestry';
+import type { ProjectCrumb } from './projectAncestry';
+
+export type { ProjectCrumb } from './projectAncestry';
 
 export type BreadcrumbItem = {
   id: string;
@@ -18,11 +22,17 @@ export type BreadcrumbItem = {
 };
 
 type BreadcrumbsProps = {
-  items: BreadcrumbItem[];
-  currentId: string;
-  onSelect: (id: string) => void;
+  projects: ProjectCrumb[];
+  parentProjectId: string | null;
+  currentEntityName: ReactNode;
+  onSelect: (id: string | null) => void;
   className?: string;
 };
+
+/* The entity has no id — it may not even be saved yet — so inside the row it
+   carries a private one, for a React key and for the cursor. It is translated
+   back to `null` before it ever reaches a caller. */
+const CURRENT_ID = 'breadcrumbs-current-entity';
 
 type Metrics = {
   naturalWidths: number[];
@@ -86,8 +96,9 @@ const CollapsedCrumbs = ({
 };
 
 export const Breadcrumbs = ({
-  items,
-  currentId,
+  projects,
+  parentProjectId,
+  currentEntityName,
   onSelect,
   className,
 }: BreadcrumbsProps) => {
@@ -95,11 +106,36 @@ export const Breadcrumbs = ({
   const mirror = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState(0);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [cursorId, setCursorId] = useState<string>(CURRENT_ID);
 
-  const currentIndex = Math.max(
-    items.findIndex((item) => item.id === currentId),
-    0,
+  /* Resolving the path is the row's own job: a caller hands it the tree and
+     the parent, not a finished list. The entity is appended rather than looked
+     up, because it is not in the tree — it may not be saved yet. */
+  const items = useMemo<BreadcrumbItem[]>(
+    () => [
+      ...buildAncestry(projects, parentProjectId),
+      { id: CURRENT_ID, label: currentEntityName },
+    ],
+    [projects, parentProjectId, currentEntityName],
   );
+
+  /* The path and the cursor are two different things, which is the whole point
+     of this row: the path stays whole and the cursor moves along it, so
+     stepping up to a parent leaves every child still rendered and still a link
+     (docs/ui-primitives.md). Welding the cursor to the leaf instead makes
+     moving up a one-way trip.
+
+     The cursor lives here because navigating the row is the row's job — a
+     caller is only told where the reader went. It needs no reset: a modal
+     opened on a different record remounts with a `key`, the same discipline
+     useFormState's baseline depends on. */
+  const cursorIndex = items.findIndex((item) => item.id === cursorId);
+  const currentIndex = cursorIndex === -1 ? items.length - 1 : cursorIndex;
+
+  const select = (id: string) => {
+    setCursorId(id);
+    onSelect(id === CURRENT_ID ? null : id);
+  };
 
   // Labels are ReactNode and may hold icons, so their widths cannot be computed
   // from the text — they have to be rendered and read. The mirror renders every
@@ -122,7 +158,7 @@ export const Breadcrumbs = ({
     // `available` is a dependency because a modal presents asynchronously: the
     // first measurement runs against an unlaid-out row and reads zeroes, and
     // the width arriving is the signal that real geometry now exists.
-  }, [items, currentId, available]);
+  }, [items, available]);
 
   useEffect(() => {
     const element = container.current;
@@ -163,7 +199,7 @@ export const Breadcrumbs = ({
 
     const style = maxWidth === null ? undefined : { maxWidth };
 
-    return item.id === currentId ? (
+    return index === currentIndex ? (
       <span className="breadcrumbs-current" aria-current="page" style={style}>
         {item.label}
       </span>
@@ -172,7 +208,7 @@ export const Breadcrumbs = ({
         className="breadcrumbs-link"
         type="button"
         style={style}
-        onClick={() => onSelect(item.id)}
+        onClick={() => select(item.id)}
       >
         {item.label}
       </button>
@@ -206,7 +242,7 @@ export const Breadcrumbs = ({
             ) : (
               <CollapsedCrumbs
                 items={slot.indices.map((index) => items[index])}
-                onSelect={onSelect}
+                onSelect={select}
               />
             )}
           </li>
@@ -214,12 +250,14 @@ export const Breadcrumbs = ({
       </ol>
 
       <div className="breadcrumbs-mirror" ref={mirror} aria-hidden="true">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <span
             key={item.id}
             data-mirror="label"
             className={
-              item.id === currentId ? 'breadcrumbs-current' : 'breadcrumbs-link'
+              index === currentIndex
+                ? 'breadcrumbs-current'
+                : 'breadcrumbs-link'
             }
           >
             {item.label}

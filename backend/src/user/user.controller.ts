@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { Public } from '../system/common/public.descriptor';
 import { TypedBody } from '@nestia/core';
 import UserService from './user.service';

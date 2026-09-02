@@ -13,12 +13,14 @@ model User {
   username       String @unique
   hashedPassword String
 
+  defaultEvenLengthMinutes Int
+
   projects Project[]
 }
 
 model Project {
   id      String  @id @default(uuid())
-  name    String
+  name    String?
   goal    String?
   context String?
 
@@ -30,6 +32,8 @@ model Project {
   earliestTime DateTime? @db.Time(0)
   deadlineDate DateTime? @db.Date
   deadlineTime DateTime? @db.Time(0)
+
+  projectStatus ProjectStatus
 
   flexibleTimezone Boolean
   originalTimezone String?
@@ -108,6 +112,11 @@ model Color {
   placement Int       @unique
   hexCode   String
   projects  Project[]
+}
+
+enum ProjectStatus {
+  ACTIVE
+  BACKLOG
 }
 
 enum TimeComponentType {

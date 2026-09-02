@@ -15,6 +15,11 @@ export class ProjectsController {
     return this.projectsService.getProjectsByUser(user.id);
   }
 
+  @Get('colors')
+  getColors(@GetUser() user: UserDescriptor) {
+    return this.projectsService.getProjectColors(user.id);
+  }
+
   @Post()
   createProject(
     @GetUser() user: UserDescriptor,

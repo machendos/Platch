@@ -1,0 +1,268 @@
+/* The picker idiom: a FieldShell trigger and the panels it opens. Two form
+   blocks draw it now, so the classes and their tokens live with the component
+   that renders them rather than inside one block's stylesheet.
+
+   A custom property that references another one resolves WHERE IT IS
+   DECLARED, so any formula over these is re-declared inside every scope that
+   re-values an input — see TimeComponentsBlock.css. */
+:root {
+  /* PickerTrigger's published contract: the least a trigger field can be and
+     still show "12:45 AM" on one line at the current type size, and the width
+     past which more adds nothing. Rows reference these instead of restating
+     them — the numbers live once. */
+  --picker-field-min: 84px;
+  --picker-field-max: 110px;
+  /* The clear control's width. Stated, because two layouts have to agree on
+     it: the button draws itself this wide in a panel's corner, and the
+     calendar's month controls reserve exactly this much so the arrows step
+     left instead of sitting underneath it. */
+  --picker-clear-width: 64px;
+  /* A wheel group's flex basis — two groups sit side by side wherever
+     2 × this + the gap fit, and stack below that. With the column floor
+     below, side by side needs ~350px of panel, which a big phone's card has
+     and a small phone's does not. */
+  --time-picker-group-min: 168px;
+  /* Narrower than the wheel's stock 72px floor: three digits and a meridiem
+     need less, and 56px still clears the 44px touch target. */
+  --time-picker-column-min: 56px;
+}
+
+/* The compact density set, on the form itself rather than on one block, so
+   every picker in the modal steps down together. Same `form` container and
+   same 448 threshold as Modal.css derives. */
+@container form (max-width: 448px) {
+  .modal-form {
+    --picker-field-min: 76px;
+    /* No --picker-field-max here on purpose. Compact used to raise it to
+       112px, above the 110px normal ceiling, so every field derived from it
+       got *narrower* as the window grew — measured 112 at 430 and 110 at 560.
+       A denser layout may lower a ceiling; it may never raise one. */
+    /* Start and End wheels stay side by side down to the 360 floor, where the
+       card leaves 320: a group may claim at most (320 − gap) / 2 = 154, and
+       50px columns — still clear of the 44px touch target — put a group at
+       3 × 50 = 150. */
+    --time-picker-group-min: 150px;
+    --time-picker-column-min: 50px;
+  }
+}
+
+/* No border, radius or fill of its own — the chrome is FieldShell's, exactly
+   as Select's trigger works. Which is why the trigger's height is the touch
+   target rather than --control-height: nothing about it is visible, so the
+   only thing that height decides is how much of the field a finger can hit,
+   and it was deciding 30px on the most-tapped control in the form.
+
+   The shell gives up its block padding to pay for it, so the field's box does
+   not grow — it shrinks to 44, back onto the same rhythm as the text fields
+   and checkbox rows beside it, where the padding had put it at 52. */
+.picker .field-control {
+  padding-block: 0;
+}
+
+.picker-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--picker-field-min);
+  height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* One size down from the value text: a placeholder is a hint, and the longer
+   words ("Flexible") must fit the same narrow track a set value does. */
+.picker-placeholder {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The next-day marker on an end field, matching the wheel rows' one. */
+.picker-badge {
+  margin-left: 2px;
+  align-self: flex-start;
+  padding-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-destructive);
+}
+
+/* Driven by a class, not :focus-within: the wheels and the calendar take the
+   focus while they are up, and the fill must not drop off the field then. */
+.picker-open .field-control {
+  border-bottom-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+.time-picker-panel {
+  max-width: 100%;
+  padding: var(--space-2) 0;
+}
+
+/* In the panel's top-right corner, never on a row of its own — a row would
+   cost a touch target's worth of panel height to say one word. Each panel
+   makes room for it in its own way, below.
+
+   The width is stated rather than left to the text because a second layout has
+   to agree with it: the calendar reserves exactly this much and no more.
+
+   `z-index` because the button is rendered before the picker: positioned
+   elements already paint above in-flow ones, but the picker's own parts
+   position themselves too, and paint order between positioned siblings is DOM
+   order. It clears mobiscroll rather than merely competing with it — the
+   calendar's header is `z-index: 1` and would have painted over the button at
+   the same level, and its rules run up to 7. */
+.picker-clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  width: var(--picker-clear-width);
+  height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.time-picker-panel {
+  position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .picker-clear {
+    cursor: pointer;
+  }
+}
+
+/* The wheels give up nothing to host it: a single-wheel panel centres its
+   columns — `.time-picker-panel-single .wheel` below is `flex: 0 0`, so it
+   never grows — which leaves the corners blank at every width, by construction
+   rather than by luck. */
+
+/* A lone wheel group reads like the platform picker: the white tray and its
+   pill span the row, but the columns stop flexing and cluster at the centre
+   (the panel already centers non-growing children), so the values sit next
+   to each other instead of at opposite edges. The dual panel keeps its
+   filling columns. */
+.time-picker-panel-single .wheel {
+  flex: 0 0 76px;
+}
+
+/* Two wheel groups side by side where they fit, stacked where they do not —
+   the wrap answers to the width the panel was actually given, so no screen
+   size needs anticipating. */
+.time-picker-panel-dual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.time-picker-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 var(--time-picker-group-min);
+  min-width: 0;
+  gap: var(--space-1);
+  --wheel-min-column: var(--time-picker-column-min);
+}
+
+.time-picker-group-label {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.time-picker-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* The length of the range, live at the End header's far edge — the one
+   reading that keeps a five-minute spin across the start honest about being
+   a day-long jump. */
+.time-picker-duration {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.time-picker-duration-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The calendar sits on the card's own surface and gives up some height: the
+   stock cells are sized for a standalone picker, not for a tray inside a
+   form. Extra ancestor selectors throughout — mobiscroll's CSS loads after
+   ours and wins ties. */
+.time-picker-panel-calendar {
+  padding: var(--space-1) 0;
+}
+
+.time-picker-panel-calendar .mbsc-datepicker,
+.time-picker-panel-calendar .mbsc-calendar {
+  width: 100%;
+  background: var(--card-surface);
+  border: none;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-slide,
+.time-picker-panel-calendar .mbsc-calendar-cell {
+  background: transparent;
+  border: none;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-wrapper {
+  border: none;
+}
+
+/* The calendar has something in that corner already, so its month controls
+   step aside by the button's own width. Their height is stated as the button's
+   too, which is what lets the button sit at the panel's top edge with no
+   number of its own — the two boxes are the same box. */
+.time-picker-panel-calendar .mbsc-calendar-controls {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--picker-clear-width) 0 0;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-day {
+  height: 30px;
+}
+
+/* The selection circle is em-sized for the stock 39px cell; in a 30px one it
+   clips, so it is stated to fit. */
+.time-picker-panel-calendar .mbsc-calendar-day-text {
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  margin: 2px auto;
+}
+
+.time-picker-panel-calendar .mbsc-calendar-week-day {
+  height: 20px;
+}
+
+.time-component-delete {
+  color: var(--text-destructive);
+  font-size: var(--font-lg);
+}
+
+.time-component-add-slot {
+  color: var(--accent);
+  align-self: flex-start;
+}

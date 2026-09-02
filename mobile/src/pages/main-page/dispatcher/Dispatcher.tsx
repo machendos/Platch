@@ -5,6 +5,8 @@ import { useSectionResize } from './useSectionResize';
 import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
 import { layoutStorage } from '../layoutStorage';
 import { CreateProjectModal } from '../../../modals/CreateProjectModal';
+import type { ProjectCrumb } from '../../../ui/breadcrumbs/Breadcrumbs';
+import type { CurrentUser } from '../../../api/structures/CurrentUser';
 import './Dispatcher.css';
 
 type SectionName = 'plan' | 'active' | 'backlog';
@@ -16,6 +18,14 @@ const DEFAULT_EXPANDED: SectionsExpanded = {
   backlog: false,
 };
 
+/* TODO: a stand-in tree until projects are loaded for real. Pointing the modal
+   at 'shelves' instead of null is the one-line way to see a deep breadcrumb. */
+const PROJECT_FIXTURE: ProjectCrumb[] = [
+  { id: 'house', name: 'House', parentProjectId: null },
+  { id: 'kitchen', name: 'Kitchen', parentProjectId: 'house' },
+  { id: 'shelves', name: 'Shelves', parentProjectId: 'kitchen' },
+];
+
 // TODO: Temporary content to test scrolling inside a section.
 const testItems = Array.from({ length: 20 }, (_, i) => (
   <div key={i} className="test-item">
@@ -23,7 +33,13 @@ const testItems = Array.from({ length: 20 }, (_, i) => (
   </div>
 ));
 
-export const Dispatcher = () => {
+/* Never null: MainPage renders nothing until the user has loaded, so there is
+   no fabricated default to fall back to here — a stand-in for a setting the
+   user actually chose would be written to their next project as if it were
+   theirs. */
+type DispatcherProps = { currentUser: CurrentUser };
+
+export const Dispatcher = ({ currentUser }: DispatcherProps) => {
   const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -126,6 +142,9 @@ export const Dispatcher = () => {
       <CreateProjectModal
         isOpen={isCreateProjectOpen}
         onDismiss={() => setIsCreateProjectOpen(false)}
+        projects={PROJECT_FIXTURE}
+        parentProjectId={null}
+        defaultEvenLengthMinutes={currentUser.defaultEvenLengthMinutes}
       />
     </div>
   );

@@ -1,0 +1,122 @@
+:root {
+  /* One block of the checkbox, so the nested line reads as belonging to the
+     one above it and its box lands under that label's first letter. */
+  --target-indent: calc(var(--checkbox-size) + var(--checkbox-gap));
+}
+
+/* A section of the form, separated by the hairline the app already speaks —
+   the same rule the time components block draws below it. */
+.target-block {
+  /* This block states no field width of its own: every field in it is a
+     picker or a select, and both take the picker contract's floor and ceiling
+     from pickers.css directly. That is what makes a date here the same width
+     as a time in the slot row without either block restating a number.
+
+     The one addition is --select-chevron-space, which a Select reserves on the
+     right and a PickerTrigger does not: added on top, the same contract buys
+     the select the same width of *text*, which is what stopped "How many"
+     being cut to "How ma".
+
+     Declared HERE and not on :root. A custom property substitutes its `var()`s
+     at the element it is declared on, so on :root this would bake :root's
+     --picker-field-max and the compact density further down the tree would
+     never reach it. */
+  --target-count-min: calc(
+    var(--picker-field-min) + var(--select-chevron-space)
+  );
+  --target-count-max: calc(
+    var(--picker-field-max) + var(--select-chevron-space)
+  );
+  /* Fits "Deadline" at the row's own type size. */
+  --target-label-width: 9ch;
+
+  border-bottom: var(--hairline-width) solid var(--separator);
+}
+
+/* Every row in the block is the same kind of row: a flex line that shrinks its
+   fields and never wraps.
+
+   `flex-wrap` was why these came apart differently from the slot rows — under
+   pressure a wrapping row drops a field to the next line while the slot row
+   squeezes it, so two rows that look identical behaved differently. Past the
+   floor this now overflows to the right exactly as the slot row does, which is
+   below the 360 the form is built to. */
+.target-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  /* Stated on the row because --target-label-width is in `ch`, and `ch`
+     measures the font of the element it is used on, not of the label inside. */
+  font-size: var(--font-md);
+}
+
+/* Fixed, so Earliest and Deadline line their fields up with each other. */
+.target-row-lead {
+  flex: 0 0 var(--target-label-width);
+}
+
+/* THE sizing rule. Every field in the block — picker trigger or select — makes
+   the same offer, so fields that look alike are alike by construction rather
+   than by two token pairs happening to agree.
+
+   The ceiling is a `width`, not a `flex-basis`. A flex item's max-content
+   contribution is its own content clamped by its min-width; the basis does not
+   enter into it. So the reveal wrapper around a field asked its row for the
+   floor, got the floor, and the field shrank to fill it — which is what pinned
+   these to one width at every screen size while the slot row, which states a
+   width, breathed. Stated as a width the wrapper asks for the ceiling, and
+   flex-shrink still gives it all the way back down to the floor. */
+.target-block .picker,
+.target-block .select {
+  width: var(--picker-field-max);
+  min-width: var(--picker-field-min);
+  flex-shrink: 1;
+}
+
+.target-block .target-repetitions {
+  width: var(--target-count-max);
+  min-width: var(--target-count-min);
+}
+
+/* The control fills whatever the row gave its wrapper. Without this it sits at
+   its own min-width inside a box that may be wider — which is what pinned the
+   time-needed trigger to 76px at every screen size. */
+.target-block .picker-field,
+.target-block .select-field {
+  width: 100%;
+  min-width: 0;
+}
+
+/* A revealed field is wrapped twice before it reaches the row, and a flex item
+   will not shrink below its content unless every wrapper agrees to. */
+.target-block .reveal-inline,
+.target-block .reveal-inline .reveal-content {
+  min-width: 0;
+}
+
+/* The indent belongs to the group, not to each line in it: the checkbox row
+   and the panel it opens have to sit on the same left edge. */
+.target-nested {
+  margin-left: var(--target-indent);
+}
+
+.target-row-label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* The window sits under the targets it qualifies. */
+.target-window {
+  margin-top: var(--space-2);
+}
+
+/* Compact keeps every row on one line down to the 360 floor: the longest label
+   ("Repetitions needed target") plus a box, a gap and a field is what binds, so
+   the gaps give first. The indent does not — halving it stops the nested line
+   reading as nested, which is the only thing it is there for. */
+@container form (max-width: 448px) {
+  .target-row {
+    gap: var(--space-2);
+  }
+}

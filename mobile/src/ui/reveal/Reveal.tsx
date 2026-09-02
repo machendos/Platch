@@ -84,7 +84,7 @@ export const Reveal = ({
     // motion or in a hidden page — the content would stay mounted for good.
     const unmount = setTimeout(
       () => setLingering(false),
-      REVEAL_MOTION.durationMs,
+      REVEAL_MOTION.durationMs + REVEAL_MOTION.exitTailMs,
     );
 
     return () => clearTimeout(unmount);
@@ -103,6 +103,16 @@ export const Reveal = ({
     <div
       ref={root}
       className={classes.join(' ')}
+      /* The only guard that holds, and it is not a CSS one. A closed reveal is
+         invisible by `opacity: 0`, which does not stop hit-testing, and every
+         containing guard around it can be undone from the inside: mobiscroll's
+         stylesheet sets `pointer-events: auto` and `visibility: visible` on its
+         own elements, and an absolutely positioned descendant escapes the
+         collapsed track's `overflow: hidden` outright. A closed inline calendar
+         therefore stayed tappable, laid out over whatever was drawn below it —
+         taps meant for another control were picking dates. `inert` is enforced
+         by the browser and no descendant can re-enable it. */
+      inert={!open}
       style={
         {
           '--reveal-duration': `${REVEAL_MOTION.durationMs}ms`,

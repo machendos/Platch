@@ -2,25 +2,28 @@ import { Injectable } from '@nestjs/common';
 import * as crypto from 'node:crypto';
 import { randomBytes } from 'node:crypto';
 import { promisify } from 'node:util';
-import { PrismaService } from '../system/database/prisma.service';
 import { ErrorType, PlatchError } from '../system/errors/platch.error';
 import { ErrorCode } from '../system/errors/error.code';
+import { DEFAULT_EVEN_LENGTH_MINUTES } from '../system/config/constants';
+import { UserRepository } from './user.repository';
 
 const scrypt = promisify(crypto.scrypt);
 
 @Injectable()
 class UserService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(private userRepository: UserRepository) {}
 
-  getUser(userId: string) {
-    return this.prismaService.user.findUniqueOrThrow({ where: { id: userId } });
+  async getUser(userId: string) {
+    return this.userRepository.findUSerWithoutPassword({ id: userId });
   }
 
   async createUser(username: string, unhashedPassword: string) {
     const hashedPassword = await this.hashPassword(unhashedPassword);
     try {
-      await this.prismaService.user.create({
-        data: { hashedPassword, username },
+      return this.userRepository.createUser({
+        hashedPassword,
+        username,
+        defaultEvenLengthMinutes: DEFAULT_EVEN_LENGTH_MINUTES,
       });
     } catch (e) {
       throw new PlatchError({

@@ -1,8 +1,15 @@
 :root {
-  --field-line-height: 22px;
-  --field-padding-block: var(--space-2);
+  --field-line-height: var(--row-line);
+  /* Exactly the room that makes a one-line field a touch target, so a field
+     sits in the form's rhythm without the form spacing it. A field that grows
+     simply adds line heights to it. */
+  --field-padding-block: var(--row-air);
   --field-padding-inline: var(--space-2);
   --field-label-gap: var(--space-1);
+  /* The icon gutter, for rows that lead with a glyph instead of a label. Wide
+     enough that a column of them lines up whatever glyph each row picked. */
+  --field-icon-size: 20px;
+  --field-icon-gap: var(--space-3);
   /* Stated rather than left to the font, because the formatting toolbar sits
      on this line and centres itself against it. */
   --field-label-line: 18px;
@@ -52,6 +59,39 @@
 .field-input:focus,
 .field-input:focus-visible {
   outline: none;
+}
+
+/* An icon-led row: the glyph sits inside the box, so the focus fill covers the
+   whole row rather than starting after it. */
+.field-control-iconed {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--field-icon-gap);
+}
+
+/* Centred on the FIRST line rather than on the box, so a body that grows to
+   two lines leaves the icon where it was — the rule focus already follows. */
+.field-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--field-icon-size);
+  height: calc(
+    var(--field-line-height) + 2 * var(--field-padding-block)
+  );
+  margin-left: var(--field-padding-inline);
+  font-size: var(--field-icon-size);
+  color: var(--text-secondary);
+}
+
+/* The body takes what is left, and may be narrower than its content — the same
+   pairing with `overflow-wrap: anywhere` that stops a long word widening the
+   field out of its column. */
+.field-control-iconed > .field-body,
+.field-control-iconed > .field-rich {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Focus changes paint, never layout: the border keeps its width and only its

@@ -5,6 +5,7 @@ import {
   buildReport,
   displayOrder,
   fromApiComponent,
+  isDraftBlank,
   isDraftValid,
   isSlotValid,
   newTimeComponentDraft,
@@ -101,6 +102,48 @@ describe('buildReport', () => {
       updatedTimeComponents: [],
       deletedTimeComponentIds: [],
     });
+  });
+
+  /* A form may open on an empty component so there is something to type into.
+     Until something is typed, it must be invisible to the report: otherwise
+     opening the create form and closing it offers to discard changes nobody
+     made, and saving writes an empty record. */
+  it('ignores an offered-but-untouched blank component', () => {
+    const blank = withType(newTimeComponentDraft(ANCHOR), 'ABSOLUTE');
+    const report = buildReport([blank], []);
+
+    expect(isDraftBlank(blank)).toBe(true);
+    expect(report.isDirty).toBe(false);
+    expect(report.isValid).toBe(true);
+    expect(report.changes.createdTimeComponents).toEqual([]);
+  });
+
+  it('counts the same component once anything is entered', () => {
+    const blank = withType(newTimeComponentDraft(ANCHOR), 'ABSOLUTE');
+    const touched = withExactFrom(blank, date(2026, 6, 19), null);
+    const report = buildReport([touched], []);
+
+    expect(isDraftBlank(touched)).toBe(false);
+    expect(report.isDirty).toBe(true);
+    // Entered but not finished: still a component, just not a valid one.
+    expect(report.isValid).toBe(false);
+    expect(report.changes.createdTimeComponents).toHaveLength(1);
+  });
+
+  /* Blankness is only ever about a component nobody has filled in, so it can
+     never hide one the backend already has — a saved component left empty
+     still has to be reported as deleted if it is removed. */
+  it('never treats a persisted component as blank', () => {
+    const saved = fromApiComponent(absolute());
+    const emptied = {
+      ...saved,
+      fromDate: null,
+      fromTime: null,
+      toDate: null,
+      toTime: null,
+    };
+
+    expect(isDraftBlank(emptied)).toBe(false);
   });
 
   it('reports a removed component by id', () => {

@@ -17,6 +17,16 @@
   );
 }
 
+/* A field with no label has no line for the bar to sit on, so it anchors to the
+   field's own top edge and grows upward from there — over whatever is above,
+   which is the trade an icon-led row makes for having no label row of its own.
+   Both are restated rather than inherited: a custom property resolves where it
+   is declared, so the `:root` rise above baked the labelled value. */
+.field-unlabelled {
+  --field-label-line: 0px;
+  --rich-toolbar-rise: var(--rich-toolbar-height);
+}
+
 /* The rail is what sticks; the toolbar only hangs off it.
 
    Driving the position from JS looked fine on a desktop and jittered on a

@@ -18,6 +18,9 @@ type SelectProps<T extends SelectValue> = {
   label: string;
   placeholder?: string;
   className?: string;
+  /** Names the trigger element. A form that has to reach a field it did not
+      render — to scroll to it, or to mark it — addresses it by this. */
+  id?: string;
 };
 
 export const Select = <T extends SelectValue>({
@@ -27,6 +30,7 @@ export const Select = <T extends SelectValue>({
   label,
   placeholder = 'Not set',
   className,
+  id,
 }: SelectProps<T>) => {
   const [isOpen, setIsOpen] = useState(false);
   const [typed, setTyped] = useState<string | null>(null);
@@ -41,7 +45,8 @@ export const Select = <T extends SelectValue>({
   const field = useRef<HTMLElement | null>(null);
   const list = useRef<HTMLDivElement>(null);
 
-  const triggerId = `select-${useId().replace(/[^\w-]/g, '')}`;
+  const generatedId = `select-${useId().replace(/[^\w-]/g, '')}`;
+  const triggerId = id ?? generatedId;
   const listId = `${triggerId}-list`;
 
   const selected = options.findIndex((option) => option.value === value);

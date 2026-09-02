@@ -3,9 +3,10 @@ import type { tags } from "typia";
 import type { TimeComponentFields } from "./TimeComponentFields";
 
 export type CreateProjectDto = {
-  name: string;
+  name?: undefined | string;
   goal?: undefined | string;
   context?: undefined | string;
+  projectStatus: "ACTIVE" | "BACKLOG";
   timeNeededMinutes?: undefined | (number & tags.Type<"int32">);
   minBlockMinutes?: undefined | (number & tags.Type<"int32">);
   repetitionsNeeded?: undefined | (number & tags.Type<"int32">);

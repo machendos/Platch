@@ -19,7 +19,7 @@ set.
 
 **It is a cursor over a path, not a navigational trail.** A normal breadcrumb
 truncates at the node you select — click an ancestor and the descendants are
-gone. This one never truncates: the whole path stays rendered, `currentId` says
+gone. This one never truncates: the whole path stays rendered, a cursor says
 where you are, and **every other node is a link, below the current one as well
 as above it**.
 
@@ -27,11 +27,42 @@ That is the requirement, not an embellishment. Stepping up to a parent has to
 leave the way back down visible, or moving up is a one-way trip and the user
 has to reopen the record to return.
 
+### What a caller provides
+
+The path, not a finished list — the row walks the tree itself:
+
+```tsx
+<Breadcrumbs
+  projects={projects}
+  parentProjectId={parentProjectId}
+  currentEntityName={values.name.trim() || 'New project'}
+  onSelect={goTo}
+/>
+```
+
+`projects` is structural (`id`, `name`, `parentProjectId`), so the SDK's
+`Project` satisfies it without this folder importing from `src/api`;
+`buildAncestry` climbs it, guarding against a cycle. The entity itself is
+appended as the leaf, because it is not in the tree — it may not be saved yet.
+
+**The cursor is the component's own state**, starting on the entity and moving
+wherever a node is clicked. A caller is told where the reader went and nothing
+else; it does not track the position, and must not rebuild the path from the
+node just selected, which would truncate exactly what this row exists not to
+truncate. It resets by remount — a modal opened on a different record carries a
+`key`, the same discipline `useFormState`'s baseline depends on.
+
+`onSelect` receives `string | null`, and **`null` is the entity itself** —
+which is how stepping back down to it is reported, since a record being created
+has no id to name it by.
+
 Consequences worth keeping:
 
 - The current node is **not** a button. It is a `<span aria-current="page">` —
-  there is nowhere to navigate to.
-- `label` is a `ReactNode`, so a node can carry an icon beside its text.
+  there is nowhere to navigate to. Every *other* node is, the leaf included.
+- `currentEntityName` is a `ReactNode`, so the entity can carry an icon beside
+  its text. The mirror that measures label widths renders the node itself, so
+  an icon is measured rather than estimated.
 - It **never scrolls and never wraps.** The row is a fixed budget; which nodes
   fit inside it is decided in `breadcrumbLayout.ts`. `overflow: hidden` on the
   container is a backstop for the frame before the first measurement, not the
@@ -757,6 +788,17 @@ height (a duration is one token at a fixed 34 px; prose has to grow) and width
 (`TimeInput` caps at 360 px because its wheels need a sane column). Those stay
 different whatever the border does.
 
+### A row can lead with a glyph instead of a label
+
+`FieldShell` takes an optional `icon`, drawn **inside** `.field-control` rather
+than beside it, so the focus fill covers the whole row instead of starting after
+the glyph. It is centred on the *first* line and not on the box, which keeps it
+where it was when the body grows — the same rule focus follows.
+
+The shell also marks itself `.field-unlabelled` when it drew no label. That is
+not cosmetic: the formatting toolbar is positioned against the label's line, and
+without one it has to re-anchor. See `docs/rich-text.md`.
+
 ### The presets are not in `ui/`
 
 A primitive must not know what a task goal is. `src/modals/fieldPresets.ts`
@@ -844,6 +886,27 @@ collapsed for good — visible in the preview browser, where the pane is hidden
 often enough for this to be the normal case rather than the exception. The
 unmount at the end is a timer for the same family of reasons: `transitionend`
 never arrives under reduced motion either.
+
+### The exit unmounts a few frames after the transition, not on its last one
+
+`exitTailMs` is 80 ms of margin past `durationMs`, and it is not padding for a
+slow device. The reveal animates `opacity` and `transform`, so WebKit gives it
+its own compositing layer; removing that layer in the same frame the animation
+finishes can leave its last painted rows on screen. **The DOM is already
+correct and the pixels are not** — nothing repaints them, because nothing above
+them changed.
+
+It only shows where the content is large and opaque. The time panels are white
+wheels on a white sheet, so a stale fragment of one is invisible; the colour
+palette is two rows of saturated swatches, and a stale strip of their tops sat
+under the row until something else forced a repaint. Chromium never reproduces
+it, which is the usual signal — see `docs/calendar-layout.md`.
+
+That also makes it easy to misdiagnose. The strip looks exactly like a grid
+track stuck part-way open, and it is not: measured on device the reveal is
+unmounted and the geometry is right. Anything that forces a repaint — a probe
+re-rendering on an interval, for instance — makes it vanish, which is what
+identifies it. Do not go looking for the layout bug; there isn't one.
 
 ### Clipping is for the travel only
 

@@ -26,7 +26,7 @@ export namespace getCurrentUser {
   export type Output = {
     username: string;
     id: string;
-    hashedPassword: string;
+    defaultEvenLengthMinutes: number;
   };
 
   export const METADATA = {

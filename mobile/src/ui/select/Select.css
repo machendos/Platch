@@ -34,13 +34,21 @@
 
 /* No border, radius or fill of its own — those come from the shell, and a
    second set here would be the fourth copy of one decision. */
+/* Same as the picker trigger, and for the same reason: the chrome is
+   FieldShell's, so this height decides nothing but the size of the hit area.
+   The shell gives up its block padding so the field's box stays on the form's
+   44px rhythm rather than growing to 52. */
+.select .field-control {
+  padding-block: 0;
+}
+
 .select-field {
   display: flex;
   align-items: center;
   box-sizing: border-box;
   width: 100%;
   min-width: var(--select-min-width);
-  height: var(--control-height);
+  height: var(--touch-target);
   padding: 0 var(--select-chevron-space) 0 var(--select-field-padding);
   border: none;
   background: transparent;
@@ -58,9 +66,14 @@
   outline: none;
 }
 
+/* One line, clipped — a narrow field wrapped "How many" onto two and grew its
+   row. The same treatment `.picker-placeholder` gets, for the same reason. */
 .select-placeholder,
 .select-field::placeholder {
+  overflow: hidden;
   color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Outside the field so it is not clipped by the input's own box, and inert so
