@@ -3,7 +3,7 @@ import { authStorage } from '../pages/login/save.tokens';
 
 // const API_HOST = 'https://platch.machekhin.com';
 
-const API_HOST = 'http://192.168.1.128:3002';
+const API_HOST = 'http://192.168.1.128:3001';
 
 export const apiClient = unboundedApi.functional;
 
