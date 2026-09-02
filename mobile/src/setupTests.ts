@@ -19,3 +19,22 @@ class ResizeObserverStub {
 
 globalThis.ResizeObserver ??=
   ResizeObserverStub as unknown as typeof ResizeObserver;
+
+/* jsdom implements no PointerEvent either, and @dnd-kit's sensor guards with
+   `event instanceof PointerEvent` — which throws outright when the right-hand
+   side is undefined, rather than returning false. Any click on a row that
+   carries a sortable takes the whole suite down with it. */
+class PointerEventStub extends MouseEvent {
+  readonly pointerId: number;
+  readonly pointerType: string;
+  readonly isPrimary: boolean;
+
+  constructor(type: string, params: PointerEventInit = {}) {
+    super(type, params);
+    this.pointerId = params.pointerId ?? 0;
+    this.pointerType = params.pointerType ?? '';
+    this.isPrimary = params.isPrimary ?? false;
+  }
+}
+
+globalThis.PointerEvent ??= PointerEventStub as unknown as typeof PointerEvent;
