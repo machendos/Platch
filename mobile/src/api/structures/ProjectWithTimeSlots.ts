@@ -4,6 +4,11 @@ import type { TimeComponentWithSlots } from "./TimeComponentWithSlots";
 
 export type ProjectWithTimeSlots = {
   timeComponents: TimeComponentWithSlots[];
+  color: null | {
+    id: string;
+    placement: number;
+    hexCode: string;
+  };
   name: null | string;
   id: string;
   goal: null | string;

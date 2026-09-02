@@ -1,0 +1,65 @@
+.project-row {
+  min-height: var(--project-row-min-height);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--hairline-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+/* A spine is an ancestor drawn so its descendants can be found — the project
+   itself lives in the other section. The dotted border is the reason it does
+   not drag: it has no position in this section to change. */
+.project-row-spine {
+  border-style: dotted;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+}
+
+.project-row-chevron-slot {
+  flex-shrink: 0;
+  width: var(--icon-button-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-row-chevron-button {
+  font-size: var(--font-lg);
+}
+
+.project-row-chevron {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+/* Up when expanded, matching the section headers and the concept, rather than
+   the tree convention of pointing down. */
+.project-row-chevron-expanded {
+  transform: rotate(-90deg);
+}
+
+/* min-width: 0 so the name can be clipped instead of forcing the row wider
+   than the pane. */
+.project-row-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.project-row-name {
+  font-size: var(--font-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reserved, and sized so the row does not grow when it is filled. */
+.project-row-meta {
+  min-height: calc(var(--font-sm) * 1.2);
+}

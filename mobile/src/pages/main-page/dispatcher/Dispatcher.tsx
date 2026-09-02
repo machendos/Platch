@@ -5,8 +5,9 @@ import { useSectionResize } from './useSectionResize';
 import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
 import { layoutStorage } from '../layoutStorage';
 import { CreateProjectModal } from '../../../modals/CreateProjectModal';
-import type { ProjectCrumb } from '../../../ui/breadcrumbs/Breadcrumbs';
 import type { CurrentUser } from '../../../api/structures/CurrentUser';
+import type { ProjectWithTimeSlots } from '../../../api/structures/ProjectWithTimeSlots';
+import { ProjectList } from './projects/ProjectList';
 import './Dispatcher.css';
 
 type SectionName = 'plan' | 'active' | 'backlog';
@@ -18,28 +19,16 @@ const DEFAULT_EXPANDED: SectionsExpanded = {
   backlog: false,
 };
 
-/* TODO: a stand-in tree until projects are loaded for real. Pointing the modal
-   at 'shelves' instead of null is the one-line way to see a deep breadcrumb. */
-const PROJECT_FIXTURE: ProjectCrumb[] = [
-  { id: 'house', name: 'House', parentProjectId: null },
-  { id: 'kitchen', name: 'Kitchen', parentProjectId: 'house' },
-  { id: 'shelves', name: 'Shelves', parentProjectId: 'kitchen' },
-];
-
-// TODO: Temporary content to test scrolling inside a section.
-const testItems = Array.from({ length: 20 }, (_, i) => (
-  <div key={i} className="test-item">
-    Test item {i + 1}
-  </div>
-));
-
 /* Never null: MainPage renders nothing until the user has loaded, so there is
    no fabricated default to fall back to here — a stand-in for a setting the
    user actually chose would be written to their next project as if it were
    theirs. */
-type DispatcherProps = { currentUser: CurrentUser };
+type DispatcherProps = {
+  currentUser: CurrentUser;
+  projects: ProjectWithTimeSlots[];
+};
 
-export const Dispatcher = ({ currentUser }: DispatcherProps) => {
+export const Dispatcher = ({ currentUser, projects }: DispatcherProps) => {
   const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -96,9 +85,7 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
         onSetExpanded={(next) => setSectionExpanded('plan', next)}
         // TODO: no modal for this section yet.
         onAdd={() => {}}
-      >
-        {testItems}
-      </DispatcherSection>
+      />
 
       {showPlanDivider && (
         <Divider
@@ -115,7 +102,7 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
         onSetExpanded={(next) => setSectionExpanded('active', next)}
         onAdd={() => setIsCreateProjectOpen(true)}
       >
-        <p>Active projects content</p>
+        <ProjectList projects={projects} status="ACTIVE" />
       </DispatcherSection>
 
       {showActiveDivider && (
@@ -134,7 +121,7 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
         // TODO: no modal for this section yet.
         onAdd={() => {}}
       >
-        <p>Backlog content</p>
+        <ProjectList projects={projects} status="BACKLOG" />
       </DispatcherSection>
 
       {/* Portalled to <ion-app>, so its position here is only about ownership:
@@ -142,7 +129,7 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
       <CreateProjectModal
         isOpen={isCreateProjectOpen}
         onDismiss={() => setIsCreateProjectOpen(false)}
-        projects={PROJECT_FIXTURE}
+        projects={projects}
         parentProjectId={null}
         defaultEvenLengthMinutes={currentUser.defaultEvenLengthMinutes}
       />
