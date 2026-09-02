@@ -33,6 +33,47 @@ describe('Reveal', () => {
     expect(content()).toBeInTheDocument();
   });
 
+  /* The bug this exists for: a closed reveal is invisible by opacity, which
+     does not stop hit-testing, and a third-party subtree can re-enable
+     pointer-events and visibility on its own elements — a closed inline
+     calendar was catching taps aimed at controls drawn below it. */
+  it('is inert while closed, and only while closed', async () => {
+    const { rerender } = render(
+      <Reveal when={false} keepMounted>
+        <p>revealed</p>
+      </Reveal>,
+    );
+
+    expect(wrapper()).toHaveAttribute('inert');
+
+    rerender(
+      <Reveal when keepMounted>
+        <p>revealed</p>
+      </Reveal>,
+    );
+
+    await waitFor(() => expect(wrapper()).not.toHaveAttribute('inert'));
+  });
+
+  /* Including on the way out: the content is still laid out through the exit,
+     so it must stop taking taps the moment it starts leaving rather than when
+     it finishes. */
+  it('goes inert as soon as it starts closing', async () => {
+    const { rerender } = render(
+      <Reveal when keepMounted>
+        <p>revealed</p>
+      </Reveal>,
+    );
+
+    rerender(
+      <Reveal when={false} keepMounted>
+        <p>revealed</p>
+      </Reveal>,
+    );
+
+    await waitFor(() => expect(wrapper()).toHaveAttribute('inert'));
+  });
+
   it('keeps the content mounted for the exit, then takes it away', async () => {
     const { rerender } = render(
       <Reveal when>

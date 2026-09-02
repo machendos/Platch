@@ -20,6 +20,13 @@
   --text-secondary: #8e8e93;
   --text-destructive: #ff3b30;
 
+  /* Warning: something is allowed but worth knowing. The icon is the brighter
+     orange because a mark is not read; the words sit at 4.7:1 on the surface,
+     which is what keeps them legible. */
+  --warning-surface: #fff3e0;
+  --warning-icon: #e8820c;
+  --warning-text: #a85800;
+
   /* Lines */
   --separator: rgba(60, 60, 67, 0.29);
   --border-control: #999;
@@ -42,6 +49,9 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  /* Larger than any box it is used on, so the ends are always semicircles
+     whatever the height: a stadium, not a rounded rectangle. */
+  --radius-pill: 999px;
 
   /* Type */
   --font-sm: 13px;
@@ -53,6 +63,18 @@
   --control-height: 34px;
   --icon-button-size: 28px;
   --touch-target: 44px;
+  /* THE form rhythm, and the only thing that states it. A row is at least
+     --touch-target tall and carries no margin of its own, so the air around
+     every line of text on a form is the same air — the room its touch target
+     leaves around one line. Content that is not a row (a field that grows with
+     its text, a stack of cards) states --row-air as its own padding and lands
+     on that same rhythm.
+
+     Sections do not space themselves. Anything that adds a margin here adds a
+     second system on top of this one, and then no two boundaries on the form
+     measure the same. */
+  --row-line: 22px;
+  --row-air: calc((var(--touch-target) - var(--row-line)) / 2);
 
   /* Chrome — the surfaces grouped content sits on. Part of the density
      vocabulary: a compact context re-values these along with type and control

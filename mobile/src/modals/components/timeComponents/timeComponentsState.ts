@@ -288,6 +288,21 @@ export const isDraftValid = (draft: TimeComponentDraft): boolean => {
   );
 };
 
+/* A component nobody has filled in yet. A form may offer an empty one so there
+   is something to type into, and that offer must not read as a change: an
+   untouched blank is not created, does not dirty the form, and is not a
+   validity failure. It would otherwise be saved as an empty record.
+
+   Only an ABSOLUTE draft can be blank — a RECURRING one arrives with a cadence
+   already chosen, so there is no state of it that means "nothing entered". */
+export const isDraftBlank = (draft: TimeComponentDraft): boolean =>
+  draft.id === undefined &&
+  draft.type === 'ABSOLUTE' &&
+  draft.fromDate === null &&
+  draft.fromTime === null &&
+  draft.toDate === null &&
+  draft.toTime === null;
+
 export const displayOrder = (
   drafts: readonly TimeComponentDraft[],
 ): TimeComponentDraft[] => [
@@ -432,8 +447,13 @@ export const buildReport = (
       ]),
   );
 
-  const persisted = drafts.filter(isPersisted);
-  const createdTimeComponents = drafts
+  // Blanks are dropped before anything is derived, so an offered-but-untouched
+  // component is invisible to every field of the report. A persisted draft can
+  // never be blank, so nothing that could be deleted is lost here.
+  const filled = drafts.filter((draft) => !isDraftBlank(draft));
+
+  const persisted = filled.filter(isPersisted);
+  const createdTimeComponents = filled
     .filter((draft) => draft.id === undefined)
     .map(toCreated);
   const updatedTimeComponents = persisted
@@ -449,7 +469,7 @@ export const buildReport = (
       createdTimeComponents.length > 0 ||
       updatedTimeComponents.length > 0 ||
       deletedTimeComponentIds.length > 0,
-    isValid: drafts.every(isDraftValid),
+    isValid: filled.every(isDraftValid),
     changes: {
       createdTimeComponents,
       updatedTimeComponents,

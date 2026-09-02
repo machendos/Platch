@@ -287,6 +287,19 @@ Two other placements were tried and are worse:
 > keyboard test there passes against a viewport with nothing covering it —
 > if the keyboard is not visible in the screenshot, the test proved nothing.
 
+### A field with no label has no line to sit on
+
+`.field-unlabelled` re-values `--field-label-line` to `0px`, so the bar anchors
+to the field's own top edge and grows upward from there — over whatever is
+above it. Both that token **and** `--rich-toolbar-rise` are restated in that
+block, because a custom property resolves where it is *declared*: the `:root`
+rise already baked the labelled value and would never see the override.
+
+The cost is real and is the trade an icon-led row makes for having no label row
+of its own: the bar covers the row above while the caret is in the field. It is
+why the project form's goal and context rows are worth looking at with labels
+before settling — `docs/modals.md` records both arrangements.
+
 ### It is anchored by its bottom
 
 To the bottom of the label's line, at the right end of it. That is what keeps

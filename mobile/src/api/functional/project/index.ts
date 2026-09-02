@@ -13,6 +13,8 @@ import type { ProjectWithTimeSlots } from "../../structures/ProjectWithTimeSlots
 import type { TimeComponentWithSlots } from "../../structures/TimeComponentWithSlots";
 import type { UpdateProjectDto } from "../../structures/UpdateProjectDto";
 
+export * as colors from "./colors/index";
+
 /**
  * @controller ProjectsController.getProjectsByUser
  * @path GET /project
@@ -75,7 +77,7 @@ export namespace createProject {
   export type Body = CreateProjectDto;
   export type Output = {
     timeComponents: TimeComponentWithSlots[];
-    name: string;
+    name: null | string;
     id: string;
     goal: null | string;
     context: null | string;
@@ -86,12 +88,13 @@ export namespace createProject {
     earliestTime: null | (string & tags.Format<"date-time">);
     deadlineDate: null | (string & tags.Format<"date-time">);
     deadlineTime: null | (string & tags.Format<"date-time">);
+    projectStatus: "ACTIVE" | "BACKLOG";
     flexibleTimezone: boolean;
     originalTimezone: null | string;
-    userId: string;
     parentProjectId: null | string;
     colorId: null | string;
     prevProjectIdInHierarchy: null | string;
+    userId: string;
   };
 
   export const METADATA = {

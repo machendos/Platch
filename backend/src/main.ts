@@ -10,13 +10,36 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://192.168.1.128:5173',
-      'capacitor://localhost',
-      'ionic://localhost',
-    ],
+    /* A dev server's port is not a constant. Worktrees run side by side and
+       Vite takes whatever is free, so a list pinned to 5173 serves the first
+       branch and silently CORS-blocks every other one — the failure reads as
+       "the backend is down" from the browser, which is what makes it worth
+       the function. Locally any loopback or LAN origin is allowed; everywhere
+       else the list stays exact. */
+    origin: (origin, callback) => {
+      const allowed = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://192.168.1.128:5173',
+        'capacitor://localhost',
+        'ionic://localhost',
+      ];
+
+      // No Origin header at all: curl, the native shell, same-origin.
+      if (!origin || allowed.includes(origin)) return callback(null, true);
+
+      const isLocal =
+        /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(
+          origin,
+        );
+
+      callback(
+        isLocal && ConfigService.env === 'local'
+          ? null
+          : new Error(`Origin not allowed: ${origin}`),
+        isLocal && ConfigService.env === 'local',
+      );
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,

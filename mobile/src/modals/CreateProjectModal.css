@@ -1,38 +1,62 @@
-/* The breadcrumbs take the slack; the status control keeps its natural width so
-   it cannot be squeezed by a deep ancestry. */
-.create-project-context {
+:root {
+  /* Two segments wide enough for their words at the roomy type size. Stated
+     rather than left to `flex`, because a segmented control takes the width it
+     is given and the name field beside it would otherwise decide how much
+     that is. */
+  --project-status-width: 168px;
+  /* Centres the control on the name field's FIRST line, so a name that wraps
+     grows downward and leaves it where it was. Derived from the field's own
+     metrics — the two must not drift. */
+  --project-status-offset: calc(
+    (
+        var(--field-line-height) + 2 * var(--field-padding-block) -
+          var(--control-height)
+      ) / 2
+  );
+}
+
+/* The name is the title, so it takes the room and the status keeps its own. */
+.create-project-headline {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
 }
 
-.create-project-context .breadcrumbs {
+.create-project-name {
   flex: 1;
+  min-width: 0;
 }
 
-/* Stacked on a phone, because sharing the row leaves the breadcrumbs ~183px —
-   below what the current node and the leaf need together, so a deep path
-   collapsed to `… / current / …` and lost the leaf it is supposed to pin.
-   Given the whole width they both fit, and usually the root as well. */
-@media (max-width: 767px) {
-  .create-project-context {
-    flex-direction: column;
-    align-items: stretch;
+.create-project-status {
+  width: var(--project-status-width);
+  margin-top: var(--project-status-offset);
+}
+
+/* The boundary between these two is drawn once, by the block below: its
+   collapse control sits on that line, so the rule has to stop for the chevron
+   and run full width without it — which only the block owning the control can
+   decide. Both blocks separate themselves with a bottom rule by default, so
+   without this the pair draw one each, a few pixels apart. */
+.create-project-targets .target-block {
+  border-bottom: none;
+}
+
+/* Compact keeps the two on one line: the name still needs a usable width, so
+   the status gives up what its words do not need. */
+@container form (max-width: 448px) {
+  .create-project-headline {
     gap: var(--space-2);
   }
 
-  .create-project-context .segmented-control {
-    align-self: flex-start;
+  .create-project-status {
+    --project-status-width: 132px;
   }
 }
 
-.create-project-time-components {
-  margin-top: var(--space-4);
-}
-
-/* TODO: placeholder body until the project form lands. */
-.create-project-placeholder {
-  margin: var(--space-4) 0 0;
-  font-size: var(--font-md);
-  color: var(--text-secondary);
+/* A plain checkbox line inside the time components section — the checkbox
+   brings its own touch-target height, so the row only owns the air. */
+.create-project-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }

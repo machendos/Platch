@@ -1,17 +1,22 @@
+import './pickers.css';
+
 import { useId, useMemo } from 'react';
 import '@mobiscroll/react/dist/css/mobiscroll.min.css';
 import { Datepicker } from '@mobiscroll/react';
 import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/components/datepicker/datepicker.types.public';
 import type { Temporal } from 'temporal-polyfill';
-import { WEEK_STARTS_ON } from '../../../config/calendarPreferences';
-import { SLOT_FLEXIBLE_TIME, TIME_OF_DAY } from '../../../config/timeScales';
-import { serializeDuration } from '../../../system/helpers/dateTimeSerializers';
-import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
-import { FieldShell } from '../../../ui/text-field/FieldShell';
-import { Reveal } from '../../../ui/reveal/Reveal';
-import { TimeWheels } from '../../../ui/time-input/TimeInput';
-import type { TimeInputValue } from '../../../ui/time-input/timeInputLogic';
-import { slotDurationMinutes } from './timeComponentsState';
+import { WEEK_STARTS_ON } from '../../config/calendarPreferences';
+import { SLOT_FLEXIBLE_TIME, TIME_OF_DAY } from '../../config/timeScales';
+import { serializeDuration } from '../../system/helpers/dateTimeSerializers';
+import { fromJsDate, toJsDate } from '../../system/helpers/helpers';
+import { FieldShell } from '../../ui/text-field/FieldShell';
+import { Reveal } from '../../ui/reveal/Reveal';
+import { TimeWheels } from '../../ui/time-input/TimeInput';
+import type {
+  TimeInputValue,
+  TimeScale,
+} from '../../ui/time-input/timeInputLogic';
+import { slotDurationMinutes } from './timeComponents/timeComponentsState';
 
 type PickerTriggerProps = {
   label: string;
@@ -22,6 +27,9 @@ type PickerTriggerProps = {
   className?: string;
   /** A small marker after the value — "+1" on a next-day end. */
   badge?: string;
+  /** Names the trigger element. A form that has to reach a field it did not
+      render — to scroll to it, or to mark it — addresses it by this. */
+  id?: string;
 };
 
 export const PickerTrigger = ({
@@ -32,8 +40,10 @@ export const PickerTrigger = ({
   placeholder = 'Not set',
   className,
   badge,
+  id,
 }: PickerTriggerProps) => {
-  const controlId = `picker-${useId().replace(/[^\w-]/g, '')}`;
+  const generatedId = `picker-${useId().replace(/[^\w-]/g, '')}`;
+  const controlId = id ?? generatedId;
 
   return (
     <FieldShell
@@ -60,13 +70,20 @@ export const PickerTrigger = ({
 const asTime = (time: Temporal.PlainTime | null): TimeInputValue | null =>
   time ? { time, durationMinutes: null } : null;
 
+const minutesOf = (time: Temporal.PlainTime) => time.hour * 60 + time.minute;
+
 // The wheel only lists what may be picked, so an end constrained by its start
 // simply starts its scale one minute later — the grid then lands on the next
-// step the wheel can draw.
-const afterTimeScale = (start: Temporal.PlainTime | null | undefined) =>
-  start
-    ? { ...TIME_OF_DAY, min: start.hour * 60 + start.minute + 1 }
-    : TIME_OF_DAY;
+// step the wheel can draw. A start constrained by its end stops one minute
+// short of it, the same move in the other direction.
+const boundedTimeScale = (
+  notBefore: Temporal.PlainTime | null | undefined,
+  notAfter: Temporal.PlainTime | null | undefined,
+) => ({
+  ...TIME_OF_DAY,
+  min: notBefore ? minutesOf(notBefore) + 1 : TIME_OF_DAY.min,
+  wheelMax: notAfter ? minutesOf(notAfter) - 1 : TIME_OF_DAY.wheelMax,
+});
 
 type InlineTimeRangePanelProps = {
   open: boolean;
@@ -123,11 +140,33 @@ export const InlineTimeRangePanel = ({
   </Reveal>
 );
 
+/* The panel's own action, in the panel's top-right corner rather than on a
+   line of its own — see pickers.css for what each panel gives up to host it.
+
+   Right-hand side, and that is the point of it: the panel opens directly
+   beneath the trigger that was just tapped and stays live while it animates,
+   so an action under that spot is one a second tap can hit. A trigger never
+   sits at this end of the row.
+
+   Rendered only when there is something to clear — the same choice the slot row
+   makes for its delete button, since a control that is usually disabled is
+   noise. Its accessible name is just the word: only one panel is ever live,
+   because a closed Reveal is inert, so there is nothing to confuse it with. */
+const PanelClear = ({ onClear }: { onClear: () => void }) => (
+  <button className="picker-clear" type="button" onClick={onClear}>
+    Clear
+  </button>
+);
+
 type InlineTimePanelProps = {
   open: boolean;
   value: Temporal.PlainTime | null;
-  onChange: (time: Temporal.PlainTime) => void;
+  /* `null` is the field being cleared, which only a clearable panel emits. */
+  onChange: (time: Temporal.PlainTime | null) => void;
   notBefore?: Temporal.PlainTime | null;
+  notAfter?: Temporal.PlainTime | null;
+  /* Off by default: a required field has no empty state to offer. */
+  clearable?: boolean;
 };
 
 export const InlineTimePanel = ({
@@ -135,12 +174,20 @@ export const InlineTimePanel = ({
   value,
   onChange,
   notBefore = null,
+  notAfter = null,
+  clearable = false,
 }: InlineTimePanelProps) => {
-  const scale = useMemo(() => afterTimeScale(notBefore), [notBefore]);
+  const scale = useMemo(
+    () => boundedTimeScale(notBefore, notAfter),
+    [notBefore, notAfter],
+  );
 
   return (
     <Reveal when={open} intoView>
       <div className="time-picker-panel time-picker-panel-single">
+        {clearable && value !== null && (
+          <PanelClear onClear={() => onChange(null)} />
+        )}
         <TimeWheels
           mode="time"
           scale={scale}
@@ -157,18 +204,20 @@ type InlineDurationPanelProps = {
   open: boolean;
   minutes: number | null;
   onChange: (minutes: number) => void;
+  scale?: TimeScale;
 };
 
 export const InlineDurationPanel = ({
   open,
   minutes,
   onChange,
+  scale = SLOT_FLEXIBLE_TIME,
 }: InlineDurationPanelProps) => (
   <Reveal when={open} intoView>
     <div className="time-picker-panel time-picker-panel-single">
       <TimeWheels
         mode="duration"
-        scale={SLOT_FLEXIBLE_TIME}
+        scale={scale}
         value={
           minutes === null ? null : { time: null, durationMinutes: minutes }
         }
@@ -184,8 +233,12 @@ export const InlineDurationPanel = ({
 type InlineDatePanelProps = {
   open: boolean;
   value: Temporal.PlainDate | null;
-  onChange: (date: Temporal.PlainDate) => void;
+  /* `null` is the field being cleared, which only a clearable panel emits. */
+  onChange: (date: Temporal.PlainDate | null) => void;
   min?: Temporal.PlainDate | null;
+  max?: Temporal.PlainDate | null;
+  /* Off by default: a required field has no empty state to offer. */
+  clearable?: boolean;
 };
 
 export const InlineDatePanel = ({
@@ -193,6 +246,8 @@ export const InlineDatePanel = ({
   value,
   onChange,
   min = null,
+  max = null,
+  clearable = false,
 }: InlineDatePanelProps) => {
   const handleChange = ({ value: picked }: MbscDatepickerChangeEvent) => {
     if (!(picked instanceof Date)) return;
@@ -205,6 +260,9 @@ export const InlineDatePanel = ({
     // feels on every open otherwise — pay it once, behind the edit reveal.
     <Reveal when={open} intoView keepMounted>
       <div className="time-picker-panel time-picker-panel-calendar">
+        {clearable && value !== null && (
+          <PanelClear onClear={() => onChange(null)} />
+        )}
         <Datepicker
           select="date"
           controls={['calendar']}
@@ -214,6 +272,7 @@ export const InlineDatePanel = ({
           // a date nobody picked and closes before it has ever been seen.
           defaultSelection={null}
           min={min ? toJsDate(min) : undefined}
+          max={max ? toJsDate(max) : undefined}
           firstDay={WEEK_STARTS_ON}
           theme="ios"
           themeVariant="light"

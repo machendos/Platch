@@ -4,7 +4,7 @@ import type { TimeComponentWithSlots } from "./TimeComponentWithSlots";
 
 export type ProjectWithTimeSlots = {
   timeComponents: TimeComponentWithSlots[];
-  name: string;
+  name: null | string;
   id: string;
   goal: null | string;
   context: null | string;
@@ -15,10 +15,11 @@ export type ProjectWithTimeSlots = {
   earliestTime: null | (string & tags.Format<"date-time">);
   deadlineDate: null | (string & tags.Format<"date-time">);
   deadlineTime: null | (string & tags.Format<"date-time">);
+  projectStatus: "ACTIVE" | "BACKLOG";
   flexibleTimezone: boolean;
   originalTimezone: null | string;
-  userId: string;
   parentProjectId: null | string;
   colorId: null | string;
   prevProjectIdInHierarchy: null | string;
+  userId: string;
 };

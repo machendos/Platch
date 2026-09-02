@@ -1,0 +1,41 @@
+:root {
+  /* A stadium: the ends are semicircles, which is what "rounded left and right"
+     means once the shape has to survive one line or two. One number if it
+     should read squarer — --radius-lg gives a rounded rectangle instead. */
+  --warning-radius: var(--radius-pill);
+  --warning-padding-block: var(--space-1);
+  --warning-padding-inline: var(--space-3);
+  --warning-gap: var(--space-2);
+}
+
+/* Inline-flex, so the pill is as wide as its sentence rather than as wide as
+   the column it sits in — a full-width band would read as a page-level notice
+   instead of a remark about the control above it. */
+.warning {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--warning-gap);
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--warning-padding-block) var(--warning-padding-inline);
+  border-radius: var(--warning-radius);
+  background: var(--warning-surface);
+  font-size: var(--font-sm);
+  line-height: var(--field-label-line);
+  color: var(--warning-text);
+}
+
+/* Sized from the type scale, not from a number of its own: an ionicon is a
+   glyph, it sits on the line with the words, and it has to shrink with them
+   when the compact density drops the text — a fixed size grows relative to its
+   own sentence on a phone.
+
+   Brighter than the words: an icon is a mark rather than something to read, so
+   it can carry the orange the text cannot and still leave the sentence at a
+   contrast that passes. */
+.warning-icon {
+  flex-shrink: 0;
+  font-size: var(--font-md);
+  color: var(--warning-icon);
+}

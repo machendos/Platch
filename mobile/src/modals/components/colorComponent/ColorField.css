@@ -1,0 +1,195 @@
+:root {
+  /* The chip is a field-sized control, so it lines up with the time triggers
+     and the count on the rows above it. */
+  --color-chip-size: var(--control-height);
+  /* Nine columns, because the palette IS nine hues in two tones: a wrapping
+     row would line the pairs up only by accident, and not at all on a wide
+     screen.
+
+     The swatch is a stated size rather than `1fr` + `aspect-ratio`, which is a
+     preference and not a fix: it keeps a derived height out of a container
+     whose height animates. It was written while chasing a strip of swatch tops
+     left behind when the palette closed, and that turned out to be a stale
+     compositing layer rather than anything about sizing — see `exitTailMs` in
+     `config/revealMotion.ts`. Restoring `1fr` would not bring the bug back. */
+  --color-swatch-columns: 9;
+  --color-swatch-size: 36px;
+  --color-swatch-radius: var(--radius-md);
+  --color-taken-dot: 8px;
+  --color-swatch-gap: var(--space-2);
+}
+
+/* A section of the form, closed by the hairline the app already speaks. */
+.color-block {
+  border-bottom: var(--hairline-width) solid var(--separator);
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+}
+
+.color-label {
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+/* The chip is the same box `.checkbox-box` and the picker triggers draw, at
+   control height — a row of mixed controls has to read as one set. */
+.color-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--color-chip-size);
+  height: var(--color-chip-size);
+  padding: 3px;
+  border: var(--hairline-width) solid var(--separator);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.color-chip-open {
+  border-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+/* A locked chip keeps its colour at full strength — it is the answer, and
+   dimming it would say the colour itself is provisional. Only the chrome
+   softens, which is what says the control is not yours to press. */
+.color-chip:disabled {
+  border-color: transparent;
+  background: none;
+}
+
+.color-swatch {
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--swatch);
+  /* Its own edge, so a pale colour is still a shape against the surface. */
+  box-shadow: inset 0 0 0 var(--hairline-width) rgba(0, 0, 0, 0.18);
+}
+
+/* Nothing chosen yet reads as an empty slot rather than as a colour that
+   happens to be white. */
+.color-swatch-empty {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 var(--hairline-width) var(--separator);
+}
+
+.color-caption {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.color-palette {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--color-swatch-columns),
+    var(--color-swatch-size)
+  );
+  justify-content: start;
+  gap: var(--color-swatch-gap);
+  padding: var(--space-2) 0;
+}
+
+.color-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--color-swatch-size);
+  height: var(--color-swatch-size);
+  padding: 0;
+  border: none;
+  border-radius: var(--color-swatch-radius);
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 var(--hairline-width) rgba(0, 0, 0, 0.18);
+}
+
+/* What is drawn and what can be hit are different sizes, for the reason
+   ToggleGroup records: a 36px shape in a 44px row leaves the gaps dead, and a
+   thumb aimed between two swatches hits neither. */
+.color-option::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--color-swatch-gap) / 2);
+  right: calc(-1 * var(--color-swatch-gap) / 2);
+  height: var(--touch-target);
+  transform: translateY(-50%);
+}
+
+/* A colour already spoken for carries a dot, not a dimming: it is still fully
+   selectable, and fading it would say otherwise. The dot is white with its own
+   dark ring, because the palette runs from pale peach to deep brown and a mark
+   that trusts the swatch under it disappears on half of them.
+
+   It sits inside the corner rather than on it, so the selection ring can pass
+   outside the shape without the two touching. */
+.color-option-taken::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: var(--color-taken-dot);
+  height: var(--color-taken-dot);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 var(--hairline-width) rgba(0, 0, 0, 0.35);
+}
+
+/* The ring is drawn INSIDE the swatch, and that is not a style preference.
+   Outset, it was the one thing in the palette painting beyond the panel's own
+   box — and the panel releases `overflow` once it has settled, so those pixels
+   were unclipped. When a collapse left a stale tile behind, the ring was what
+   survived in it, stranded somewhere no swatch had ever been.
+
+   Inside, nothing the palette draws can outlive the panel's bounds. Selecting
+   still moves nothing: the ring replaces the resting hairline rather than
+   adding to it. */
+.color-option-selected {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    inset 0 0 0 4px var(--surface);
+}
+
+.color-option-tick {
+  font-size: var(--checkbox-tick-size);
+  color: var(--accent-contrast);
+  /* The palette holds dark and pale colours alike, so the tick carries its own
+     contrast rather than trusting the swatch under it. */
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.55));
+}
+
+.color-block .reveal-content {
+  /* The palette is the row's, so it starts where the row's control does. */
+  padding-left: 0;
+}
+
+/* Nine columns is what binds at the 360 floor: 9 x 32 + 8 x 4 = 320 against
+   the 336 a 360px screen leaves. The gap gives first, then the swatch. */
+@container form (max-width: 448px) {
+  .color-palette {
+    --color-swatch-size: 32px;
+    --color-swatch-gap: var(--space-1);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .color-chip:not(:disabled),
+  .color-option {
+    cursor: pointer;
+  }
+}
+
+
+/* Clear of the palette above it, and of the section rule below. */
+.color-warning {
+  margin-top: var(--space-1);
+}

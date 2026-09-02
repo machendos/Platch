@@ -93,7 +93,15 @@
   white-space: nowrap;
 }
 
+/* The confirming action, filled. On a form the two header controls are not
+   peers — one commits the work and one throws it away — so the confirm reads
+   as a button and the way out reads as a link. Same fill and contrast as a
+   selected segment, so the header agrees with the form under it. */
 .modal-action-primary {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 600;
 }
 
@@ -102,6 +110,13 @@
 }
 
 .modal-action:disabled {
+  color: var(--text-secondary);
+}
+
+/* Stated after the plain disabled rule, which it shares specificity with: a
+   filled button greys its fill, not only its text. */
+.modal-action-primary:disabled {
+  background: var(--surface-subtle);
   color: var(--text-secondary);
 }
 

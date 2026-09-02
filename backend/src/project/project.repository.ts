@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, Project } from '../../prisma-client';
+import { Color, Prisma, Project } from '../../prisma-client';
 import { TimeComponentWithSlots } from '../time-component/time.component.repository';
 import { PrismaService } from '../system/database/prisma.service';
 
@@ -17,6 +17,14 @@ export class ProjectsRepository {
     return this.prismaService.project.findMany({
       where,
       include: { timeComponents: { include: { recurringTimeSlots: true } } },
+    });
+  }
+
+  getColorsForUser(userId: string) {
+    return this.prismaService.color.findMany({
+      include: {
+        projects: { where: { userId }, select: { id: true, name: true } },
+      },
     });
   }
 

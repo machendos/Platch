@@ -75,36 +75,65 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(
     [],
   );
 
+  /* A dismissal asks this **twice**, and the second ask is Ionic answering
+     itself. `ion-modal` watches `isOpen` and calls `dismiss()` — with no role,
+     so nothing exempts it — whenever the prop goes true → false. Discarding
+     therefore runs: backdrop dismiss → alert → Ionic dismisses → didDismiss →
+     our `onDismiss` → the caller drops `isOpen` → the watcher dismisses again
+     → a second "Discard changes?" over a modal already on its way out.
+
+     Cancel escapes it only by accident of order: it drops `isOpen` first, so
+     by the time `didDismiss` calls `onDismiss` there is no change left to
+     watch. That asymmetry is the tell.
+
+     So the gate remembers whether the modal is still there to guard. Ionic
+     knows too — it clears `presented` before emitting `didDismiss` — but that
+     is internal state and absent from `HTMLIonModalElement`, so this tracks the
+     same fact through the events it does publish. An ask that arrives after the
+     modal is gone is guarding nothing and is let through.
+
+     `asking` covers the other direction, two asks racing while an alert is
+     already up. Those cannot come from `dismiss()`, which serialises behind a
+     lock — they come from the sheet gesture, which calls `canDismiss` directly
+     on its way past the dismiss threshold. */
+  const asking = useRef<Promise<boolean> | null>(null);
+  const gone = useRef(false);
+
   /* Ionic's own gate, not a handler on the buttons, because a sheet is
      dismissed by dragging it away — there is no press to intercept. Returning
      false from here is what stops the drag as well as the button. */
-  const canDismiss = useCallback(
-    () =>
-      !isDirty
-        ? Promise.resolve(true)
-        : new Promise<boolean>((resolve) => {
-            presentAlert({
-              header: 'Discard changes?',
-              message: 'Anything you have edited here will be lost.',
-              buttons: [
-                {
-                  text: 'Keep editing',
-                  role: 'cancel',
-                  handler: () => resolve(false),
-                },
-                {
-                  text: 'Discard',
-                  role: 'destructive',
-                  handler: () => resolve(true),
-                },
-              ],
-              // Dismissing the alert itself — a backdrop tap or the back
-              // gesture — is not an answer, so it keeps the form.
-              onDidDismiss: () => resolve(false),
-            });
-          }),
-    [isDirty, presentAlert],
-  );
+  const canDismiss = useCallback(() => {
+    if (!isDirty || gone.current) return Promise.resolve(true);
+    if (asking.current) return asking.current;
+
+    const asked = new Promise<boolean>((resolve) => {
+      presentAlert({
+        header: 'Discard changes?',
+        message: 'Anything you have edited here will be lost.',
+        buttons: [
+          {
+            text: 'Keep editing',
+            role: 'cancel',
+            handler: () => resolve(false),
+          },
+          {
+            text: 'Discard',
+            role: 'destructive',
+            handler: () => resolve(true),
+          },
+        ],
+        // Dismissing the alert itself — a backdrop tap or the back
+        // gesture — is not an answer, so it keeps the form.
+        onDidDismiss: () => resolve(false),
+      });
+    }).then((discard) => {
+      if (!discard) asking.current = null;
+      return discard;
+    });
+
+    asking.current = asked;
+    return asked;
+  }, [isDirty, presentAlert]);
 
   return (
     <IonModal
@@ -112,7 +141,19 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(
       className={`modal modal-as-${presentation}`}
       mode="ios"
       isOpen={isOpen}
-      onDidDismiss={onDismiss}
+      /* Reset on the way in, not on the way out. `onDidDismiss` looks like the
+         bookend and is the one place it must not go: the very next thing it
+         does is call `onDismiss`, which is what provokes the second ask. */
+      onWillPresent={() => {
+        asking.current = null;
+        gone.current = false;
+      }}
+      /* Marked before `onDismiss`, not after — that call is what sends the
+         watcher back here. */
+      onDidDismiss={() => {
+        gone.current = true;
+        onDismiss();
+      }}
       canDismiss={canDismiss}
       breakpoints={isSheet ? SHEET_BREAKPOINTS : undefined}
       initialBreakpoint={isSheet ? SHEET_INITIAL_BREAKPOINT : undefined}
