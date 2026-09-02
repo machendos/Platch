@@ -95,6 +95,20 @@
   --checkbox-tick-size: 14px;
   --checkbox-gap: var(--space-2);
 
+  /* Icons. Two families are in use: ionicons draws its own outline weight,
+     lucide strokes at 2 by default and reads heavier beside it at the same
+     size. This is what brings them together; it is a CSS property rather than
+     a prop so it stays with the size that governs it. */
+  --icon-stroke-width: 1.5;
+
+  /* A filled glyph carries more visual mass than an outline in the same box,
+     so it has to be drawn slightly smaller to read as the same size. The
+     correction is optical, not geometric, so it is applied as a transform: the
+     box keeps its size and stays aligned with its neighbours, and only the
+     drawing inside shrinks. Stated once so every filled icon is corrected,
+     rather than each one carrying a number of its own. */
+  --icon-filled-scale: 0.8;
+
   /* Motion */
   --easing-standard: cubic-bezier(0.32, 0.72, 0, 1);
   --duration-enter: 300ms;

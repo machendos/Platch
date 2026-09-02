@@ -13,10 +13,10 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 4px;
-  border: 1px solid #999;
-  background: #f2f2f2;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  border: var(--hairline-width) solid var(--border-control);
+  background: var(--surface-header);
 }
 
 /* min-width: 0 because a flex item defaults to min-width: auto and refuses to
@@ -45,7 +45,7 @@
 }
 
 .chevron-button {
-  font-size: 18px;
+  font-size: var(--font-lg);
 }
 
 .chevron {
@@ -62,5 +62,5 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto; /* each section scrolls its own content */
-  padding: 8px;
+  padding: var(--space-2);
 }

@@ -90,7 +90,9 @@ describe('ProjectList', () => {
     render(<ProjectList projects={tree} status="ACTIVE" />);
 
     expect(screen.getByRole('button', { name: 'Collapse sport' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /legs/ })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /^(Collapse|Expand) legs$/ }),
+    ).toBeNull();
   });
 
   it('hides the subtree when a chevron is clicked, and brings it back', async () => {

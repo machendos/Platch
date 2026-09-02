@@ -35,6 +35,7 @@ export const ProjectList = ({ projects, status }: ProjectListProps) => {
         <ProjectRow
           key={row.project.id}
           row={row}
+          status={status}
           isExpanded={!collapsedIds.has(row.project.id)}
           onToggleExpanded={toggleExpanded}
         />

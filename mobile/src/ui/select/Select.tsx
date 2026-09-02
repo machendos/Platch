@@ -5,6 +5,7 @@ import type { KeyboardEvent } from 'react';
 import { IonIcon, IonPopover } from '@ionic/react';
 import { chevronDown } from 'ionicons/icons';
 import { isCoarsePointer } from '../../system/helpers/pointerKind';
+import { useDismissOnOutside } from '../menu/useDismissOnOutside';
 import { FieldShell } from '../text-field/FieldShell';
 import { optionText, resolveTyped } from './selectOptions';
 import type { SelectOption, SelectValue } from './selectOptions';
@@ -133,44 +134,13 @@ export const Select = <T extends SelectValue>({
     }
   }, [isOpen, active]);
 
-  // Ionic popovers do not follow their trigger when the page moves, so a scroll
-  // would leave the panel stranded beside nothing. Dismissing is the honest
-  // answer. Capture phase, and by node identity rather than by selector, so a
-  // second Select on the page cannot suppress this one — the same listener
-  // HeaderMenu needs, for the same reason.
-  useEffect(() => {
-    if (!isOpen) return;
-
-    // Touching anything that is neither the panel nor the field closes the
-    // panel *and* gives up the caret. Leaving the field focused would mean a
-    // second field's panel on screen while the first field still takes the
-    // typing.
-    const dismissUnlessInside = (event: Event) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (popover.current?.contains(target)) return;
-      if (field.current?.contains(target)) return;
-
-      field.current?.blur();
-      popover.current?.dismiss();
-    };
-
-    const listened: AddEventListenerOptions = { capture: true, passive: true };
-    document.addEventListener('pointerdown', dismissUnlessInside, listened);
-    document.addEventListener('wheel', dismissUnlessInside, listened);
-    // `wheel` is not fired by touch scrolling; `scroll` covers the phone.
-    document.addEventListener('scroll', dismissUnlessInside, listened);
-
-    return () => {
-      document.removeEventListener(
-        'pointerdown',
-        dismissUnlessInside,
-        listened,
-      );
-      document.removeEventListener('wheel', dismissUnlessInside, listened);
-      document.removeEventListener('scroll', dismissUnlessInside, listened);
-    };
-  }, [isOpen]);
+  // Touching anything that is neither the panel nor the field closes the panel
+  // *and* gives up the caret. Leaving the field focused would mean a second
+  // field's panel on screen while the first field still takes the typing.
+  useDismissOnOutside(isOpen, [popover, field], () => {
+    field.current?.blur();
+    popover.current?.dismiss();
+  });
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {

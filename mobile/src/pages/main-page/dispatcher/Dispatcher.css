@@ -13,15 +13,3 @@
      the header rows to fill the pane. Pack them at the top instead. */
   align-content: start;
 }
-
-/* Temporary blocks for testing section scrolling */
-.test-item {
-  height: 60px;
-  box-sizing: border-box;
-  margin-bottom: 8px;
-  border: 1px solid #999;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
