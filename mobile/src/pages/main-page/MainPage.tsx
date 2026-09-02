@@ -13,6 +13,7 @@ import type { PanesVisible } from './layoutStorage';
 import { layoutStorage } from './layoutStorage';
 import { apiClient, getConnection } from '../../system/api.client';
 import type { CurrentUser } from '../../api/structures/CurrentUser';
+import type { ProjectWithTimeSlots } from '../../api/structures/ProjectWithTimeSlots';
 import { useVisibleRange } from './useVisibleRange';
 import { useWorkspaceLayout } from './useWorkspaceLayout';
 import { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
@@ -34,8 +35,14 @@ export const MainPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
+  /* Not part of the render gate below: the header and the calendar must not
+     wait on a list only the dispatcher shows. Its sections draw empty and
+     fill. */
+  const [projects, setProjects] = useState<ProjectWithTimeSlots[]>([]);
+
   useEffect(() => {
     apiClient.user.getCurrentUser(getConnection()).then(setCurrentUser);
+    apiClient.project.getProjectsByUser(getConnection()).then(setProjects);
   }, []);
 
   useEffect(() => {
@@ -112,7 +119,9 @@ export const MainPage = () => {
               ref={workspaceRef}
               style={{ gridTemplateColumns }}
             >
-              {panes.dispatcher && <Dispatcher currentUser={currentUser} />}
+              {panes.dispatcher && (
+                <Dispatcher currentUser={currentUser} projects={projects} />
+              )}
 
               {panes.dispatcher && panes.calendar && (
                 <Divider

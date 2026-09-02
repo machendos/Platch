@@ -5,6 +5,7 @@ import { PrismaService } from '../system/database/prisma.service';
 
 export interface ProjectWithTimeSlots extends Project {
   timeComponents: TimeComponentWithSlots[];
+  color: Color | null;
 }
 
 @Injectable()
@@ -16,7 +17,10 @@ export class ProjectsRepository {
   ): Promise<ProjectWithTimeSlots[]> {
     return this.prismaService.project.findMany({
       where,
-      include: { timeComponents: { include: { recurringTimeSlots: true } } },
+      include: {
+        timeComponents: { include: { recurringTimeSlots: true } },
+        color: true,
+      },
     });
   }
 

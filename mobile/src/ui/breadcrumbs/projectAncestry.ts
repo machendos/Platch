@@ -1,8 +1,9 @@
+import { projectName } from '../../config/labels';
 import type { BreadcrumbItem } from './Breadcrumbs';
 
 export type ProjectCrumb = {
   id: string;
-  name: string;
+  name: string | null;
   parentProjectId: string | null;
 };
 
@@ -21,7 +22,7 @@ export const buildAncestry = (
     if (!project) break;
 
     seen.add(id);
-    path.push({ id: project.id, label: project.name });
+    path.push({ id: project.id, label: projectName(project.name) });
     id = project.parentProjectId;
   }
 

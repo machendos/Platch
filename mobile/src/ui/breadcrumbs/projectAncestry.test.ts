@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { UNNAMED_PROJECT } from '../../config/labels';
 import { buildAncestry } from './projectAncestry';
 import type { ProjectCrumb } from './projectAncestry';
 
@@ -59,6 +60,20 @@ describe('buildAncestry', () => {
     expect(labels(buildAncestry(orphaned, 'shelves'))).toEqual([
       'KITCHEN',
       'SHELVES',
+    ]);
+  });
+
+  /* The column is nullable by design — a project can be saved without a name
+     for fast capture — so a crumb has to print something. */
+  it('labels an unnamed ancestor rather than leaving the crumb blank', () => {
+    const unnamed: ProjectCrumb[] = [
+      { id: 'house', name: null, parentProjectId: null },
+      project('kitchen', 'house'),
+    ];
+
+    expect(labels(buildAncestry(unnamed, 'kitchen'))).toEqual([
+      UNNAMED_PROJECT,
+      'KITCHEN',
     ]);
   });
 });
