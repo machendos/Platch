@@ -1,0 +1,12 @@
+/* Stretches the row's full height: it is the card's leading edge, not a chip
+   floating inside it. The row's `overflow: hidden` clips it to the card's
+   radius, so it carries none of its own. Widths come from layout-config.ts. */
+.color-strip {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: var(--project-strip-width);
+}
+
+.color-strip-nested {
+  width: var(--project-strip-width-nested);
+}

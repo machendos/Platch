@@ -1,10 +1,15 @@
+/* No block padding and no inline-start padding: the colour strip is the card's
+   own leading edge and has to reach all four corners of it. The breathing room
+   lives on the text block instead, and `overflow: hidden` is what clips the
+   strip to the card's radius. */
 .project-row {
   min-height: var(--project-row-min-height);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  padding-inline-end: var(--space-1);
+  overflow: hidden;
   border: var(--hairline-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -42,6 +47,16 @@
   transform: rotate(-90deg);
 }
 
+/* Ionic anchors a popover to its trigger's box, so the trigger has to span the
+   row's full height for the menu to sit against the row rather than against a
+   button floating inside it. Stretching rather than stating a height keeps it
+   right when the row's height changes. The glyph stays centred, because the
+   button centres its own content. */
+.project-row .popover-menu-trigger {
+  align-self: stretch;
+  height: auto;
+}
+
 /* min-width: 0 so the name can be clipped instead of forcing the row wider
    than the pane. */
 .project-row-lines {
@@ -50,6 +65,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  padding-block: var(--space-1);
 }
 
 .project-row-name {

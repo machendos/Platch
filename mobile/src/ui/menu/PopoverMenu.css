@@ -1,0 +1,306 @@
+:root {
+  /* The trigger's box. Needed twice: once to size the button, once to lift
+     the panel back up over it. The popover is portalled to <ion-app>, outside
+     whatever laid the trigger out, so it cannot inherit this — PopoverMenu
+     writes it inline on both elements, and this is the fallback. */
+  --popover-menu-trigger-size: 34px;
+
+  /* The button and the panel are deliberately one material — a closed trigger
+     styled as the panel in miniature reads as the same object growing rather
+     than one thing replacing another. Both draw fill and shadow from here so
+     the two cannot drift apart. */
+  --popover-menu-surface: var(--surface);
+  /* Roughly the button's size against the panel's, so the panel reads as
+     having come out of the button rather than merely appearing near it. */
+  --popover-menu-collapsed-scale: 0.2;
+
+  /* iOS stops a menu's rule short of both ends rather than running it edge to
+     edge, so the panel reads as one rounded card with grouped rows instead of
+     as stacked strips. */
+  --popover-menu-divider-inset: var(--space-3);
+
+  /* iOS highlights a menu row as a rounded plate held in from the panel's
+     edges, not as a bar running the full width. */
+  --popover-menu-highlight-inset: var(--space-1) var(--space-2);
+  --popover-menu-highlight-radius: var(--radius-md);
+
+  /* The breathing room between an `adjacent` panel and the row it belongs to,
+     taken in whichever direction the panel settled. */
+  --popover-menu-gap: var(--space-2);
+
+  /* The panel's shadow points away from the trigger, so the edge facing the
+     row carries none and the two read as connected. */
+  --popover-menu-shadow-down:
+    0 16px 48px rgba(0, 0, 0, 0.24), 0 3px 10px rgba(0, 0, 0, 0.14);
+  --popover-menu-shadow-up:
+    0 -16px 48px rgba(0, 0, 0, 0.24), 0 -3px 10px rgba(0, 0, 0, 0.14);
+}
+
+/* Neutral by default: a box of the right size with a centred glyph and no
+   chrome. A caller wanting the panel-in-miniature look passes its own class
+   through `triggerClassName` — see .header-menu-trigger. */
+.popover-menu-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--popover-menu-trigger-size);
+  height: var(--popover-menu-trigger-size);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  font-size: var(--font-lg);
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+/* A full finger without a full box, so a row keeps its height. Same idiom as
+   the divider's touch target in MainPage.css. */
+.popover-menu-trigger::before {
+  content: '';
+  position: absolute;
+  inset: calc((var(--touch-target) - var(--popover-menu-trigger-size)) / -2);
+}
+
+/* ===== Popover surface ===== */
+
+.popover-menu {
+  /* Sized to the longest row rather than to a fixed width, so the row padding
+     reads as symmetric instead of leaving dead space on the right. */
+  --width: max-content;
+  /* No floor: any minimum wider than the longest row puts the dead space
+     straight back on the right, since the rows are left-aligned. */
+  --min-width: 0;
+  --max-width: 300px;
+  /* No page-wide dim: the page stays operable while the menu is open, and a
+     full-screen scrim reads as "blocked". The only darkening is the panel's
+     own shadow, which falls off within ~60px of it. */
+  --backdrop-opacity: 0;
+  --box-shadow: none;
+  /* 0px, not 0. Ionic composes `left: calc(<position>px + var(--offset-x, 0))`
+     and its fallback is a unitless zero — and `calc(<length> + 0)` is a type
+     error that invalidates the whole declaration, dropping the panel to its
+     static horizontal position. That is what made the horizontal placement
+     look random rather than wrong: it depended on the surrounding layout. */
+  --offset-x: 0px;
+  /* The host is a fixed, full-screen box, so it — not the backdrop — is what
+     would swallow every touch on the page. Ionic uses this same pair for
+     nested popovers, where the parent has to stay click-through. */
+  pointer-events: none;
+}
+
+/* Two placements, because a menu attached to a standalone control and a menu
+   attached to a row want opposite things.
+
+   `cover` is the iOS idiom for a button: Ionic anchors `side="bottom"` to the
+   trigger's bottom edge, so lifting by exactly the trigger's height puts the
+   panel's top-right corner on the button's top-right corner — the corner it
+   then grows out of. Nothing underneath a standalone button needs to stay
+   visible. */
+.popover-menu-cover {
+  --offset-y: calc(var(--popover-menu-trigger-size) * -1);
+}
+
+.popover-menu-cover .popover-menu-list {
+  /* The button's centre, not the panel's corner: stepping in by half the
+     button puts the origin exactly on it, so the panel grows out of it. */
+  transform-origin: calc(100% - var(--popover-menu-trigger-size) / 2)
+    calc(var(--popover-menu-trigger-size) / 2);
+}
+
+/* `adjacent` sits against the trigger and never covers it, which is what a
+   menu acting on a row needs: you have to see which row you are about to
+   delete. Ionic flips it above when there is no room below.
+
+   The offset is deliberately zero. Ionic adds `--offset-y` to `top` whichever
+   side it settled on, so any non-zero gap that clears the trigger below pushes
+   the panel *into* it above, and nothing on the element reports which side
+   won. Detecting the flip does not work either: the position is not written
+   until inside the enter animation. usePopoverAnchor watches for that write
+   and reports the side before the frame is painted, which is what lets the
+   gap, the shadow and the growth origin below all follow it without a jump.
+   The trigger is also stretched to its row's height (see ProjectRow.css), so
+   the gap is measured from the row's edge rather than from a button floating
+   inside it. */
+.popover-menu-adjacent {
+  /* Same unit rule as --offset-x above. The sign follows the side the panel
+     settled on, so the gap is always taken away from the row. */
+  --offset-y: var(--popover-menu-gap);
+}
+
+.popover-menu-adjacent.popover-menu-side-top {
+  --offset-y: calc(var(--popover-menu-gap) * -1);
+}
+
+/* Grows from the point on its own edge nearest the trigger, rather than from a
+   corner the trigger may be nowhere near — which is what it looked like in a
+   narrow pane, where the panel is wider than the row's remaining space and the
+   trigger ends up under the middle of it. */
+.popover-menu-adjacent .popover-menu-list {
+  transform-origin: var(--popover-menu-origin-x, 100%) 0;
+}
+
+.popover-menu-side-top .popover-menu-list {
+  transform-origin: var(--popover-menu-origin-x, 100%) 100%;
+  box-shadow: var(--popover-menu-shadow-up);
+}
+
+/* Ionic's own panel is reduced to a bare positioning box; the skin and the
+   scale both live on .popover-menu-list inside it. They cannot live here:
+   getPopoverDimensions measures this element's rect synchronously, before
+   the position is written, so a transform on it would be read as the real
+   size and throw the anchor off by the scale factor. A transform on a
+   descendant changes no layout, so the rect stays honest. */
+.popover-menu::part(content) {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  /* The panel itself is the one part that has to take clicks back. */
+  pointer-events: auto;
+}
+
+/* The dim is painted, but the page underneath keeps every touch — dismissal
+   is driven from the page's own events. See useDismissOnOutside. */
+.popover-menu::part(backdrop) {
+  pointer-events: none;
+}
+
+/* ===== Panel ===== */
+
+.popover-menu-list {
+  display: flex;
+  flex-direction: column;
+  /* Breathing room above the first row and below the last, so the rows are
+     not flush against the panel's rounded edge. */
+  padding: 6px 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--popover-menu-surface);
+  /* Carries the whole sense of depth now that there is no page dim: a wide
+     soft pool for the ambient darkening, a tighter one to seat the edge. */
+  box-shadow: var(--popover-menu-shadow-down);
+  animation: popover-menu-in var(--duration-enter) var(--easing-standard);
+}
+
+/* Scale only: Ionic's own enter fades the wrapper. No `to` — the panel's own
+   untransformed state ends it. */
+@keyframes popover-menu-in {
+  from {
+    transform: scale(var(--popover-menu-collapsed-scale));
+  }
+}
+
+/* The reverse, back into the button. `forwards` holds the collapsed state for
+   the rest of Ionic's fade instead of snapping back to full size half-way. */
+.popover-menu-leaving .popover-menu-list {
+  animation: popover-menu-out var(--duration-exit) var(--easing-standard)
+    forwards;
+}
+
+@keyframes popover-menu-out {
+  to {
+    transform: scale(var(--popover-menu-collapsed-scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover-menu-list,
+  .popover-menu-leaving .popover-menu-list {
+    animation: none;
+  }
+}
+
+/* ===== Rows ===== */
+
+/* Positioned, and its own stacking context, so the highlight plate below can
+   sit behind the icon and label without dropping behind the panel itself. */
+.popover-menu-item {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 46px;
+  padding: 0 var(--space-5);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-lg);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+/* A pseudo-element rather than the row's own background: the plate is inset,
+   and insetting the row itself would move its padding, its divider, and the
+   column its icons line up in. */
+.popover-menu-item::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: var(--popover-menu-highlight-inset);
+  border-radius: var(--popover-menu-highlight-radius);
+}
+
+.popover-menu-item:active:not(:disabled)::before {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.popover-menu-item:disabled {
+  color: var(--text-secondary);
+}
+
+.popover-menu-item-destructive {
+  color: var(--text-destructive);
+}
+
+/* One size control for two icon families. IonIcon's own svg is 1em square, so
+   font-size is what sizes it. Lucide instead writes literal width/height
+   attributes on the svg, which a CSS rule outranks — pinning both to 1em here
+   means --font-xl is the single number, and neither family can drift from the
+   other when it changes. */
+.popover-menu-icon {
+  flex-shrink: 0;
+  font-size: var(--font-xl);
+  width: 1em;
+  height: 1em;
+  /* Lucide strokes at 2 by default, which reads heavier than ionicons' own
+     -outline set at the same size. CSS outranks the attribute, so one token
+     settles the weight for both families the way --font-xl settles the size. */
+  stroke-width: var(--icon-stroke-width);
+}
+
+/* A transform, not a smaller font-size: shrinking the box would leave a
+   narrower icon in the same column, so the glyph would sit off-centre against
+   its neighbours and its label would start further left. Scaling draws it
+   smaller inside a box that still measures the same, about its own centre. */
+.popover-menu-icon-filled {
+  transform: scale(var(--icon-filled-scale));
+}
+
+/* A border would run the full width of the row; this has to be inset from both
+   ends, so it is a pseudo-element too. */
+.popover-menu-item-divided::after {
+  content: '';
+  position: absolute;
+  inset-inline: var(--popover-menu-divider-inset);
+  bottom: 0;
+  border-bottom: var(--hairline-width) solid var(--separator);
+}
+
+/* Desktop: no finger, so the rows can be tighter, and a pointer expects a
+   hover response. Ionic's own .popover-desktop class is evaluated once at
+   render and never re-checked, so it misses a mouse plugged in later. */
+@media (hover: hover) and (pointer: fine) {
+  .popover-menu-item {
+    min-height: 38px;
+    font-size: var(--font-md);
+    cursor: pointer;
+  }
+
+  .popover-menu-item:hover:not(:disabled)::before {
+    background: rgba(0, 0, 0, 0.06);
+  }
+}
