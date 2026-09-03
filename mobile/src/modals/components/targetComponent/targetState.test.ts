@@ -68,7 +68,10 @@ describe('normalizeTarget', () => {
   });
 
   it('leaves either targetComponent alone on its own', () => {
-    const onlyTime: TargetDraft = { ...EMPTY_TARGET, timeNeededMinutes: hours(2) };
+    const onlyTime: TargetDraft = {
+      ...EMPTY_TARGET,
+      timeNeededMinutes: hours(2),
+    };
     const onlyReps: TargetDraft = { ...EMPTY_TARGET, repetitionsNeeded: 3 };
 
     expect(normalizeTarget(onlyTime)).toBe(onlyTime);
@@ -381,11 +384,7 @@ describe('the window the work has to land inside', () => {
   const AT_5_45 = Temporal.PlainTime.from('17:45');
 
   const withWindow = (state: TargetState) =>
-    withBound(
-      withBound(state, 'deadlineDate', JUN19),
-      'earliestTime',
-      AT_5_45,
-    );
+    withBound(withBound(state, 'deadlineDate', JUN19), 'earliestTime', AT_5_45);
 
   /* Temporal values are objects. Compared with `===` every reopened form would
      report itself dirty, which is the bug this guards. */

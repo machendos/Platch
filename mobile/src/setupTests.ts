@@ -1,9 +1,27 @@
-// Referenced by `test.setupFiles` in vite.config.ts. Adds the extra DOM
-// matchers (toBeInTheDocument, toHaveClass, ...) to expect().
 import '@testing-library/jest-dom';
 
-/* jsdom implements no scrolling, and `Reveal`'s `intoView` asks for some on
-   every frame of an opening panel. Unstubbed it throws inside the rAF
-   callback, which vitest reports as an unhandled error and warns can mask real
-   failures — so it is a no-op here rather than absent. */
 Element.prototype.scrollIntoView = () => {};
+
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+globalThis.ResizeObserver ??=
+  ResizeObserverStub as unknown as typeof ResizeObserver;
+
+class PointerEventStub extends MouseEvent {
+  readonly pointerId: number;
+  readonly pointerType: string;
+  readonly isPrimary: boolean;
+
+  constructor(type: string, params: PointerEventInit = {}) {
+    super(type, params);
+    this.pointerId = params.pointerId ?? 0;
+    this.pointerType = params.pointerType ?? '';
+    this.isPrimary = params.isPrimary ?? false;
+  }
+}
+
+globalThis.PointerEvent ??= PointerEventStub as unknown as typeof PointerEvent;
