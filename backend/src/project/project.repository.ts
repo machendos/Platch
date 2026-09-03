@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Color, Prisma, Project } from '../../prisma-client';
 import { TimeComponentWithSlots } from '../time-component/time.component.repository';
-import { PrismaService } from '../system/database/prisma.service';
+import { Repository } from '../system/database/repository';
 
 export interface ProjectWithTimeSlots extends Project {
   timeComponents: TimeComponentWithSlots[];
@@ -9,13 +9,11 @@ export interface ProjectWithTimeSlots extends Project {
 }
 
 @Injectable()
-export class ProjectsRepository {
-  constructor(private prismaService: PrismaService) {}
-
+export class ProjectsRepository extends Repository {
   async getProjectsWithTimeSlots(
     where: Prisma.ProjectWhereInput,
   ): Promise<ProjectWithTimeSlots[]> {
-    return this.prismaService.project.findMany({
+    return this.db.project.findMany({
       where,
       include: {
         timeComponents: { include: { recurringTimeSlots: true } },
@@ -25,7 +23,7 @@ export class ProjectsRepository {
   }
 
   getColorsForUser(userId: string) {
-    return this.prismaService.color.findMany({
+    return this.db.color.findMany({
       include: {
         projects: { where: { userId }, select: { id: true, name: true } },
       },
@@ -33,13 +31,26 @@ export class ProjectsRepository {
   }
 
   createProject(data: Prisma.ProjectCreateInput) {
-    return this.prismaService.project.create({ data });
+    return this.db.project.create({ data });
+  }
+
+  findProjects(where: Prisma.ProjectWhereInput): Promise<Project[]> {
+    return this.db.project.findMany({ where });
   }
 
   updateProject(
     where: Prisma.ProjectWhereUniqueInput,
-    data: Prisma.ProjectUpdateInput,
-  ) {}
+    data: Prisma.ProjectUpdateArgs['data'],
+  ) {
+    return this.db.project.update({ where, data });
+  }
+
+  updateProjects(
+    where: Prisma.ProjectWhereInput,
+    data: Prisma.ProjectUpdateManyArgs['data'],
+  ) {
+    return this.db.project.updateMany({ where, data });
+  }
 
   deleteProject(where: Prisma.ProjectWhereUniqueInput) {}
 }
