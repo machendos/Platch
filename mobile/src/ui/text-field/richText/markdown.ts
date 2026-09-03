@@ -140,7 +140,13 @@ const readLine = (raw: string): Line | null => {
 
   const bullet = BULLET.exec(rest);
   if (bullet)
-    return { indent, kind: 'bullet', text: bullet[1], checked: false, start: 1 };
+    return {
+      indent,
+      kind: 'bullet',
+      text: bullet[1],
+      checked: false,
+      start: 1,
+    };
 
   return { indent, kind: 'text', text: rest, checked: false, start: 1 };
 };
@@ -155,7 +161,9 @@ const inlinePattern = () =>
   /\\([\s\S])|\*\*\*([\s\S]+?)\*\*\*|___([\s\S]+?)___|\*\*([\s\S]+?)\*\*|__([\s\S]+?)__|\*([\s\S]+?)\*|_([\s\S]+?)_|\[([^\]]*)\]\(([^)]*)\)/g;
 
 const text = (value: string, marks: Mark[]): JSONContent[] =>
-  value ? [{ type: 'text', text: value, ...(marks.length ? { marks } : {}) }] : [];
+  value
+    ? [{ type: 'text', text: value, ...(marks.length ? { marks } : {}) }]
+    : [];
 
 const parseInline = (source: string, inherited: Mark[] = []): JSONContent[] => {
   const out: JSONContent[] = [];
@@ -166,7 +174,18 @@ const parseInline = (source: string, inherited: Mark[] = []): JSONContent[] => {
   for (let m = pattern.exec(source); m; m = pattern.exec(source)) {
     plain += source.slice(last, m.index);
 
-    const [, escaped, bothStar, bothLow, boldStar, boldLow, itStar, itLow, linkText, href] = m;
+    const [
+      ,
+      escaped,
+      bothStar,
+      bothLow,
+      boldStar,
+      boldLow,
+      itStar,
+      itLow,
+      linkText,
+      href,
+    ] = m;
 
     if (escaped !== undefined) {
       plain += escaped;
@@ -179,7 +198,9 @@ const parseInline = (source: string, inherited: Mark[] = []): JSONContent[] => {
       const italic = itStar ?? itLow;
 
       if (both !== undefined)
-        out.push(...text(both, [...inherited, { type: 'bold' }, { type: 'italic' }]));
+        out.push(
+          ...text(both, [...inherited, { type: 'bold' }, { type: 'italic' }]),
+        );
       else if (bold !== undefined)
         out.push(...text(bold, [...inherited, { type: 'bold' }]));
       else if (italic !== undefined)
@@ -203,7 +224,9 @@ const parseInline = (source: string, inherited: Mark[] = []): JSONContent[] => {
 
 const paragraph = (source: string): JSONContent => {
   const content = parseInline(source);
-  return content.length ? { type: 'paragraph', content } : { type: 'paragraph' };
+  return content.length
+    ? { type: 'paragraph', content }
+    : { type: 'paragraph' };
 };
 
 const LIST_NODE: Record<Exclude<Kind, 'text'>, string> = {
@@ -253,7 +276,11 @@ const parseBlocks = (
 
       items.push(
         kind === 'task'
-          ? { type: 'taskItem', attrs: { checked: line.checked }, content: children }
+          ? {
+              type: 'taskItem',
+              attrs: { checked: line.checked },
+              content: children,
+            }
           : { type: 'listItem', content: children },
       );
     }
@@ -269,10 +296,16 @@ const parseBlocks = (
 };
 
 export const fromMarkdown = (markdown: string): JSONContent => {
-  const lines = markdown.split('\n').map(readLine).filter((l): l is Line => !!l);
+  const lines = markdown
+    .split('\n')
+    .map(readLine)
+    .filter((l): l is Line => !!l);
   const [content] = parseBlocks(lines, 0, 0);
 
   // ProseMirror will not accept an empty doc for a schema whose top node
   // requires a block, so an empty field is one empty paragraph.
-  return { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] };
+  return {
+    type: 'doc',
+    content: content.length ? content : [{ type: 'paragraph' }],
+  };
 };

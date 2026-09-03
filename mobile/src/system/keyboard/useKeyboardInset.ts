@@ -27,8 +27,7 @@ export const useKeyboardInset = () => {
     if (!viewport) return;
 
     const write = () => {
-      const covered =
-        window.innerHeight - viewport.height - viewport.offsetTop;
+      const covered = window.innerHeight - viewport.height - viewport.offsetTop;
 
       document.documentElement.style.setProperty(
         '--keyboard-inset',

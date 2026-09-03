@@ -67,8 +67,6 @@ describe('useDismissOnOutside', () => {
     expect(onOutside).not.toHaveBeenCalled();
   });
 
-  /* `wheel` is not fired by touch scrolling, so `scroll` is what covers the
-     phone. HeaderMenu had only `wheel` before this hook existed. */
   it('fires on a scroll as well as a pointer, so a phone dismisses too', () => {
     const onOutside = vi.fn();
     render(<Harness isOpen onOutside={onOutside} />);
