@@ -14,6 +14,7 @@ import type { TimeComponentWithSlots } from "../../structures/TimeComponentWithS
 import type { UpdateProjectDto } from "../../structures/UpdateProjectDto";
 
 export * as colors from "./colors/index";
+export * as move from "./move/index";
 
 /**
  * @controller ProjectsController.getProjectsByUser
