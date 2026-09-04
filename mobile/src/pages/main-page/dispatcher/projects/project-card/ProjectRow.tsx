@@ -1,18 +1,22 @@
+import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
+import { useSortable } from '@dnd-kit/react/sortable';
 import { ellipsisVertical } from 'ionicons/icons';
-import { projectName } from '../../../../config/labels';
-import { IconButton } from '../../../../ui/buttons/IconButton';
-import { PopoverMenu } from '../../../../ui/menu/PopoverMenu';
-import { PROJECT_MENU_TRIGGER_SIZE } from '../../layout-config';
+import { projectName } from '../../../../../config/labels';
+import { IconButton } from '../../../../../ui/buttons/IconButton';
+import { PopoverMenu } from '../../../../../ui/menu/PopoverMenu';
+import { PROJECT_MENU_TRIGGER_SIZE } from '../../../layout-config';
 import { ColorStrip } from './ColorStrip';
 import { projectMenuItems } from './projectMenu';
 import type {
   ProjectRow as ProjectRowModel,
   ProjectStatus,
-} from './projectTree';
+} from '../projectTree';
 import './ProjectRow.css';
 
 type ProjectRowProps = {
   row: ProjectRowModel;
+  index: number;
+  opensGap?: boolean;
   status: ProjectStatus;
   isExpanded: boolean;
   onToggleExpanded: (id: string) => void;
@@ -20,27 +24,47 @@ type ProjectRowProps = {
 
 export const ProjectRow = ({
   row,
+  index,
+  opensGap = false,
   status,
   isExpanded,
   onToggleExpanded,
 }: ProjectRowProps) => {
-  const { project, depth, isSpine, hasChildren } = row;
+  const { project, depth, isSpine, hasChildren, hexCode, ownsColor } = row;
   const name = projectName(project.name);
+
+  const { ref, isDragSource } = useSortable({
+    id: `${status}:${project.id}`,
+    index,
+    group: status,
+    type: 'project',
+    accept: 'project',
+    disabled: { draggable: isSpine },
+    data: { depth },
+    plugins: (defaults) =>
+      defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
+    transition: null,
+  });
 
   return (
     <div
-      className={isSpine ? 'project-row project-row-spine' : 'project-row'}
+      ref={ref}
+      data-project-id={project.id}
+      data-depth={depth}
+      className={[
+        'project-row',
+        isSpine && 'project-row-spine',
+        opensGap && 'project-row-gap-open',
+        isDragSource && 'project-row-dragging',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{
         marginInlineStart: `calc(var(--project-indent-step) * ${depth})`,
       }}
     >
-      <ColorStrip
-        hexCode={project.color?.hexCode ?? null}
-        isNested={depth > 0}
-      />
+      <ColorStrip hexCode={hexCode} isInherited={!ownsColor} />
 
-      {/* The slot is rendered whether or not it holds a chevron, so a leaf's
-          name starts where its siblings' names do. */}
       <span className="project-row-chevron-slot">
         {hasChildren && (
           <IconButton
@@ -63,9 +87,6 @@ export const ProjectRow = ({
 
       <span className="project-row-lines">
         <span className="project-row-name">{name}</span>
-        {/* Held for the schedule, duration and cadence the concept puts on a
-            second line. Empty on purpose — the row's height must not change
-            when they arrive. */}
         <span className="project-row-meta" aria-hidden="true" />
       </span>
 

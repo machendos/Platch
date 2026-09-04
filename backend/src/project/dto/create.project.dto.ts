@@ -36,7 +36,6 @@ export class CreateProjectDto {
 
   parentProjectId?: Uuid;
   colorId?: Uuid;
-  prevProjectIdInHierarchy?: Uuid;
 
   timeComponents: TimeComponentFields[];
 

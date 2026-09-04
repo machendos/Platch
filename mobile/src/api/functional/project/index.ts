@@ -92,9 +92,9 @@ export namespace createProject {
     projectStatus: "ACTIVE" | "BACKLOG";
     flexibleTimezone: boolean;
     originalTimezone: null | string;
+    position: string;
     parentProjectId: null | string;
     colorId: null | string;
-    prevProjectIdInHierarchy: null | string;
     userId: string;
   };
 

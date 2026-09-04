@@ -1,0 +1,164 @@
+/* No block padding and no inline-start padding: the colour strip is the card's
+   own leading edge and has to reach all four corners of it. The breathing room
+   lives on the text block instead, and `overflow: hidden` is what clips the
+   strip to the card's radius. */
+.project-row {
+  min-height: var(--project-row-min-height);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline-end: var(--space-1);
+  overflow: hidden;
+  border: var(--hairline-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  /* The browser owns vertical panning until a drag actually starts, so the
+     section scrolls under a finger that moves straight away. A hold does not
+     pan, so the long press still reaches dnd-kit. */
+  touch-action: pan-y;
+  /* Only the spacing animates. A transition on everything would also catch the
+     transforms dnd-kit writes on the carried row and fight it for control of
+     where that row is. */
+  transition: margin-block-start var(--duration-exit) var(--easing-standard);
+}
+
+/* The row after the gap steps down, opening the space the consequence line sits
+   in. As the gap moves the spacing moves with it — one row's shrinking as the
+   next one's grows — which reads as the space itself travelling. */
+.project-row-gap-open {
+  margin-block-start: var(--project-drop-gap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-row {
+    transition: none;
+  }
+}
+
+/* A spine is an ancestor drawn so its descendants can be found — the project
+   itself lives in the other section. The dotted border is the reason it does
+   not drag: it has no position in this section to change. */
+.project-row-spine {
+  border-style: dotted;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+}
+
+/* Nothing here collapses the row's old space: dnd-kit leaves a placeholder
+   behind, already at zero height, and closes the gap itself. The empty space
+   that used to open was its optimistic sorting, which is off — see the note in
+   ProjectRow.tsx.
+
+   Styling has to go on the element dnd-kit marks, not on a class of ours. It
+   clones the dragged node to make that placeholder, class attribute and all,
+   so anything React puts on the row lands on both — which is how the row under
+   the finger ended up wearing the placeholder's styling and vanishing. */
+[data-dnd-dragging='true'] {
+  box-shadow: var(--shadow-raised);
+  cursor: grabbing;
+  /* The indent is already inside the measured left dnd-kit pins the row to, so
+     leaving the margin on applies it a second time — one step further right per
+     level, at the moment the row is picked up. `!important` because the margin
+     is an inline style carrying the row's depth. */
+  margin-inline-start: 0 !important;
+  /* Translucent so the line and the rows it sits between stay readable
+     underneath the finger — the row being carried must not hide the answer to
+     where it is going. */
+  opacity: var(--project-row-dragging-opacity);
+}
+
+/* The space the row came from closes, so the list already reads as it will
+   once the drop lands and the consequence line is the only thing claiming to
+   know where that is.
+
+   Margin, not height, and that is load-bearing. dnd-kit puts a ResizeObserver
+   on this placeholder and, whenever it shrinks, slides the carried row down by
+   `(rowHeight - placeholderHeight) * grabPositionInRow` to hold the same
+   proportional grip. Animating the height to zero therefore walked the row out
+   from under the finger by exactly the grab offset, landing the pointer on its
+   top border — worst at the moment the drag starts. Margins are outside the
+   observed box, so the space closes without the row moving at all. Hidden
+   because the box stays full-size and would otherwise paint over its
+   neighbour. Animated rather than set outright: dnd-kit inserts the
+   placeholder already holding the row's space, so closing it in one frame
+   makes the rows below jump. */
+[data-dnd-placeholder] {
+  visibility: hidden;
+  animation: project-row-placeholder-collapse var(--duration-exit)
+    var(--easing-standard) forwards;
+}
+
+@keyframes project-row-placeholder-collapse {
+  from {
+    margin-block-start: 0;
+  }
+
+  to {
+    margin-block-start: calc(
+      (var(--project-row-min-height) + var(--project-row-gap)) * -1
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dnd-placeholder] {
+    animation-duration: 1ms;
+  }
+}
+
+.project-row-chevron-slot {
+  flex-shrink: 0;
+  width: var(--icon-button-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-row-chevron-button {
+  font-size: var(--font-lg);
+}
+
+.project-row-chevron {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+/* Up when expanded, matching the section headers and the concept, rather than
+   the tree convention of pointing down. */
+.project-row-chevron-expanded {
+  transform: rotate(-90deg);
+}
+
+/* Ionic anchors a popover to its trigger's box, so the trigger has to span the
+   row's full height for the menu to sit against the row rather than against a
+   button floating inside it. Stretching rather than stating a height keeps it
+   right when the row's height changes. The glyph stays centred, because the
+   button centres its own content. */
+.project-row .popover-menu-trigger {
+  align-self: stretch;
+  height: auto;
+}
+
+/* min-width: 0 so the name can be clipped instead of forcing the row wider
+   than the pane. */
+.project-row-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: var(--space-1);
+}
+
+.project-row-name {
+  font-size: var(--font-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reserved, and sized so the row does not grow when it is filled. */
+.project-row-meta {
+  min-height: calc(var(--font-sm) * 1.2);
+}

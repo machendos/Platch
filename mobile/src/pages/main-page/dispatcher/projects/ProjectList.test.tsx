@@ -5,10 +5,10 @@ import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWit
 import type { ProjectStatus } from './projectTree';
 import { ProjectList } from './ProjectList';
 
-const project = (
+const makeProject = (
   id: string,
   parent: string | null = null,
-  prev: string | null = null,
+  position = 'a0',
   status: ProjectStatus = 'ACTIVE',
 ): ProjectWithTimeSlots => ({
   timeComponents: [],
@@ -29,24 +29,24 @@ const project = (
   originalTimezone: null,
   parentProjectId: parent,
   colorId: null,
-  prevProjectIdInHierarchy: prev,
+  position,
   userId: 'user',
 });
 
-const rowFor = (name: string) =>
+const findRow = (name: string) =>
   screen.getByText(name).closest('.project-row') as HTMLElement;
 
 describe('ProjectList', () => {
   const tree = [
-    project('sport'),
-    project('workout', 'sport'),
-    project('legs', 'workout'),
+    makeProject('sport'),
+    makeProject('workout', 'sport'),
+    makeProject('legs', 'workout'),
   ];
 
   it('draws one row per project, in chain order', () => {
     render(
       <ProjectList
-        projects={[project('b', null, 'a'), project('a')]}
+        projects={[makeProject('b', null, 'a2'), makeProject('a', null, 'a1')]}
         status="ACTIVE"
       />,
     );
@@ -58,13 +58,13 @@ describe('ProjectList', () => {
   it('steps each level by the same shared indent variable', () => {
     render(<ProjectList projects={tree} status="ACTIVE" />);
 
-    expect(rowFor('sport').style.marginInlineStart).toBe(
+    expect(findRow('sport').style.marginInlineStart).toBe(
       'calc(var(--project-indent-step) * 0)',
     );
-    expect(rowFor('workout').style.marginInlineStart).toBe(
+    expect(findRow('workout').style.marginInlineStart).toBe(
       'calc(var(--project-indent-step) * 1)',
     );
-    expect(rowFor('legs').style.marginInlineStart).toBe(
+    expect(findRow('legs').style.marginInlineStart).toBe(
       'calc(var(--project-indent-step) * 2)',
     );
   });
@@ -73,17 +73,17 @@ describe('ProjectList', () => {
     render(
       <ProjectList
         projects={[
-          project('sport'),
-          project('workout', 'sport'),
-          project('legs', 'workout', null, 'BACKLOG'),
+          makeProject('sport'),
+          makeProject('workout', 'sport'),
+          makeProject('legs', 'workout', 'a0', 'BACKLOG'),
         ]}
         status="BACKLOG"
       />,
     );
 
-    expect(rowFor('sport')).toHaveClass('project-row-spine');
-    expect(rowFor('workout')).toHaveClass('project-row-spine');
-    expect(rowFor('legs')).not.toHaveClass('project-row-spine');
+    expect(findRow('sport')).toHaveClass('project-row-spine');
+    expect(findRow('workout')).toHaveClass('project-row-spine');
+    expect(findRow('legs')).not.toHaveClass('project-row-spine');
   });
 
   it('gives a chevron only to rows that render children', () => {

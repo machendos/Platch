@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing';
 import { $Enums, Project } from '../../prisma-client';
 import { TransactionsService } from '../system/database/transactions.service';
 import { ErrorCode } from '../system/errors/error.code';
 import { ErrorType, PlatchError } from '../system/errors/platch.error';
 import { MoveProjectDto } from './dto/move.project.dto';
 import { ProjectsRepository } from './project.repository';
-import { isDefined } from '../system/common/is.defined';
 
 type ProjectStatus = $Enums.ProjectStatus;
+
+export const REBALANCE_KEY_LENGTH = 80;
 
 @Injectable()
 export class ProjectDragService {
@@ -16,47 +18,38 @@ export class ProjectDragService {
     private transactionsService: TransactionsService,
   ) {}
 
-  async moveProject(dto: MoveProjectDto, userId: string) {
-    await this.transactionsService.executeInTransaction({}, async () => {
+  async moveProject(dto: MoveProjectDto, userId: string): Promise<Project[]> {
+    return this.transactionsService.executeInTransaction({}, async () => {
       await this.transactionsService.acquireLock(`project-chain:${userId}`);
 
       const projects = await this.projectsRepository.findProjects({ userId });
       const moved = this.validateMove(projects, dto);
       const status = dto.projectStatus ?? moved.projectStatus;
 
-      const oldNext = projects.find(
-        (project) => project.prevProjectIdInHierarchy === dto.id,
-      );
-      const newNext = this.findNewNext(projects, dto, status);
+      const changed = new Map<string, Project>();
 
-      await this.detach([moved, oldNext, newNext]);
-
-      if (oldNext) {
+      const position = this.resolvePosition(projects, dto, status);
+      changed.set(
+        dto.id,
         await this.projectsRepository.updateProject(
-          { id: oldNext.id },
-          { prevProjectIdInHierarchy: moved.prevProjectIdInHierarchy },
-        );
-      }
-
-      await this.projectsRepository.updateProject(
-        { id: dto.id },
-        {
-          prevProjectIdInHierarchy: dto.prevProjectIdInHierarchy,
-          parentProjectId: dto.parentProjectId,
-          projectStatus: status,
-        },
+          { id: dto.id },
+          {
+            position,
+            parentProjectId: dto.parentProjectId,
+            projectStatus: status,
+          },
+        ),
       );
-
-      if (newNext) {
-        await this.projectsRepository.updateProject(
-          { id: newNext.id },
-          { prevProjectIdInHierarchy: dto.id },
-        );
-      }
 
       if (status !== moved.projectStatus) {
-        await this.carrySubtree(projects, moved, status);
+        for (const project of await this.carrySubtree(projects, moved, status))
+          changed.set(project.id, project);
       }
+
+      for (const project of await this.rebalance(userId, dto, status))
+        changed.set(project.id, project);
+
+      return [...changed.values()];
     });
   }
 
@@ -64,83 +57,59 @@ export class ProjectDragService {
     const moved = projects.find((project) => project.id === dto.id);
 
     if (!moved) {
-      throw this.rejected('Project not found.', ErrorCode.NOT_FOUND);
+      throw this.buildRejection('Project not found.', ErrorCode.NOT_FOUND);
     }
-
-    const subtree = this.subtreeOf(projects, dto.id);
 
     if (dto.parentProjectId !== null) {
       const parent = projects.find(
         (project) => project.id === dto.parentProjectId,
       );
 
-      if (!parent) throw this.rejected('The new parent does not exist.');
+      if (!parent) throw this.buildRejection('The new parent does not exist.');
 
-      if (subtree.has(parent.id)) {
-        throw this.rejected('A project cannot be moved inside itself.');
-      }
-    }
-
-    if (dto.prevProjectIdInHierarchy !== null) {
-      const target = projects.find(
-        (project) => project.id === dto.prevProjectIdInHierarchy,
-      );
-
-      if (!target) throw this.rejected('The project to follow does not exist.');
-
-      if (subtree.has(target.id)) {
-        throw this.rejected(
-          'A project cannot be placed after itself or its own child.',
-        );
-      }
-
-      const status = dto.projectStatus ?? moved.projectStatus;
-
-      if (
-        target.parentProjectId !== dto.parentProjectId ||
-        target.projectStatus !== status
-      ) {
-        throw this.rejected(
-          'The project to follow is not in the destination list.',
-        );
+      if (this.collectSubtreeIds(projects, dto.id).has(parent.id)) {
+        throw this.buildRejection('A project cannot be moved inside itself.');
       }
     }
 
     return moved;
   }
 
-  private findNewNext(
+  /* The client computes `position` against the keys it last read. A rebalance
+     between that read and this write renumbers the whole group, which leaves
+     the key pointing somewhere else entirely — so the sibling *ids* travel with
+     it. They survive renumbering, and when they no longer bracket the key the
+     drop is resolved from them instead. A sibling that has since left the group
+     proves nothing either way, and the key is taken as sent. */
+  private resolvePosition(
     projects: Project[],
     dto: MoveProjectDto,
     status: ProjectStatus,
   ) {
-    if (dto.prevProjectIdInHierarchy !== null) {
-      return projects.find(
-        (project) =>
-          project.prevProjectIdInHierarchy === dto.prevProjectIdInHierarchy &&
-          project.id !== dto.id,
-      );
-    }
+    const findSiblingInGroup = (id: string | null) => {
+      if (id === null) return null;
 
-    const subtree = this.subtreeOf(projects, dto.id);
+      const sibling = projects.find((project) => project.id === id);
 
-    return projects.find(
-      (project) =>
-        project.prevProjectIdInHierarchy === null &&
-        project.parentProjectId === dto.parentProjectId &&
-        project.projectStatus === status &&
-        !subtree.has(project.id),
-    );
-  }
+      return sibling &&
+        sibling.parentProjectId === dto.parentProjectId &&
+        sibling.projectStatus === status
+        ? sibling
+        : undefined;
+    };
 
-  private async detach(projects: (Project | undefined)[]) {
-    const projectIds = projects.filter(isDefined).map(({ id }) => id);
-    if (projectIds.length) {
-      await this.projectsRepository.updateProjects(
-        { id: { in: projectIds } },
-        { prevProjectIdInHierarchy: null },
-      );
-    }
+    const prev = findSiblingInGroup(dto.prevSiblingId);
+    const next = findSiblingInGroup(dto.nextSiblingId);
+
+    if (prev === undefined || next === undefined) return dto.position;
+
+    const brackets =
+      (prev === null || prev.position < dto.position) &&
+      (next === null || dto.position < next.position);
+
+    return brackets
+      ? dto.position
+      : generateKeyBetween(prev?.position ?? null, next?.position ?? null);
   }
 
   private async carrySubtree(
@@ -148,14 +117,19 @@ export class ProjectDragService {
     moved: Project,
     status: ProjectStatus,
   ) {
-    const subtree = this.subtreeOf(projects, moved.id);
+    const subtree = this.collectSubtreeIds(projects, moved.id);
+    subtree.delete(moved.id);
 
-    await this.projectsRepository.updateProjects(
-      { id: { in: [...subtree] } },
-      { projectStatus: status },
-    );
+    if (subtree.size > 0) {
+      await this.projectsRepository.updateProjects(
+        { id: { in: [...subtree] } },
+        { projectStatus: status },
+      );
+    }
 
-    for (const parentId of subtree) {
+    const changed: Project[] = [];
+
+    for (const parentId of [moved.id, ...subtree]) {
       const children = projects.filter(
         (project) => project.parentProjectId === parentId,
       );
@@ -166,23 +140,73 @@ export class ProjectDragService {
         (child) => child.projectStatus === status,
       );
 
-      const head = this.headOf(arriving);
-      const tail = this.tailOf(settled);
+      if (arriving.length === 0 || settled.length === 0) continue;
 
-      if (!head || !tail) continue;
+      const tail = this.sortProjectsByPosition(settled).at(-1) as Project;
+      const keys = generateNKeysBetween(tail.position, null, arriving.length);
 
-      await this.projectsRepository.updateProject(
-        { id: head.id },
-        { prevProjectIdInHierarchy: null },
-      );
-      await this.projectsRepository.updateProject(
-        { id: head.id },
-        { prevProjectIdInHierarchy: tail.id },
-      );
+      for (const [index, child] of this.sortProjectsByPosition(arriving).entries()) {
+        changed.push(
+          await this.projectsRepository.updateProject(
+            { id: child.id },
+            { position: keys[index] },
+          ),
+        );
+      }
     }
+
+    return changed;
   }
 
-  private subtreeOf(projects: Project[], rootId: string) {
+  /* Only ever triggered by a move into the group, so a group nobody reorders
+     never pays for keys it is not growing. Which also means there is no
+     background pass: the write that lengthens a key is the write that pays. */
+  private async rebalance(
+    userId: string,
+    dto: MoveProjectDto,
+    status: ProjectStatus,
+  ) {
+    const group = this.sortProjectsByPosition(
+      await this.projectsRepository.findProjects({
+        userId,
+        parentProjectId: dto.parentProjectId,
+        projectStatus: status,
+      }),
+    );
+
+    const longest = group.reduce(
+      (length, project) => Math.max(length, project.position.length),
+      0,
+    );
+
+    if (longest < REBALANCE_KEY_LENGTH) return [];
+
+    const keys = generateNKeysBetween(null, null, group.length);
+    const changed: Project[] = [];
+
+    for (const [index, project] of group.entries()) {
+      changed.push(
+        await this.projectsRepository.updateProject(
+          { id: project.id },
+          { position: keys[index] },
+        ),
+      );
+    }
+
+    return changed;
+  }
+
+  private sortProjectsByPosition(projects: Project[]) {
+    return [...projects].sort((left, right) =>
+      left.position === right.position
+        ? left.id.localeCompare(right.id)
+        : left.position < right.position
+          ? -1
+          : 1,
+    );
+  }
+
+  private collectSubtreeIds(projects: Project[], rootId: string) {
     const childrenOf = new Map<string, string[]>();
 
     for (const project of projects) {
@@ -209,25 +233,7 @@ export class ProjectDragService {
     return subtree;
   }
 
-  private headOf(siblings: Project[]) {
-    const ids = new Set(siblings.map((sibling) => sibling.id));
-
-    return siblings.find(
-      (sibling) =>
-        sibling.prevProjectIdInHierarchy === null ||
-        !ids.has(sibling.prevProjectIdInHierarchy),
-    );
-  }
-
-  private tailOf(siblings: Project[]) {
-    const claimed = new Set(
-      siblings.map((sibling) => sibling.prevProjectIdInHierarchy),
-    );
-
-    return siblings.find((sibling) => !claimed.has(sibling.id));
-  }
-
-  private rejected(message: string, code = ErrorCode.VALIDATION_FAILED) {
+  private buildRejection(message: string, code = ErrorCode.VALIDATION_FAILED) {
     return new PlatchError({
       type: ErrorType.CLIENT_UNEXPECTED,
       code,

@@ -1,23 +1,26 @@
 import { describe, expect, it } from 'vitest';
+import { generateNKeysBetween } from 'fractional-indexing';
 import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
-import { buildSectionRows, maxDepth } from './projectTree';
+import { buildSectionRows, findMaxDepth } from './projectTree';
 
 type Seed = {
   id: string;
   parent?: string | null;
-  prev?: string | null;
+  position?: string;
   status?: ProjectStatus;
+  color?: string | null;
 };
 
-const project = ({
+const makeProject = ({
   id,
   parent = null,
-  prev = null,
+  position = 'a0',
   status = 'ACTIVE',
+  color = null,
 }: Seed): ProjectWithTimeSlots => ({
   timeComponents: [],
-  color: null,
+  color: color === null ? null : { id: color, placement: 1, hexCode: color },
   name: id,
   id,
   goal: null,
@@ -34,81 +37,61 @@ const project = ({
   originalTimezone: null,
   parentProjectId: parent,
   colorId: null,
-  prevProjectIdInHierarchy: prev,
+  position,
   userId: 'user',
 });
 
-const build = (seeds: Seed[], status: ProjectStatus = 'ACTIVE') =>
-  buildSectionRows(seeds.map(project), status);
+/* Seeds get ascending keys in the order they are written, so a test only
+   spells a position out when the point is that it disagrees with that order. */
+const buildRows = (seeds: Seed[], status: ProjectStatus = 'ACTIVE') => {
+  const keys = generateNKeysBetween(null, null, seeds.length);
 
-const ids = (seeds: Seed[], status: ProjectStatus = 'ACTIVE') =>
-  build(seeds, status).map((row) => row.project.id);
+  return buildSectionRows(
+    seeds.map((seed, index) => makeProject({ position: keys[index], ...seed })),
+    status,
+  );
+};
 
-describe('order within a chain', () => {
-  it('follows the prev pointers rather than the input order', () => {
+const listIds = (seeds: Seed[], status: ProjectStatus = 'ACTIVE') =>
+  buildRows(seeds, status).map((row) => row.project.id);
+
+describe('order within a group', () => {
+  it('follows position rather than the order the rows arrived in', () => {
     expect(
-      ids([{ id: 'c', prev: 'b' }, { id: 'a' }, { id: 'b', prev: 'a' }]),
+      listIds([
+        { id: 'c', position: 'a3' },
+        { id: 'a', position: 'a1' },
+        { id: 'b', position: 'a2' },
+      ]),
     ).toEqual(['a', 'b', 'c']);
   });
 
+  it('breaks a tie on id, so equal keys still order the same way twice', () => {
+    expect(
+      listIds([
+        { id: 'b', position: 'a1' },
+        { id: 'a', position: 'a1' },
+      ]),
+    ).toEqual(['a', 'b']);
+  });
+
   it('renders a single project', () => {
-    expect(ids([{ id: 'only' }])).toEqual(['only']);
+    expect(listIds([{ id: 'only' }])).toEqual(['only']);
   });
 
   it('renders nothing when the section is empty', () => {
-    expect(ids([{ id: 'a', status: 'BACKLOG' }])).toEqual([]);
+    expect(listIds([{ id: 'a', status: 'BACKLOG' }])).toEqual([]);
   });
 });
 
-describe('corrupt chains still render', () => {
-  it('takes the lowest id as the head when no project claims null', () => {
-    expect(
-      ids([
-        { id: 'b', prev: 'c' },
-        { id: 'c', prev: 'b' },
-      ]),
-    ).toEqual(['b', 'c']);
-  });
-
-  it('runs several null heads one after another, in id order', () => {
-    expect(
-      ids([
-        { id: 'b' },
-        { id: 'b2', prev: 'b' },
-        { id: 'a' },
-        { id: 'a2', prev: 'a' },
-      ]),
-    ).toEqual(['a', 'a2', 'b', 'b2']);
-  });
-
-  it('cuts a cycle instead of looping forever', () => {
-    const rows = ids([
-      { id: 'a' },
-      { id: 'b', prev: 'a' },
-      { id: 'c', prev: 'd' },
-      { id: 'd', prev: 'c' },
-    ]);
-    expect(rows).toHaveLength(4);
-    expect(rows.slice(0, 2)).toEqual(['a', 'b']);
-    expect(rows.slice(2).sort()).toEqual(['c', 'd']);
-  });
-
+describe('a corrupt tree still renders', () => {
   it('treats a parent that does not exist as a root', () => {
-    expect(ids([{ id: 'orphan', parent: 'missing' }])).toEqual(['orphan']);
-    expect(build([{ id: 'orphan', parent: 'missing' }])[0].depth).toBe(0);
+    expect(listIds([{ id: 'orphan', parent: 'missing' }])).toEqual(['orphan']);
+    expect(buildRows([{ id: 'orphan', parent: 'missing' }])[0].depth).toBe(0);
   });
 
   it('treats a project that parents itself as a root', () => {
-    expect(build([{ id: 'loop', parent: 'loop' }])[0].depth).toBe(0);
-  });
-
-  it('ignores a prev pointer aimed outside the sibling group', () => {
-    expect(
-      ids([
-        { id: 'parent' },
-        { id: 'child', parent: 'parent', prev: 'parent' },
-      ]),
-    ).toEqual(['parent', 'child']);
+    expect(buildRows([{ id: 'loop', parent: 'loop' }])[0].depth).toBe(0);
   });
 });
 
@@ -120,22 +103,22 @@ describe('hierarchy', () => {
   ];
 
   it('indents by ancestry length, with no cap', () => {
-    expect(build(tree).map((row) => row.depth)).toEqual([0, 1, 2]);
-    expect(maxDepth(build(tree))).toBe(2);
+    expect(buildRows(tree).map((row) => row.depth)).toEqual([0, 1, 2]);
+    expect(findMaxDepth(buildRows(tree))).toBe(2);
   });
 
   it('walks depth first', () => {
     expect(
-      ids([
+      listIds([
         { id: 'a' },
         { id: 'a-child', parent: 'a' },
-        { id: 'b', prev: 'a' },
+        { id: 'b' },
       ]),
     ).toEqual(['a', 'a-child', 'b']);
   });
 
   it('flags only the nodes that render children', () => {
-    expect(build(tree).map((row) => row.hasChildren)).toEqual([
+    expect(buildRows(tree).map((row) => row.hasChildren)).toEqual([
       true,
       true,
       false,
@@ -151,11 +134,11 @@ describe('spines', () => {
   ];
 
   it('draws the ancestors of a moved project in the other section', () => {
-    expect(ids(split, 'BACKLOG')).toEqual(['sport', 'workout', 'legs']);
+    expect(listIds(split, 'BACKLOG')).toEqual(['sport', 'workout', 'legs']);
   });
 
   it('marks those ancestors as spines and the project itself as real', () => {
-    expect(build(split, 'BACKLOG').map((row) => row.isSpine)).toEqual([
+    expect(buildRows(split, 'BACKLOG').map((row) => row.isSpine)).toEqual([
       true,
       true,
       false,
@@ -163,20 +146,20 @@ describe('spines', () => {
   });
 
   it('leaves the ancestors real in their own section', () => {
-    const rows = build(split, 'ACTIVE');
+    const rows = buildRows(split, 'ACTIVE');
     expect(rows.map((row) => row.project.id)).toEqual(['sport', 'workout']);
     expect(rows.every((row) => row.isSpine)).toBe(false);
   });
 
   it('omits a branch with nothing of this section under it', () => {
-    expect(ids([...split, { id: 'unrelated' }], 'BACKLOG')).not.toContain(
+    expect(listIds([...split, { id: 'unrelated' }], 'BACKLOG')).not.toContain(
       'unrelated',
     );
   });
 
   it('emits members before spines under the same parent', () => {
     expect(
-      ids(
+      listIds(
         [
           { id: 'workout' },
           { id: 'arms', parent: 'workout', status: 'BACKLOG' },
@@ -192,7 +175,82 @@ describe('spines', () => {
     const returned = split.map((seed) =>
       seed.id === 'legs' ? { ...seed, status: 'ACTIVE' as const } : seed,
     );
-    expect(ids(returned, 'BACKLOG')).toEqual([]);
+    expect(listIds(returned, 'BACKLOG')).toEqual([]);
+  });
+});
+
+describe('colour', () => {
+  it('uses its own colour when it has one', () => {
+    expect(buildRows([{ id: 'sport', color: '#ff0000' }])[0].hexCode).toBe(
+      '#ff0000',
+    );
+  });
+
+  it('inherits from the nearest ancestor that has one', () => {
+    const rows = buildRows([
+      { id: 'sport', color: '#ff0000' },
+      { id: 'workout', parent: 'sport' },
+      { id: 'legs', parent: 'workout' },
+    ]);
+
+    expect(rows.map((row) => row.hexCode)).toEqual([
+      '#ff0000',
+      '#ff0000',
+      '#ff0000',
+    ]);
+  });
+
+  it('stops at the nearest one rather than the furthest', () => {
+    const rows = buildRows([
+      { id: 'sport', color: '#ff0000' },
+      { id: 'workout', parent: 'sport', color: '#00ff00' },
+      { id: 'legs', parent: 'workout' },
+    ]);
+
+    expect(rows.map((row) => row.hexCode)).toEqual([
+      '#ff0000',
+      '#00ff00',
+      '#00ff00',
+    ]);
+  });
+
+  it('marks a colour as its own only when the project carries one', () => {
+    const rows = buildRows([
+      { id: 'sport', color: '#ff0000' },
+      { id: 'workout', parent: 'sport' },
+      { id: 'legs', parent: 'workout', color: '#0000ff' },
+      { id: 'errands' },
+    ]);
+
+    expect(rows.map((row) => row.ownsColor)).toEqual([
+      true,
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it('leaves a project with no coloured ancestor blank', () => {
+    const rows = buildRows([{ id: 'sport' }, { id: 'workout', parent: 'sport' }]);
+
+    expect(rows.map((row) => row.hexCode)).toEqual([null, null]);
+  });
+
+  it('inherits across a spine, whose section does not matter', () => {
+    const rows = buildRows(
+      [
+        { id: 'sport', color: '#ff0000' },
+        { id: 'workout', parent: 'sport' },
+        { id: 'legs', parent: 'workout', status: 'BACKLOG' },
+      ],
+      'BACKLOG',
+    );
+
+    expect(rows.map((row) => row.hexCode)).toEqual([
+      '#ff0000',
+      '#ff0000',
+      '#ff0000',
+    ]);
   });
 });
 
@@ -201,7 +259,7 @@ describe('collapsing', () => {
     { id: 'sport' },
     { id: 'workout', parent: 'sport' },
     { id: 'legs', parent: 'workout' },
-  ].map(project);
+  ].map(makeProject);
 
   it('hides the whole subtree under a collapsed node', () => {
     const rows = buildSectionRows(tree, 'ACTIVE', {

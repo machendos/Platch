@@ -13,7 +13,7 @@ import type { PanesVisible } from './layoutStorage';
 import { layoutStorage } from './layoutStorage';
 import { apiClient, getConnection } from '../../system/api.client';
 import type { CurrentUser } from '../../api/structures/CurrentUser';
-import type { ProjectWithTimeSlots } from '../../api/structures/ProjectWithTimeSlots';
+import { useProjects } from './useProjects';
 import { useVisibleRange } from './useVisibleRange';
 import { useWorkspaceLayout } from './useWorkspaceLayout';
 import { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
@@ -35,15 +35,11 @@ export const MainPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  /* Not part of the render gate below: the header and the calendar must not
-     wait on a list only the dispatcher shows. Its sections draw empty and
-     fill. */
-  const [projects, setProjects] = useState<ProjectWithTimeSlots[]>([]);
-
   useEffect(() => {
     apiClient.user.getCurrentUser(getConnection()).then(setCurrentUser);
-    apiClient.project.getProjectsByUser(getConnection()).then(setProjects);
   }, []);
+
+  const { projects, move } = useProjects();
 
   useEffect(() => {
     Promise.all([
@@ -88,8 +84,6 @@ export const MainPage = () => {
         isCalendarVisible: panes.calendar,
       },
       paneWeights,
-      // Only the drag's own state, not the stored copy: the write waits for
-      // `onDragEnd`, so one drag is one write instead of one per pointer move.
       setPaneWeights,
     );
 
@@ -120,7 +114,11 @@ export const MainPage = () => {
               style={{ gridTemplateColumns }}
             >
               {panes.dispatcher && (
-                <Dispatcher currentUser={currentUser} projects={projects} />
+                <Dispatcher
+                  currentUser={currentUser}
+                  projects={projects}
+                  onMove={move}
+                />
               )}
 
               {panes.dispatcher && panes.calendar && (

@@ -1,5 +1,6 @@
 import { TypedBody, TypedQuery } from '@nestia/core';
 import { Controller, Delete, Get, Patch, Post } from '@nestjs/common';
+import { Project } from '../../prisma-client';
 import { GetUser } from '../system/common/get.user.decorator';
 import { UserDescriptor } from '../system/common/user.descriptor';
 import { CreateProjectDto, toCreateProject } from './dto/create.project.dto';
@@ -34,11 +35,11 @@ export class ProjectsController {
   }
 
   @Post('move')
-  async moveProject(
+  moveProject(
     @GetUser() user: UserDescriptor,
     @TypedBody() body: MoveProjectDto,
-  ): Promise<void> {
-    await this.projectDragService.moveProject(body, user.id);
+  ): Promise<Project[]> {
+    return this.projectDragService.moveProject(body, user.id);
   }
 
   @Patch()
