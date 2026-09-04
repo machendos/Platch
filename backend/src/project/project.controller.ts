@@ -3,7 +3,7 @@ import { Controller, Delete, Get, Patch, Post } from '@nestjs/common';
 import { GetUser } from '../system/common/get.user.decorator';
 import { UserDescriptor } from '../system/common/user.descriptor';
 import { CreateProjectDto, toCreateProject } from './dto/create.project.dto';
-import { UpdateProjectDto } from './dto/update.project.dto';
+import { UpdateProjectDto, toUpdateProject } from './dto/update.project.dto';
 import { ProjectsService } from './project.service';
 
 @Controller('project')
@@ -29,7 +29,12 @@ export class ProjectsController {
   }
 
   @Patch()
-  updateProject(@TypedBody() body: UpdateProjectDto) {}
+  updateProject(
+    @GetUser() user: UserDescriptor,
+    @TypedBody() body: UpdateProjectDto,
+  ) {
+    return this.projectsService.updateProject(toUpdateProject(body), user.id);
+  }
 
   @Delete()
   deleteProject(@TypedQuery() query: { id: string }) {}

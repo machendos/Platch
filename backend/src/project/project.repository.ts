@@ -24,6 +24,18 @@ export class ProjectsRepository {
     });
   }
 
+  async getProjectWithTimeSlots(
+    where: Prisma.ProjectWhereUniqueInput,
+  ): Promise<ProjectWithTimeSlots> {
+    return this.prismaService.project.findUniqueOrThrow({
+      where,
+      include: {
+        timeComponents: { include: { recurringTimeSlots: true } },
+        color: true,
+      },
+    });
+  }
+
   getColorsForUser(userId: string) {
     return this.prismaService.color.findMany({
       include: {
@@ -36,10 +48,19 @@ export class ProjectsRepository {
     return this.prismaService.project.create({ data });
   }
 
-  updateProject(
+  async updateProject(
     where: Prisma.ProjectWhereUniqueInput,
     data: Prisma.ProjectUpdateInput,
-  ) {}
+  ): Promise<ProjectWithTimeSlots> {
+    return this.prismaService.project.update({
+      where,
+      data,
+      include: {
+        timeComponents: { include: { recurringTimeSlots: true } },
+        color: true,
+      },
+    });
+  }
 
   deleteProject(where: Prisma.ProjectWhereUniqueInput) {}
 }
