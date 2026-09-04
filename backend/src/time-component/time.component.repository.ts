@@ -27,10 +27,28 @@ export class TimeComponentsRepository {
     });
   }
 
-  updateTimeComponent(
+  async updateTimeComponent(
     where: Prisma.TimeComponentWhereUniqueInput,
     data: Prisma.TimeComponentUpdateInput,
-  ) {}
+  ): Promise<TimeComponentWithSlots> {
+    return this.prismaService.timeComponent.update({
+      where,
+      data,
+      include: { recurringTimeSlots: true },
+    });
+  }
 
-  deleteTimeComponent(where: Prisma.TimeComponentWhereUniqueInput) {}
+  async deleteTimeComponent(
+    where: Prisma.TimeComponentWhereUniqueInput,
+  ): Promise<void> {
+    await this.prismaService.$transaction([
+      this.prismaService.event.deleteMany({
+        where: { timeComponentId: where.id },
+      }),
+      this.prismaService.recurringTimeSlots.deleteMany({
+        where: { timeComponentId: where.id },
+      }),
+      this.prismaService.timeComponent.delete({ where }),
+    ]);
+  }
 }

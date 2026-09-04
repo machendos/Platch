@@ -1,14 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { Temporal } from '@js-temporal/polyfill';
 import { generateKeyBetween } from 'fractional-indexing';
 import { CreateProject } from './dto/create.project.dto';
-import { UpdateProjectDto } from './dto/update.project.dto';
-import { ProjectsRepository } from './project.repository';
+import { UpdateProject } from './dto/update.project.dto';
+import { ProjectsRepository, ProjectWithTimeSlots } from './project.repository';
 import { TimeComponentsService } from '../time-component/time.component.service';
+import { ErrorCode } from '../system/errors/error.code';
+import { ErrorType, PlatchError } from '../system/errors/platch.error';
 import {
   plainDateToDate,
   plainTimeToDate,
 } from '../system/common/date.mappers';
 import { ProjectStatus } from '../../prisma-client';
+
+const notFound = (message: string) =>
+  new PlatchError({
+    type: ErrorType.COMMON,
+    code: ErrorCode.NOT_FOUND,
+    message,
+  });
+
+/* Absent and empty are different answers here: a field the caller left out is
+   one it is not touching, and an explicit `null` is one it is clearing.
+   Prisma reads `undefined` as "leave alone", so passing the two through
+   unchanged is what makes both possible. */
+const dateColumn = (value?: Temporal.PlainDate | null) =>
+  value === null ? null : plainDateToDate(value);
+
+const timeColumn = (value?: Temporal.PlainTime | null) =>
+  value === null ? null : plainTimeToDate(value);
+
+const relation = (id?: string | null) => {
+  if (id === undefined) return undefined;
+  return id === null ? { disconnect: true } : { connect: { id } };
+};
 
 @Injectable()
 export class ProjectsService {
@@ -84,7 +109,7 @@ export class ProjectsService {
       color: dto.colorId ? { connect: { id: dto.colorId } } : undefined,
     });
 
-    const createdTimeComponents = await Promise.all(
+    await Promise.all(
       dto.timeComponents.map((timeComponent) =>
         this.timeComponentsService.createTimeComponent({
           ...timeComponent,
@@ -93,10 +118,71 @@ export class ProjectsService {
       ),
     );
 
-    return { ...createdProject, timeComponents: createdTimeComponents };
+    return this.projectsRepository.getProjectWithTimeSlots({
+      id: createdProject.id,
+    });
   }
 
-  updateProject(dto: UpdateProjectDto) {}
+  async updateProject(
+    dto: UpdateProject,
+    userId: string,
+  ): Promise<ProjectWithTimeSlots> {
+    const project = await this.projectsRepository.getProjectWithTimeSlots({
+      id: dto.id,
+      userId,
+    });
+
+    const unexistingTimeComponentIds = [
+      ...dto.updatedTimeComponents.map(({ id }) => id),
+      ...dto.deletedTimeComponentIds,
+    ].filter((id) =>
+      project.timeComponents.every(({ id: itToTest }) => itToTest !== id),
+    );
+
+    if (unexistingTimeComponentIds.length > 0) {
+      throw new PlatchError({
+        type: ErrorType.CLIENT_UNEXPECTED,
+        message: 'Unexisting time components to edit/delete',
+        extraData: { unexistingTimeComponentIds },
+      });
+    }
+
+    await this.projectsRepository.updateProject(
+      { id: dto.id },
+      {
+        name: dto.name,
+        goal: dto.goal,
+        context: dto.context,
+        projectStatus: dto.projectStatus,
+        timeNeededMinutes: dto.timeNeededMinutes,
+        minBlockMinutes: dto.minBlockMinutes,
+        repetitionsNeeded: dto.repetitionsNeeded,
+        earliestDate: dateColumn(dto.earliestDate),
+        earliestTime: timeColumn(dto.earliestTime),
+        deadlineDate: dateColumn(dto.deadlineDate),
+        deadlineTime: timeColumn(dto.deadlineTime),
+        flexibleTimezone: dto.flexibleTimezone,
+        originalTimezone: dto.originalTimezone,
+
+        parentProject: relation(dto.parentProjectId),
+        color: relation(dto.colorId),
+      },
+    );
+
+    for (const id of dto.deletedTimeComponentIds ?? [])
+      await this.timeComponentsService.deleteTimeComponent(id);
+
+    for (const component of dto.updatedTimeComponents ?? [])
+      await this.timeComponentsService.updateTimeComponent(component);
+
+    for (const component of dto.createdTimeComponents ?? [])
+      await this.timeComponentsService.createTimeComponent({
+        ...component,
+        projectId: dto.id,
+      });
+
+    return this.projectsRepository.getProjectWithTimeSlots({ id: dto.id });
+  }
 
   deleteProject() {}
 }
