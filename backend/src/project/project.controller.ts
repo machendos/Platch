@@ -4,11 +4,16 @@ import { GetUser } from '../system/common/get.user.decorator';
 import { UserDescriptor } from '../system/common/user.descriptor';
 import { CreateProjectDto, toCreateProject } from './dto/create.project.dto';
 import { UpdateProjectDto, toUpdateProject } from './dto/update.project.dto';
+import { MoveProjectDto } from './dto/move.project.dto';
+import { ProjectDragService } from './project.drag.service';
 import { ProjectsService } from './project.service';
 
 @Controller('project')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly projectDragService: ProjectDragService,
+  ) {}
 
   @Get()
   getProjectsByUser(@GetUser() user: UserDescriptor) {
@@ -26,6 +31,14 @@ export class ProjectsController {
     @TypedBody() body: CreateProjectDto,
   ) {
     return this.projectsService.createProject(toCreateProject(body), user.id);
+  }
+
+  @Post('move')
+  async moveProject(
+    @GetUser() user: UserDescriptor,
+    @TypedBody() body: MoveProjectDto,
+  ): Promise<void> {
+    await this.projectDragService.moveProject(body, user.id);
   }
 
   @Patch()

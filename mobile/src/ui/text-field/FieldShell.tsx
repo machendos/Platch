@@ -38,7 +38,9 @@ export const FieldShell = ({
         {label}
       </label>
     )}
-    <div className={icon ? 'field-control field-control-iconed' : 'field-control'}>
+    <div
+      className={icon ? 'field-control field-control-iconed' : 'field-control'}
+    >
       {icon && (
         <span className="field-icon" aria-hidden="true">
           {icon}

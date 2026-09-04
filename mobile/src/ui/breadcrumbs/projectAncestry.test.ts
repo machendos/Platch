@@ -55,7 +55,10 @@ describe('buildAncestry', () => {
   });
 
   it('stops where a chain leaves the list', () => {
-    const orphaned = [project('kitchen', 'house'), project('shelves', 'kitchen')];
+    const orphaned = [
+      project('kitchen', 'house'),
+      project('shelves', 'kitchen'),
+    ];
 
     expect(labels(buildAncestry(orphaned, 'shelves'))).toEqual([
       'KITCHEN',

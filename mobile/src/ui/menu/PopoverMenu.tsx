@@ -26,15 +26,7 @@ type PopoverMenuProps = {
   items: MenuItem[];
   label: string;
   icon?: string;
-  /* The panel covers the trigger corner-to-corner and grows out of it, so its
-     vertical offset is the trigger's own height. Omit this and the size comes
-     from --popover-menu-trigger-size in the stylesheet; pass it only to differ
-     from that, and only because the portal below blocks inheritance. */
   triggerSize?: number;
-  /* 'adjacent' drops the panel below the trigger and never covers it — the
-     default, because a menu usually acts on something the reader needs to keep
-     seeing. 'cover' is the iOS button idiom, where the panel sits over the
-     trigger and grows out of it; right only when nothing underneath matters. */
   placement?: 'adjacent' | 'cover';
   triggerClassName?: string;
 };
