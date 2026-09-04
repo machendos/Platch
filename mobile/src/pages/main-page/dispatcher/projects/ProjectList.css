@@ -1,4 +1,7 @@
+/* Positioned so the consequence line can be placed against the list rather
+   than inserted between its rows. */
 .project-list {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--project-row-gap);

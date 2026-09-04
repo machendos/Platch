@@ -6,11 +6,9 @@
 //================================================================
 import type { IConnection } from "@nestia/fetcher";
 import { PlainFetcher } from "@nestia/fetcher";
-import type { tags } from "typia";
 
 import type { CreateProjectDto } from "../../structures/CreateProjectDto";
 import type { ProjectWithTimeSlots } from "../../structures/ProjectWithTimeSlots";
-import type { TimeComponentWithSlots } from "../../structures/TimeComponentWithSlots";
 import type { UpdateProjectDto } from "../../structures/UpdateProjectDto";
 
 export * as colors from "./colors/index";
@@ -76,27 +74,7 @@ export async function createProject(
 }
 export namespace createProject {
   export type Body = CreateProjectDto;
-  export type Output = {
-    timeComponents: TimeComponentWithSlots[];
-    name: null | string;
-    id: string;
-    goal: null | string;
-    context: null | string;
-    timeNeededMinutes: null | number;
-    minBlockMinutes: null | number;
-    repetitionsNeeded: null | number;
-    earliestDate: null | (string & tags.Format<"date-time">);
-    earliestTime: null | (string & tags.Format<"date-time">);
-    deadlineDate: null | (string & tags.Format<"date-time">);
-    deadlineTime: null | (string & tags.Format<"date-time">);
-    projectStatus: "ACTIVE" | "BACKLOG";
-    flexibleTimezone: boolean;
-    originalTimezone: null | string;
-    parentProjectId: null | string;
-    colorId: null | string;
-    prevProjectIdInHierarchy: null | string;
-    userId: string;
-  };
+  export type Output = ProjectWithTimeSlots;
 
   export const METADATA = {
     method: "POST",
@@ -124,7 +102,7 @@ export namespace createProject {
 export async function updateProject(
   connection: IConnection,
   body: updateProject.Body,
-): Promise<void> {
+): Promise<updateProject.Output> {
   return PlainFetcher.fetch(
     {
       ...connection,
@@ -143,6 +121,7 @@ export async function updateProject(
 }
 export namespace updateProject {
   export type Body = UpdateProjectDto;
+  export type Output = ProjectWithTimeSlots;
 
   export const METADATA = {
     method: "PATCH",

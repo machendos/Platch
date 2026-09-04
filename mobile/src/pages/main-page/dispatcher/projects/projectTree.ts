@@ -5,61 +5,23 @@ export type ProjectStatus = ProjectWithTimeSlots['projectStatus'];
 export type ProjectRow = {
   project: ProjectWithTimeSlots;
   depth: number;
-  /* An ancestor drawn only so its descendants can be located: its own status
-     belongs to another section. It is one row of the same project, never a
-     copy — see docs/dispatcher.md. */
   isSpine: boolean;
   hasChildren: boolean;
+  hexCode: string | null;
+  ownsColor: boolean;
 };
 
-type Chainable = { id: string; prevProjectIdInHierarchy: string | null };
+const sortProjectsByPosition = <T extends { id: string; position: string }>(
+  items: T[],
+) =>
+  [...items].sort((left, right) =>
+    left.position === right.position
+      ? left.id.localeCompare(right.id)
+      : left.position < right.position
+        ? -1
+        : 1,
+  );
 
-/* The order of one (parentProjectId, projectStatus) chain. The data can be
-   corrupt in four ways and every one of them still has to render, so none of
-   this throws: a chain with no null head takes its lowest id as the head,
-   several null heads run one after another in id order, a cycle is cut by
-   `seen`, and whatever the walk never reaches is appended in id order. */
-const orderChain = <T extends Chainable>(siblings: T[]): T[] => {
-  if (siblings.length < 2) return siblings;
-
-  const byId = new Set(siblings.map((sibling) => sibling.id));
-  const byPrev = new Map<string, T>();
-  const heads: T[] = [];
-
-  for (const sibling of siblings) {
-    const prev = sibling.prevProjectIdInHierarchy;
-    if (prev === null || !byId.has(prev)) heads.push(sibling);
-    else byPrev.set(prev, sibling);
-  }
-
-  const byIdOrder = (a: T, b: T) => (a.id < b.id ? -1 : 1);
-  const ordered: T[] = [];
-  const seen = new Set<string>();
-
-  const walkFrom = (start: T) => {
-    let node: T | undefined = start;
-    while (node && !seen.has(node.id)) {
-      seen.add(node.id);
-      ordered.push(node);
-      node = byPrev.get(node.id);
-    }
-  };
-
-  const starts = heads.length > 0 ? [...heads] : [...siblings];
-  starts.sort(byIdOrder);
-  starts.forEach(walkFrom);
-
-  const stranded = siblings
-    .filter((sibling) => !seen.has(sibling.id))
-    .sort(byIdOrder);
-  stranded.forEach(walkFrom);
-
-  return ordered;
-};
-
-/* Keyed on what is collapsed, not on what is expanded: a project's children
-   show by default, so the set holds exceptions. An expanded-keyed set would
-   have to be seeded with every id and resynced whenever projects load. */
 type Options = { collapsedIds?: ReadonlySet<string> };
 
 export const buildSectionRows = (
@@ -67,19 +29,19 @@ export const buildSectionRows = (
   status: ProjectStatus,
   { collapsedIds }: Options = {},
 ): ProjectRow[] => {
-  const byId = new Map(projects.map((project) => [project.id, project]));
+  const projectByIdMap = new Map(
+    projects.map((project) => [project.id, project]),
+  );
 
-  /* A parent that does not exist, or that is the project itself, would make
-     the walk unreachable or infinite. Both read as a root instead. */
-  const parentOf = (project: ProjectWithTimeSlots) => {
+  const resolveParentId = (project: ProjectWithTimeSlots) => {
     const parentId = project.parentProjectId;
     if (parentId === null || parentId === project.id) return null;
-    return byId.has(parentId) ? parentId : null;
+    return projectByIdMap.has(parentId) ? parentId : null;
   };
 
   const childrenOf = new Map<string | null, ProjectWithTimeSlots[]>();
   for (const project of projects) {
-    const parentId = parentOf(project);
+    const parentId = resolveParentId(project);
     const siblings = childrenOf.get(parentId);
     if (siblings) siblings.push(project);
     else childrenOf.set(parentId, [project]);
@@ -88,60 +50,76 @@ export const buildSectionRows = (
   const isMember = (project: ProjectWithTimeSlots) =>
     project.projectStatus === status;
 
-  /* A node earns a row when it is in this section, or when it stands between
-     the root and something that is. */
-  const shown = new Set<string>();
+  /* Not every project: the ones in this section, plus the ancestors needed to
+     locate them, which render as spines. A project in the other section with
+     nothing of this one beneath it never appears. Each walk up stops at the
+     first id already collected, so shared ancestry is climbed once rather than
+     once per descendant. */
+  const idsToRender = new Set<string>();
+
   for (const project of projects) {
     if (!isMember(project)) continue;
 
     let id: string | null = project.id;
-    while (id !== null && !shown.has(id)) {
-      shown.add(id);
-      const node = byId.get(id);
-      id = node ? parentOf(node) : null;
+
+    while (id !== null && !idsToRender.has(id)) {
+      idsToRender.add(id);
+      const ancestor = projectByIdMap.get(id);
+      id = ancestor ? resolveParentId(ancestor) : null;
     }
   }
 
   const rows: ProjectRow[] = [];
 
-  const emit = (parentId: string | null, depth: number) => {
+  /* Colour travels down with the walk rather than being resolved per row.
+     Climbing to find the nearest coloured ancestor is O(depth) each time, which
+     made a deep tree quadratic; the parent is always emitted first, so its
+     resolved colour is simply handed to its children. */
+  const emit = (
+    parentId: string | null,
+    depth: number,
+    inheritedColorHex: string | null,
+  ) => {
     const visible = (childrenOf.get(parentId) ?? []).filter((child) =>
-      shown.has(child.id),
+      idsToRender.has(child.id),
     );
     if (visible.length === 0) return false;
 
-    /* Members first in their own chain order, then spines in theirs. Two
-       independent chains have no interleaving anyone could predict, so the
-       spines follow rather than mix in. */
-    const members = orderChain(visible.filter(isMember));
-    const spines = orderChain(visible.filter((child) => !isMember(child)));
+    const members = sortProjectsByPosition(visible.filter(isMember));
+    const spines = sortProjectsByPosition(
+      visible.filter((child) => !isMember(child)),
+    );
 
     for (const project of [...members, ...spines]) {
       const index = rows.length;
+      const hexCode = project.color?.hexCode ?? inheritedColorHex;
+
       rows.push({
         project,
         depth,
         isSpine: !isMember(project),
         hasChildren: false,
+        hexCode,
+        ownsColor: project.color !== null,
       });
 
       if (collapsedIds?.has(project.id)) {
         rows[index].hasChildren = (childrenOf.get(project.id) ?? []).some(
-          (child) => shown.has(child.id),
+          (child) => idsToRender.has(child.id),
         );
         continue;
       }
 
-      rows[index].hasChildren = emit(project.id, depth + 1);
+      rows[index].hasChildren = emit(project.id, depth + 1, hexCode);
     }
 
     return true;
   };
 
-  emit(null, 0);
+  emit(null, 0, null);
 
   return rows;
 };
 
-export const maxDepth = (rows: ProjectRow[]) =>
+export const findMaxDepth = (rows: ProjectRow[]) =>
   rows.reduce((deepest, row) => Math.max(deepest, row.depth), 0);

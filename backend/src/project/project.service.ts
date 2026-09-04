@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Temporal } from '@js-temporal/polyfill';
+import { generateKeyBetween } from 'fractional-indexing';
 import { CreateProject } from './dto/create.project.dto';
 import { UpdateProject } from './dto/update.project.dto';
 import { ProjectsRepository, ProjectWithTimeSlots } from './project.repository';
@@ -10,6 +11,7 @@ import {
   plainDateToDate,
   plainTimeToDate,
 } from '../system/common/date.mappers';
+import { ProjectStatus } from '../../prisma-client';
 
 const notFound = (message: string) =>
   new PlatchError({
@@ -44,6 +46,25 @@ export class ProjectsService {
     return this.projectsRepository.getProjectsWithTimeSlots({ userId });
   }
 
+  private async generatePositionAtEnd(
+    userId: string,
+    parentProjectId: string | null,
+    projectStatus: ProjectStatus,
+  ) {
+    const siblings = await this.projectsRepository.findProjects({
+      userId,
+      parentProjectId,
+      projectStatus,
+    });
+
+    const tail = siblings
+      .map((sibling) => sibling.position)
+      .sort()
+      .at(-1);
+
+    return generateKeyBetween(tail ?? null, null);
+  }
+
   async getProjectColors(userId: string) {
     const colors = await this.projectsRepository.getColorsForUser(userId);
 
@@ -57,6 +78,12 @@ export class ProjectsService {
 
   async createProject(dto: CreateProject, userId: string) {
     const createdProject = await this.projectsRepository.createProject({
+      position: await this.generatePositionAtEnd(
+        userId,
+        dto.parentProjectId ?? null,
+        dto.projectStatus,
+      ),
+
       name: dto.name,
       goal: dto.goal,
       context: dto.context,
@@ -74,10 +101,6 @@ export class ProjectsService {
 
       flexibleTimezone: dto.flexibleTimezone,
       originalTimezone: dto.originalTimezone,
-
-      prevProjectInHierarchy: dto.prevProjectIdInHierarchy
-        ? { connect: { id: dto.prevProjectIdInHierarchy } }
-        : undefined,
 
       user: { connect: { id: userId } },
       parentProject: dto.parentProjectId

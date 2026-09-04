@@ -1,0 +1,41 @@
+.consequence-line {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: var(--project-consequence-line-height);
+  margin-block-start: calc(var(--project-consequence-line-height) / -2);
+  border-radius: var(--project-consequence-line-height);
+  background: var(--accent);
+  pointer-events: none;
+  /* Both the gap it sits in and the parent it claims are transitions of one
+     element, so it reads as the same line moving rather than a new one. */
+  transition:
+    transform 140ms var(--easing-standard),
+    margin-inline-start 140ms var(--easing-standard);
+}
+
+/* The dot marks the depth the row will land at, so it sits fully inside the
+   line's leading edge rather than straddling it — a dot centred on the edge
+   would read half a level to the left of where the row actually goes. */
+.consequence-line::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(
+    (
+        var(--project-consequence-line-height) -
+          var(--project-consequence-dot-size)
+      ) /
+      2
+  );
+  width: var(--project-consequence-dot-size);
+  height: var(--project-consequence-dot-size);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consequence-line {
+    transition: none;
+  }
+}

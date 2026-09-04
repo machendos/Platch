@@ -52,9 +52,9 @@ export class ProjectsRepository extends Repository {
 
   async updateProject(
     where: Prisma.ProjectWhereUniqueInput,
-    data: Prisma.ProjectUpdateInput,
+    data: Prisma.ProjectUpdateArgs['data'],
   ): Promise<ProjectWithTimeSlots> {
-    return this.prismaService.project.update({
+    return this.db.project.update({
       where,
       data,
       include: {

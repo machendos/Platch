@@ -6,6 +6,7 @@
 //================================================================
 import type { IConnection } from "@nestia/fetcher";
 import { PlainFetcher } from "@nestia/fetcher";
+import type { tags } from "typia";
 
 import type { MoveProjectDto } from "../../../structures/MoveProjectDto";
 
@@ -18,7 +19,7 @@ import type { MoveProjectDto } from "../../../structures/MoveProjectDto";
 export async function moveProject(
   connection: IConnection,
   body: moveProject.Body,
-): Promise<void> {
+): Promise<moveProject.Output> {
   return PlainFetcher.fetch(
     {
       ...connection,
@@ -37,6 +38,26 @@ export async function moveProject(
 }
 export namespace moveProject {
   export type Body = MoveProjectDto;
+  export type Output = {
+    name: null | string;
+    id: string;
+    goal: null | string;
+    context: null | string;
+    timeNeededMinutes: null | number;
+    minBlockMinutes: null | number;
+    repetitionsNeeded: null | number;
+    earliestDate: null | (string & tags.Format<"date-time">);
+    earliestTime: null | (string & tags.Format<"date-time">);
+    deadlineDate: null | (string & tags.Format<"date-time">);
+    deadlineTime: null | (string & tags.Format<"date-time">);
+    projectStatus: "ACTIVE" | "BACKLOG";
+    flexibleTimezone: boolean;
+    originalTimezone: null | string;
+    position: string;
+    parentProjectId: null | string;
+    colorId: null | string;
+    userId: string;
+  }[];
 
   export const METADATA = {
     method: "POST",

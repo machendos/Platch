@@ -1,6 +1,6 @@
 import { trashOutline } from 'ionicons/icons';
-import type { MenuItem } from '../../../../ui/menu/PopoverMenu';
-import type { ProjectStatus } from './projectTree';
+import type { MenuItem } from '../../../../../ui/menu/PopoverMenu';
+import type { ProjectStatus } from '../projectTree';
 
 const DESTINATION: Record<ProjectStatus, { label: string }> = {
   ACTIVE: { label: 'Add to Plan' },
