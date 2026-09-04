@@ -5,12 +5,10 @@ import {
   TimeString,
 } from '../validation/validation.decorators';
 
-export const plainDateToDate = (value?: Temporal.PlainDate) =>
-  value
-    ? new Date(Date.UTC(value.year, value.month - 1, value.day))
-    : undefined;
+export const plainDateToDate = (value?: Temporal.PlainDate | null) =>
+  value ? new Date(Date.UTC(value.year, value.month - 1, value.day)) : value;
 
-export const plainTimeToDate = (value?: Temporal.PlainTime) =>
+export const plainTimeToDate = (value?: Temporal.PlainTime | null) =>
   value
     ? new Date(
         Date.UTC(
@@ -23,9 +21,9 @@ export const plainTimeToDate = (value?: Temporal.PlainTime) =>
           value.millisecond,
         ),
       )
-    : undefined;
+    : value;
 
-export const plainDateTimeToDate = (value?: Temporal.PlainDateTime) =>
+export const plainDateTimeToDate = (value?: Temporal.PlainDateTime | null) =>
   value
     ? new Date(
         Date.UTC(
@@ -38,13 +36,17 @@ export const plainDateTimeToDate = (value?: Temporal.PlainDateTime) =>
           value.millisecond,
         ),
       )
-    : undefined;
+    : value;
 
-export const stringToPlainDate = (value?: DateString) =>
-  value === undefined ? undefined : Temporal.PlainDate.from(value);
+export const stringToPlainDate = (value?: DateString | null) =>
+  value === null || value === undefined
+    ? value
+    : Temporal.PlainDate.from(value);
 
-export const stringToPlainTime = (value?: TimeString) =>
-  value === undefined ? undefined : Temporal.PlainTime.from(value);
+export const stringToPlainTime = (value?: TimeString | null) =>
+  value === null || value === undefined
+    ? value
+    : Temporal.PlainTime.from(value);
 
 export const stringToPlainDateTime = (value?: DateTimeString) =>
   value === undefined ? undefined : Temporal.PlainDateTime.from(value);

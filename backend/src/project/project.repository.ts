@@ -22,6 +22,18 @@ export class ProjectsRepository extends Repository {
     });
   }
 
+  async getProjectWithTimeSlots(
+    where: Prisma.ProjectWhereUniqueInput,
+  ): Promise<ProjectWithTimeSlots> {
+    return this.prismaService.project.findUniqueOrThrow({
+      where,
+      include: {
+        timeComponents: { include: { recurringTimeSlots: true } },
+        color: true,
+      },
+    });
+  }
+
   getColorsForUser(userId: string) {
     return this.db.color.findMany({
       include: {
@@ -38,11 +50,18 @@ export class ProjectsRepository extends Repository {
     return this.db.project.findMany({ where });
   }
 
-  updateProject(
+  async updateProject(
     where: Prisma.ProjectWhereUniqueInput,
-    data: Prisma.ProjectUpdateArgs['data'],
-  ) {
-    return this.db.project.update({ where, data });
+    data: Prisma.ProjectUpdateInput,
+  ): Promise<ProjectWithTimeSlots> {
+    return this.prismaService.project.update({
+      where,
+      data,
+      include: {
+        timeComponents: { include: { recurringTimeSlots: true } },
+        color: true,
+      },
+    });
   }
 
   updateProjects(

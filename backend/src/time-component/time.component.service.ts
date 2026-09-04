@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { Temporal } from '@js-temporal/polyfill';
+import { RecurringTimeSlotsType } from '../../prisma-client';
 import { CreateTimeComponent } from './dto/create.time.component.dto';
-import { UpdateTimeComponentDto } from './dto/update.time.component.dto';
-import { TimeComponentsRepository } from './time.component.repository';
+import { UpdateTimeComponent } from './dto/update.time.component.dto';
+import {
+  TimeComponentWithSlots,
+  TimeComponentsRepository,
+} from './time.component.repository';
 import {
   plainDateTimeToDate,
   plainDateToDate,
@@ -47,7 +52,55 @@ export class TimeComponentsService {
     });
   }
 
-  updateTimeComponent(dto: UpdateTimeComponentDto) {}
+  async updateTimeComponent(
+    dto: UpdateTimeComponent,
+  ): Promise<TimeComponentWithSlots> {
+    const slots = dto.recurringTimeSlots ?? [];
+    const keptIds = slots
+      .map((slot) => slot.id)
+      .filter((id): id is string => id !== undefined);
 
-  deleteTimeComponent() {}
+    return this.timeComponentsRepository.updateTimeComponent(
+      { id: dto.id },
+      {
+        type: dto.type,
+        absoluteFrom: plainDateTimeToDate(dto.absoluteFrom) ?? null,
+        absoluteTo: plainDateTimeToDate(dto.absoluteTo) ?? null,
+
+        recurringInterval: dto.recurringInterval ?? null,
+        recurringFrequency: dto.recurringFrequency ?? null,
+        recurringByDay: dto.recurringByDay ?? [],
+        recurringByMonthDay: dto.recurringByMonthDay ?? null,
+        recurringByMonth: dto.recurringByMonth ?? null,
+        recurringStartDate: plainDateToDate(dto.recurringStartDate) ?? null,
+
+        recurringTimeSlots: {
+          deleteMany: { id: { notIn: keptIds } },
+          update: slots
+            .filter(({ id }) => id)
+            .map((slot) => ({
+              where: { id: slot.id },
+              data: {
+                type: slot.type,
+                from: plainTimeToDate(slot.from) ?? null,
+                to: plainTimeToDate(slot.to) ?? null,
+                flexibleMinutesNeeded: slot.flexibleMinutesNeeded ?? null,
+              },
+            })),
+          create: slots
+            .filter(({ id }) => !id)
+            .map((slot) => ({
+              type: slot.type,
+              from: plainTimeToDate(slot.from) ?? null,
+              to: plainTimeToDate(slot.to) ?? null,
+              flexibleMinutesNeeded: slot.flexibleMinutesNeeded ?? null,
+            })),
+        },
+      },
+    );
+  }
+
+  async deleteTimeComponent(id: string): Promise<void> {
+    await this.timeComponentsRepository.deleteTimeComponent({ id });
+  }
 }

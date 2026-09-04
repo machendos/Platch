@@ -46,10 +46,10 @@ export class CreateProjectDto {
 
 export const toCreateProject = (dto: CreateProjectDto) => ({
   ...dto,
-  earliestDate: stringToPlainDate(dto.earliestDate),
-  earliestTime: stringToPlainTime(dto.earliestTime),
-  deadlineDate: stringToPlainDate(dto.deadlineDate),
-  deadlineTime: stringToPlainTime(dto.deadlineTime),
+  earliestDate: stringToPlainDate(dto.earliestDate) ?? undefined,
+  earliestTime: stringToPlainTime(dto.earliestTime) ?? undefined,
+  deadlineDate: stringToPlainDate(dto.deadlineDate) ?? undefined,
+  deadlineTime: stringToPlainTime(dto.deadlineTime) ?? undefined,
   timeComponents: dto.timeComponents.map(toTimeComponent),
 });
 
