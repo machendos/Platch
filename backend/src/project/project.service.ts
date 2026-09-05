@@ -3,7 +3,11 @@ import { Temporal } from '@js-temporal/polyfill';
 import { generateKeyBetween } from 'fractional-indexing';
 import { CreateProject } from './dto/create.project.dto';
 import { UpdateProject } from './dto/update.project.dto';
-import { ProjectsRepository, ProjectWithTimeSlots } from './project.repository';
+import {
+  ProjectsRepository,
+  ProjectsSnapshot,
+  ProjectWithTimeSlots,
+} from './project.repository';
 import { TimeComponentsService } from '../time-component/time.component.service';
 import { ErrorCode } from '../system/errors/error.code';
 import { ErrorType, PlatchError } from '../system/errors/platch.error';
@@ -42,8 +46,15 @@ export class ProjectsService {
     private timeComponentsService: TimeComponentsService,
   ) {}
 
-  getProjectsByUser(userId: string) {
-    return this.projectsRepository.getProjectsWithTimeSlots({ userId });
+  async getProjectsByUser(userId: string): Promise<ProjectsSnapshot> {
+    const version = await this.projectsRepository.readProjectsVersion(userId);
+
+    return {
+      version,
+      projects: await this.projectsRepository.getProjectsWithTimeSlots({
+        userId,
+      }),
+    };
   }
 
   private async generatePositionAtEnd(

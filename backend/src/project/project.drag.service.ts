@@ -5,7 +5,8 @@ import { TransactionsService } from '../system/database/transactions.service';
 import { ErrorCode } from '../system/errors/error.code';
 import { ErrorType, PlatchError } from '../system/errors/platch.error';
 import { MoveProjectDto } from './dto/move.project.dto';
-import { ProjectsRepository } from './project.repository';
+import { ProjectsRepository, ProjectsSnapshot } from './project.repository';
+import { runInBatches } from '../system/common/run.in.batches';
 
 type ProjectStatus = $Enums.ProjectStatus;
 
@@ -18,38 +19,40 @@ export class ProjectDragService {
     private transactionsService: TransactionsService,
   ) {}
 
-  async moveProject(dto: MoveProjectDto, userId: string): Promise<Project[]> {
+  async moveProject(
+    dto: MoveProjectDto,
+    userId: string,
+  ): Promise<ProjectsSnapshot> {
     return this.transactionsService.executeInTransaction({}, async () => {
       await this.transactionsService.acquireLock(`project-chain:${userId}`);
 
       const projects = await this.projectsRepository.findProjects({ userId });
-      const moved = this.validateMove(projects, dto);
-      const status = dto.projectStatus ?? moved.projectStatus;
-
-      const changed = new Map<string, Project>();
+      const movedProject = this.validateMove(projects, dto);
+      const status = dto.projectStatus ?? movedProject.projectStatus;
 
       const position = this.resolvePosition(projects, dto, status);
-      changed.set(
-        dto.id,
-        await this.projectsRepository.updateProject(
-          { id: dto.id },
-          {
-            position,
-            parentProjectId: dto.parentProjectId,
-            projectStatus: status,
-          },
-        ),
+      await this.projectsRepository.updateProject(
+        { id: dto.id },
+        {
+          position,
+          parentProjectId: dto.parentProjectId,
+          projectStatus: status,
+        },
       );
 
-      if (status !== moved.projectStatus) {
-        for (const project of await this.carrySubtree(projects, moved, status))
-          changed.set(project.id, project);
-      }
+      await this.carrySubtree(projects, movedProject, status);
+      await this.rebalance(userId, dto, status);
 
-      for (const project of await this.rebalance(userId, dto, status))
-        changed.set(project.id, project);
-
-      return [...changed.values()];
+      /* Both taken inside the transaction the advisory lock guards, so the
+         version and the rows it labels can never come from different states —
+         which is what lets the client order snapshots that arrive out of
+         order. */
+      return {
+        version: await this.projectsRepository.bumpProjectsVersion(userId),
+        projects: await this.projectsRepository.getProjectsWithTimeSlots({
+          userId,
+        }),
+      };
     });
   }
 
@@ -127,8 +130,6 @@ export class ProjectDragService {
       );
     }
 
-    const changed: Project[] = [];
-
     for (const parentId of [moved.id, ...subtree]) {
       const children = projects.filter(
         (project) => project.parentProjectId === parentId,
@@ -145,17 +146,17 @@ export class ProjectDragService {
       const tail = this.sortProjectsByPosition(settled).at(-1) as Project;
       const keys = generateNKeysBetween(tail.position, null, arriving.length);
 
-      for (const [index, child] of this.sortProjectsByPosition(arriving).entries()) {
-        changed.push(
-          await this.projectsRepository.updateProject(
-            { id: child.id },
-            { position: keys[index] },
-          ),
-        );
-      }
+      await runInBatches(
+        this.sortProjectsByPosition(arriving).map(
+          ({ id }, index) =>
+            () =>
+              this.projectsRepository.updateProject(
+                { id },
+                { position: keys[index] },
+              ),
+        ),
+      );
     }
-
-    return changed;
   }
 
   /* Only ever triggered by a move into the group, so a group nobody reorders
@@ -182,18 +183,16 @@ export class ProjectDragService {
     if (longest < REBALANCE_KEY_LENGTH) return [];
 
     const keys = generateNKeysBetween(null, null, group.length);
-    const changed: Project[] = [];
 
-    for (const [index, project] of group.entries()) {
-      changed.push(
-        await this.projectsRepository.updateProject(
-          { id: project.id },
-          { position: keys[index] },
-        ),
-      );
-    }
-
-    return changed;
+    await runInBatches(
+      group.map(
+        (project, index) => () =>
+          this.projectsRepository.updateProject(
+            { id: project.id },
+            { position: keys[index] },
+          ),
+      ),
+    );
   }
 
   private sortProjectsByPosition(projects: Project[]) {

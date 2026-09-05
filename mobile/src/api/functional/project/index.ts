@@ -8,6 +8,7 @@ import type { IConnection } from "@nestia/fetcher";
 import { PlainFetcher } from "@nestia/fetcher";
 
 import type { CreateProjectDto } from "../../structures/CreateProjectDto";
+import type { ProjectsSnapshot } from "../../structures/ProjectsSnapshot";
 import type { ProjectWithTimeSlots } from "../../structures/ProjectWithTimeSlots";
 import type { UpdateProjectDto } from "../../structures/UpdateProjectDto";
 
@@ -30,7 +31,7 @@ export async function getProjectsByUser(
   });
 }
 export namespace getProjectsByUser {
-  export type Output = ProjectWithTimeSlots[];
+  export type Output = ProjectsSnapshot;
 
   export const METADATA = {
     method: "GET",

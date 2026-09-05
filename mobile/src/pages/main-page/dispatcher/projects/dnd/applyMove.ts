@@ -13,7 +13,10 @@ export const childrenOfProjectMap = (projects: ProjectWithTimeSlots[]) => {
   return childrenOf;
 };
 
-const collectDescendantIds = (projects: ProjectWithTimeSlots[], rootId: string) => {
+const collectDescendantIds = (
+  projects: ProjectWithTimeSlots[],
+  rootId: string,
+) => {
   const childrenOf = childrenOfProjectMap(projects);
 
   const subtree = new Set<string>();
@@ -52,40 +55,6 @@ export const applyMove = (
 
     return subtree.has(project.id) && project.projectStatus !== status
       ? { ...project, projectStatus: status }
-      : project;
-  });
-};
-
-/* The server owns the keys. It answers a move with every row it touched —
-   which after a rebalance is the whole sibling group, not just the one that
-   moved — and those values replace whatever the optimistic apply guessed. Only
-   the ordering fields are taken: the response carries no relations, and
-   overwriting the whole row would drop the colour and time components. */
-export type OrderedRow = {
-  id: string;
-  parentProjectId: string | null;
-  position: string;
-  projectStatus: ProjectWithTimeSlots['projectStatus'];
-};
-
-export const applyServerRows = (
-  projects: ProjectWithTimeSlots[],
-  rows: OrderedRow[],
-): ProjectWithTimeSlots[] => {
-  if (rows.length === 0) return projects;
-
-  const byId = new Map(rows.map((row) => [row.id, row]));
-
-  return projects.map((project) => {
-    const row = byId.get(project.id);
-
-    return row
-      ? {
-          ...project,
-          parentProjectId: row.parentProjectId,
-          position: row.position,
-          projectStatus: row.projectStatus,
-        }
       : project;
   });
 };
