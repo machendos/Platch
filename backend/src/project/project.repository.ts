@@ -8,8 +8,32 @@ export interface ProjectWithTimeSlots extends Project {
   color: Color | null;
 }
 
+export interface ProjectsSnapshot {
+  version: number;
+  projects: ProjectWithTimeSlots[];
+}
+
 @Injectable()
 export class ProjectsRepository extends Repository {
+  async bumpProjectsVersion(userId: string): Promise<number> {
+    const { projectsVersion } = await this.db.user.update({
+      where: { id: userId },
+      data: { projectsVersion: { increment: 1 } },
+      select: { projectsVersion: true },
+    });
+
+    return projectsVersion;
+  }
+
+  async readProjectsVersion(userId: string): Promise<number> {
+    const { projectsVersion } = await this.db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { projectsVersion: true },
+    });
+
+    return projectsVersion;
+  }
+
   async getProjectsWithTimeSlots(
     where: Prisma.ProjectWhereInput,
   ): Promise<ProjectWithTimeSlots[]> {

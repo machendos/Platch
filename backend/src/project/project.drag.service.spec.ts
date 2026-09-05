@@ -39,6 +39,7 @@ const matches = (row: Project, where: Prisma.ProjectWhereInput) =>
     (where.id as { in: string[] }).in.includes(row.id));
 
 const buildRepository = (seed: Seed[]) => {
+  let version = 0;
   const rows = seed.map(makeProject);
 
   const write = (row: Project, data: Record<string, string | null>) => {
@@ -54,6 +55,11 @@ const buildRepository = (seed: Seed[]) => {
     findProjects: jest.fn(async (where: Prisma.ProjectWhereInput) =>
       rows.filter((row) => matches(row, where)).map((row) => ({ ...row })),
     ),
+    getProjectsWithTimeSlots: jest.fn(async (where: Prisma.ProjectWhereInput) =>
+      rows.filter((row) => matches(row, where)).map((row) => ({ ...row })),
+    ),
+    bumpProjectsVersion: jest.fn(async () => (version += 1)),
+    readProjectsVersion: jest.fn(async () => version),
     updateProject: jest.fn(
       async (
         where: Prisma.ProjectWhereUniqueInput,
@@ -169,15 +175,38 @@ describe('ProjectDragService', () => {
       expect(listOrderedIds(repository.rows, null)).toEqual(['c', 'a', 'b', 'd']);
     });
 
-    it('returns the rows it changed', async () => {
+    it('returns the whole list, with the move already applied', async () => {
       const { service } = buildService(list);
 
-      const changed = await service.moveProject(
+      const returned = await service.moveProject(
         makeMove({ id: 'b', position: generateKeyBetween('a4', null) }),
         'user',
       );
 
-      expect(changed.map((row) => row.id)).toEqual(['b']);
+      expect(returned.projects.map((row) => row.id).sort()).toEqual([
+        'a',
+        'b',
+        'c',
+        'd',
+      ]);
+      expect(returned.projects.find((row) => row.id === 'b')?.position).toBe(
+        generateKeyBetween('a4', null),
+      );
+    });
+
+    it('labels each snapshot with a version that only ever climbs', async () => {
+      const { service } = buildService(list);
+
+      const first = await service.moveProject(
+        makeMove({ id: 'b', position: 'a5' }),
+        'user',
+      );
+      const second = await service.moveProject(
+        makeMove({ id: 'c', position: 'a6' }),
+        'user',
+      );
+
+      expect(second.version).toBeGreaterThan(first.version);
     });
 
     it('takes the lock before reading', async () => {
@@ -384,7 +413,11 @@ describe('ProjectDragService', () => {
         repository.rows.every((row) => row.position.length < 10),
       ).toBe(true);
       expect(listOrderedIds(repository.rows, null)).toEqual(['a', 'b', 'c']);
-      expect(changed.map((row) => row.id).sort()).toEqual(['a', 'b', 'c']);
+      expect(changed.projects.map((row) => row.id).sort()).toEqual([
+        'a',
+        'b',
+        'c',
+      ]);
     });
 
     it('leaves short keys alone', async () => {

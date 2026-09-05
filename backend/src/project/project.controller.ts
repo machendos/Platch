@@ -1,10 +1,9 @@
 import { TypedBody, TypedQuery } from '@nestia/core';
 import { Controller, Delete, Get, Patch, Post } from '@nestjs/common';
-import { Project } from '../../prisma-client';
 import { GetUser } from '../system/common/get.user.decorator';
 import { UserDescriptor } from '../system/common/user.descriptor';
 import { CreateProjectDto, toCreateProject } from './dto/create.project.dto';
-import { UpdateProjectDto, toUpdateProject } from './dto/update.project.dto';
+import { toUpdateProject, UpdateProjectDto } from './dto/update.project.dto';
 import { MoveProjectDto } from './dto/move.project.dto';
 import { ProjectDragService } from './project.drag.service';
 import { ProjectsService } from './project.service';
@@ -38,7 +37,7 @@ export class ProjectsController {
   moveProject(
     @GetUser() user: UserDescriptor,
     @TypedBody() body: MoveProjectDto,
-  ): Promise<Project[]> {
+  ) {
     return this.projectDragService.moveProject(body, user.id);
   }
 
