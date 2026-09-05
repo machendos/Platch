@@ -1,6 +1,11 @@
 /* Positioned so the consequence line can be placed against the list rather
    than inserted between its rows. */
 .project-list {
+  /* Fills the section body so the empty space under the last row is still part
+     of the drop target — an empty list is zero-height otherwise, and a category
+     with nothing in it could never be dropped into. */
+  min-height: 100%;
+  box-sizing: border-box;
   position: relative;
   display: flex;
   flex-direction: column;

@@ -26,8 +26,6 @@ export class UpdateProjectDto {
   goal?: string | null;
   context?: string | null;
 
-  projectStatus?: ProjectStatus;
-
   timeNeededMinutes?: Int | null;
   minBlockMinutes?: Int | null;
   repetitionsNeeded?: Int | null;
@@ -40,7 +38,6 @@ export class UpdateProjectDto {
   flexibleTimezone?: boolean;
   originalTimezone?: string | null;
 
-  parentProjectId?: Uuid | null;
   colorId?: Uuid | null;
 
   createdTimeComponents: TimeComponentFields[];

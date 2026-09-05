@@ -27,11 +27,6 @@ export namespace getCurrentUser {
     username: string;
     id: string;
     defaultEvenLengthMinutes: number;
-
-    /**
-     * Bumped inside the transaction that writes projects, so every snapshot the
-     * client receives can be ordered against the ones it already applied.
-     */
     projectsVersion: number;
   };
 

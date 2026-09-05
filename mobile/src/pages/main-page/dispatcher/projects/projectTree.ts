@@ -5,13 +5,14 @@ export type ProjectStatus = ProjectWithTimeSlots['projectStatus'];
 export type ProjectRow = {
   project: ProjectWithTimeSlots;
   depth: number;
-  isSpine: boolean;
   hasChildren: boolean;
   hexCode: string | null;
   ownsColor: boolean;
 };
 
-const sortProjectsByPosition = <T extends { id: string; position: string }>(
+export const sortProjectsByPosition = <
+  T extends { id: string; position: string },
+>(
   items: T[],
 ) =>
   [...items].sort((left, right) =>
@@ -22,6 +23,43 @@ const sortProjectsByPosition = <T extends { id: string; position: string }>(
         : 1,
   );
 
+export type MemberTree = {
+  memberById: Map<string, ProjectWithTimeSlots>;
+  childrenOf: Map<string | null, ProjectWithTimeSlots[]>;
+};
+
+/* A section's projects and the edges between them, and nothing else. A parent
+   in the other category reads as no parent at all, so its child renders at the
+   top level rather than disappearing — the same treatment a missing parent
+   already got. Moves keep parent and child in one category, so that fallback
+   should never fire; it is here so bad data stays visible. */
+export const buildMemberTree = (
+  projects: ProjectWithTimeSlots[],
+  status: ProjectStatus,
+): MemberTree => {
+  const memberById = new Map(
+    projects
+      .filter((project) => project.projectStatus === status)
+      .map((project) => [project.id, project]),
+  );
+
+  const childrenOf = new Map<string | null, ProjectWithTimeSlots[]>();
+
+  for (const project of memberById.values()) {
+    const parentId = project.parentProjectId;
+    const resolved =
+      parentId !== null && parentId !== project.id && memberById.has(parentId)
+        ? parentId
+        : null;
+
+    const siblings = childrenOf.get(resolved);
+    if (siblings) siblings.push(project);
+    else childrenOf.set(resolved, [project]);
+  }
+
+  return { memberById, childrenOf };
+};
+
 type Options = { collapsedIds?: ReadonlySet<string> };
 
 export const buildSectionRows = (
@@ -29,45 +67,7 @@ export const buildSectionRows = (
   status: ProjectStatus,
   { collapsedIds }: Options = {},
 ): ProjectRow[] => {
-  const projectByIdMap = new Map(
-    projects.map((project) => [project.id, project]),
-  );
-
-  const resolveParentId = (project: ProjectWithTimeSlots) => {
-    const parentId = project.parentProjectId;
-    if (parentId === null || parentId === project.id) return null;
-    return projectByIdMap.has(parentId) ? parentId : null;
-  };
-
-  const childrenOf = new Map<string | null, ProjectWithTimeSlots[]>();
-  for (const project of projects) {
-    const parentId = resolveParentId(project);
-    const siblings = childrenOf.get(parentId);
-    if (siblings) siblings.push(project);
-    else childrenOf.set(parentId, [project]);
-  }
-
-  const isMember = (project: ProjectWithTimeSlots) =>
-    project.projectStatus === status;
-
-  /* Not every project: the ones in this section, plus the ancestors needed to
-     locate them, which render as spines. A project in the other section with
-     nothing of this one beneath it never appears. Each walk up stops at the
-     first id already collected, so shared ancestry is climbed once rather than
-     once per descendant. */
-  const idsToRender = new Set<string>();
-
-  for (const project of projects) {
-    if (!isMember(project)) continue;
-
-    let id: string | null = project.id;
-
-    while (id !== null && !idsToRender.has(id)) {
-      idsToRender.add(id);
-      const ancestor = projectByIdMap.get(id);
-      id = ancestor ? resolveParentId(ancestor) : null;
-    }
-  }
+  const { childrenOf } = buildMemberTree(projects, status);
 
   const rows: ProjectRow[] = [];
 
@@ -80,33 +80,23 @@ export const buildSectionRows = (
     depth: number,
     inheritedColorHex: string | null,
   ) => {
-    const visible = (childrenOf.get(parentId) ?? []).filter((child) =>
-      idsToRender.has(child.id),
-    );
-    if (visible.length === 0) return false;
+    const children = childrenOf.get(parentId) ?? [];
+    if (children.length === 0) return false;
 
-    const members = sortProjectsByPosition(visible.filter(isMember));
-    const spines = sortProjectsByPosition(
-      visible.filter((child) => !isMember(child)),
-    );
-
-    for (const project of [...members, ...spines]) {
+    for (const project of sortProjectsByPosition(children)) {
       const index = rows.length;
       const hexCode = project.color?.hexCode ?? inheritedColorHex;
 
       rows.push({
         project,
         depth,
-        isSpine: !isMember(project),
         hasChildren: false,
         hexCode,
         ownsColor: project.color !== null,
       });
 
       if (collapsedIds?.has(project.id)) {
-        rows[index].hasChildren = (childrenOf.get(project.id) ?? []).some(
-          (child) => idsToRender.has(child.id),
-        );
+        rows[index].hasChildren = (childrenOf.get(project.id) ?? []).length > 0;
         continue;
       }
 
@@ -120,6 +110,3 @@ export const buildSectionRows = (
 
   return rows;
 };
-
-export const findMaxDepth = (rows: ProjectRow[]) =>
-  rows.reduce((deepest, row) => Math.max(deepest, row.depth), 0);

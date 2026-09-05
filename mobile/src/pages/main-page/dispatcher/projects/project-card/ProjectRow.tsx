@@ -20,6 +20,7 @@ type ProjectRowProps = {
   status: ProjectStatus;
   isExpanded: boolean;
   onToggleExpanded: (id: string) => void;
+  onMoveToOtherCategory: (id: string) => void;
 };
 
 export const ProjectRow = ({
@@ -29,8 +30,9 @@ export const ProjectRow = ({
   status,
   isExpanded,
   onToggleExpanded,
+  onMoveToOtherCategory,
 }: ProjectRowProps) => {
-  const { project, depth, isSpine, hasChildren, hexCode, ownsColor } = row;
+  const { project, depth, hasChildren, hexCode, ownsColor } = row;
   const name = projectName(project.name);
 
   const { ref, isDragSource } = useSortable({
@@ -39,7 +41,6 @@ export const ProjectRow = ({
     group: status,
     type: 'project',
     accept: 'project',
-    disabled: { draggable: isSpine },
     data: { depth },
     plugins: (defaults) =>
       defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
@@ -53,7 +54,6 @@ export const ProjectRow = ({
       data-depth={depth}
       className={[
         'project-row',
-        isSpine && 'project-row-spine',
         opensGap && 'project-row-gap-open',
         isDragSource && 'project-row-dragging',
       ]
@@ -91,7 +91,9 @@ export const ProjectRow = ({
       </span>
 
       <PopoverMenu
-        items={projectMenuItems(status)}
+        items={projectMenuItems(status, {
+          onMoveToOtherCategory: () => onMoveToOtherCategory(project.id),
+        })}
         label={`${name} actions`}
         icon={ellipsisVertical}
         triggerSize={PROJECT_MENU_TRIGGER_SIZE}
