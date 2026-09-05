@@ -6,8 +6,14 @@ import type { ProjectStatus } from './projectTree';
 import { buildSectionRows } from './projectTree';
 import { ConsequenceLine } from './ConsequenceLine';
 import { ProjectRow } from './project-card/ProjectRow';
+import { collectDescendantIds } from './dnd/applyMove';
 import { useProjectDrag } from './dnd/ProjectDragContext';
 import { prefersReducedMotion } from '../../../../system/helpers/prefersReducedMotion';
+import {
+  PROJECT_REVEAL_DURATION_MS,
+  revealStagger,
+} from '../../layout-config';
+import type { ProjectRow as ProjectRowModel } from './projectTree';
 import './ProjectList.css';
 
 export type RevealRequest = { id: string; token: number };
@@ -17,6 +23,21 @@ type ProjectListProps = {
   status: ProjectStatus;
   reveal: RevealRequest | null;
   onMoveToOtherCategory: (id: string) => void;
+};
+
+/* The landed project and its real descendants, in the order they are drawn.
+   Not the run of deeper rows following it — that also swallows unrelated
+   branches that merely happen to sit lower in the tree. */
+const landedRun = (
+  rows: ProjectRowModel[],
+  projects: ProjectWithTimeSlots[],
+  id: string,
+) => {
+  const subtree = collectDescendantIds(projects, id);
+
+  return rows
+    .filter((row) => subtree.has(row.project.id))
+    .map((row) => row.project.id);
 };
 
 const withAncestorsExpanded = (
@@ -63,6 +84,8 @@ export const ProjectList = ({
     data: { status },
   });
   const revealed = useRef<number | null>(null);
+  const animated = useRef<number | null>(null);
+  const [revealing, setRevealing] = useState<readonly string[]>([]);
 
   const rows = useMemo(
     () => buildSectionRows(projects, status, { collapsedIds }),
@@ -98,6 +121,25 @@ export const ProjectList = ({
     return () => cancelAnimationFrame(frame);
   }, [reveal, rows, collapsedIds, projects]);
 
+  /* Held in state for exactly as long as the animation runs, so re-renders
+     during it cannot restart it and nothing lingers afterwards. */
+  useEffect(() => {
+    if (!reveal || animated.current === reveal.token) return;
+
+    const ids = landedRun(rows, projects, reveal.id);
+    if (ids.length === 0) return;
+
+    animated.current = reveal.token;
+    setRevealing(ids);
+
+    const clear = globalThis.setTimeout(
+      () => setRevealing([]),
+      PROJECT_REVEAL_DURATION_MS + revealStagger(ids.length) * (ids.length - 1),
+    );
+
+    return () => globalThis.clearTimeout(clear);
+  }, [reveal, rows, projects]);
+
   const toggleExpanded = (id: string) =>
     setCollapsedIds((current) => {
       const next = new Set(current);
@@ -106,6 +148,12 @@ export const ProjectList = ({
       } else next.add(id);
       return next;
     });
+
+  /* A row being carried is not also arriving. Without this the reveal class can
+     still be on it when dnd-kit clones it into a placeholder. */
+  useEffect(() => {
+    if (drag.draggingId !== null) setRevealing([]);
+  }, [drag.draggingId]);
 
   const visible = rows.filter((row) => !drag.hiddenIds.has(row.project.id));
   const lineAt = drag.section === status ? drag.gapIndex : null;
@@ -139,6 +187,12 @@ export const ProjectList = ({
           isExpanded={!collapsedIds.has(row.project.id)}
           onToggleExpanded={toggleExpanded}
           onMoveToOtherCategory={onMoveToOtherCategory}
+          revealDelayMs={
+            revealing.indexOf(row.project.id) === -1
+              ? null
+              : revealing.indexOf(row.project.id) *
+                revealStagger(revealing.length)
+          }
         />
       ))}
 

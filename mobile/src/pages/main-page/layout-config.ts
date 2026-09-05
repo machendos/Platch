@@ -23,6 +23,25 @@ export const PROJECT_ROW_DRAGGING_OPACITY = 0.75;
 
 export const PROJECT_DROP_GAP = 12;
 
+/* A landed project wipes in from its top edge, and a subtree unfolds row by row
+   behind it. The stagger is what makes it read as one tree arriving rather than
+   several rows blinking at once.
+
+   The cascade is a budget, not a per-row cost: a big subtree tightens its
+   stagger to fit rather than taking a second per ten rows. Small ones never
+   reach the budget and keep the full step. */
+export const PROJECT_REVEAL_DURATION_MS = 220;
+export const PROJECT_REVEAL_STAGGER_MS = 45;
+export const PROJECT_REVEAL_CASCADE_MS = 300;
+
+export const revealStagger = (rowCount: number) =>
+  rowCount < 2
+    ? 0
+    : Math.min(
+        PROJECT_REVEAL_STAGGER_MS,
+        PROJECT_REVEAL_CASCADE_MS / (rowCount - 1),
+      );
+
 // TODO: dynamic default pane weights
 export const DEFAULT_PANE_WEIGHTS = { dispatcher: 1, calendar: 2 };
 
@@ -39,4 +58,5 @@ export const layoutCssVariables = {
   '--project-consequence-dot-size': `${PROJECT_CONSEQUENCE_DOT_SIZE}px`,
   '--project-row-dragging-opacity': `${PROJECT_ROW_DRAGGING_OPACITY}`,
   '--project-drop-gap': `${PROJECT_DROP_GAP}px`,
+  '--project-reveal-duration': `${PROJECT_REVEAL_DURATION_MS}ms`,
 } as CSSProperties;

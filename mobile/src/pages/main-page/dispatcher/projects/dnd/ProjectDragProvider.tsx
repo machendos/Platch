@@ -14,14 +14,17 @@ import {
 import { generateKeyBetween } from 'fractional-indexing';
 import { buildSectionRows } from '../projectTree';
 import type { ProjectStatus } from '../projectTree';
+import { collectDescendantIds } from './applyMove';
 import { resolveDrop } from './dropProjection';
 import type { Projection } from './dropProjection';
+import { traceDrop } from './dropTrace';
 import { EMPTY_DRAG, ProjectDragContext } from './ProjectDragContext';
 import type { DragState } from './ProjectDragContext';
 
 type ProjectDragProviderProps = {
   projects: ProjectWithTimeSlots[];
   onMove: (dto: MoveProjectDto) => void;
+  onDropped: (id: string) => void;
   children: ReactNode;
 };
 
@@ -61,30 +64,11 @@ const findPreviousSibling = (
     .sort((left, right) => (precedes(left, right) ? -1 : 1))
     .at(-1);
 
-const collectDescendantIds = (projects: ProjectWithTimeSlots[], rootId: string) => {
-  const childrenOf = new Map<string, string[]>();
-  for (const project of projects) {
-    if (project.parentProjectId === null) continue;
-    const ids = childrenOf.get(project.parentProjectId);
-    if (ids) ids.push(project.id);
-    else childrenOf.set(project.parentProjectId, [project.id]);
-  }
-
-  const subtree = new Set<string>();
-  const queue = [rootId];
-  while (queue.length > 0) {
-    const id = queue.pop() as string;
-    if (subtree.has(id)) continue;
-    subtree.add(id);
-    for (const child of childrenOf.get(id) ?? []) queue.push(child);
-  }
-
-  return subtree;
-};
 
 export const ProjectDragProvider = ({
   projects,
   onMove,
+  onDropped,
   children,
 }: ProjectDragProviderProps) => {
   const [drag, setDrag] = useState<DragState>(EMPTY_DRAG);
@@ -262,6 +246,7 @@ export const ProjectDragProvider = ({
     if (unchanged) return;
 
     onMove(dto);
+    onDropped(id);
   };
 
   return (
@@ -296,6 +281,9 @@ export const ProjectDragProvider = ({
         update(section, pointerY.current, event.operation.transform.x);
       }}
       onDragEnd={(event) => {
+        const dragged = latest.current.id;
+        if (dragged) traceDrop(dragged);
+
         if (event.canceled) {
           latest.current = {
             id: null,
