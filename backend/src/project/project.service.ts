@@ -17,13 +17,6 @@ import {
 } from '../system/common/date.mappers';
 import { ProjectStatus } from '../../prisma-client';
 
-const notFound = (message: string) =>
-  new PlatchError({
-    type: ErrorType.COMMON,
-    code: ErrorCode.NOT_FOUND,
-    message,
-  });
-
 /* Absent and empty are different answers here: a field the caller left out is
    one it is not touching, and an explicit `null` is one it is clearing.
    Prisma reads `undefined` as "leave alone", so passing the two through
@@ -164,7 +157,6 @@ export class ProjectsService {
         name: dto.name,
         goal: dto.goal,
         context: dto.context,
-        projectStatus: dto.projectStatus,
         timeNeededMinutes: dto.timeNeededMinutes,
         minBlockMinutes: dto.minBlockMinutes,
         repetitionsNeeded: dto.repetitionsNeeded,
@@ -175,7 +167,11 @@ export class ProjectsService {
         flexibleTimezone: dto.flexibleTimezone,
         originalTimezone: dto.originalTimezone,
 
-        parentProject: relation(dto.parentProjectId),
+        // TODO: status can be edited with children follow
+        /* Category and parent are not editable here. They decide each other —
+           a parent owns its children's category — and only the move endpoint
+           cascades that to the subtree, holds the lock, and bumps the version a
+           client needs to accept the result. */
         color: relation(dto.colorId),
       },
     );

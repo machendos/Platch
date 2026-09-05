@@ -276,9 +276,16 @@ export const ProjectDragProvider = ({
       }
       onDragOver={(event) => {
         const { target } = event.operation;
-        if (!isSortable(target)) return;
 
-        const section = target.group as ProjectStatus;
+        /* A row names its own category; the section-wide droppable behind them
+           carries it in `data`, and is what makes the empty space below the last
+           row — and a category with no rows at all — droppable. */
+        const section = isSortable(target)
+          ? (target.group as ProjectStatus)
+          : ((target?.data as { status?: ProjectStatus } | undefined)?.status ??
+            null);
+
+        if (section === null) return;
 
         update(section, pointerY.current, event.operation.transform.x);
       }}

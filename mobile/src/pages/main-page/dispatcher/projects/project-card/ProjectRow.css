@@ -36,15 +36,6 @@
   }
 }
 
-/* A spine is an ancestor drawn so its descendants can be found — the project
-   itself lives in the other section. The dotted border is the reason it does
-   not drag: it has no position in this section to change. */
-.project-row-spine {
-  border-style: dotted;
-  background: var(--surface-subtle);
-  color: var(--text-secondary);
-}
-
 /* Nothing here collapses the row's old space: dnd-kit leaves a placeholder
    behind, already at zero height, and closes the gap itself. The empty space
    that used to open was its optimistic sorting, which is off — see the note in

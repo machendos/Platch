@@ -27,8 +27,16 @@ export class ProjectDragService {
       await this.transactionsService.acquireLock(`project-chain:${userId}`);
 
       const projects = await this.projectsRepository.findProjects({ userId });
-      const movedProject = this.validateMove(projects, dto);
-      const status = dto.projectStatus ?? movedProject.projectStatus;
+      const { movedProject, parent } = this.validateMove(projects, dto);
+
+      /* A parent decides its children's category, so a status on the wire is
+         only consulted when the project is landing at the root. Deriving rather
+         than rejecting keeps a stale client's move working: it asked to put the
+         project under this parent, and that is still what happens. */
+      const status =
+        parent?.projectStatus ??
+        dto.projectStatus ??
+        movedProject.projectStatus;
 
       const position = this.resolvePosition(projects, dto, status);
       await this.projectsRepository.updateProject(
@@ -63,19 +71,21 @@ export class ProjectDragService {
       throw this.buildRejection('Project not found.', ErrorCode.NOT_FOUND);
     }
 
-    if (dto.parentProjectId !== null) {
-      const parent = projects.find(
-        (project) => project.id === dto.parentProjectId,
-      );
-
-      if (!parent) throw this.buildRejection('The new parent does not exist.');
-
-      if (this.collectSubtreeIds(projects, dto.id).has(parent.id)) {
-        throw this.buildRejection('A project cannot be moved inside itself.');
-      }
+    if (dto.parentProjectId === null) {
+      return { movedProject: moved, parent: null };
     }
 
-    return moved;
+    const parent = projects.find(
+      (project) => project.id === dto.parentProjectId,
+    );
+
+    if (!parent) throw this.buildRejection('The new parent does not exist.');
+
+    if (this.collectSubtreeIds(projects, dto.id).has(parent.id)) {
+      throw this.buildRejection('A project cannot be moved inside itself.');
+    }
+
+    return { movedProject: moved, parent };
   }
 
   /* The client computes `position` against the keys it last read. A rebalance
@@ -115,53 +125,27 @@ export class ProjectDragService {
       : generateKeyBetween(prev?.position ?? null, next?.position ?? null);
   }
 
+  /* A category change takes the whole subtree with it. This is the only thing
+     keeping a parent and its children in the same category, which is in turn
+     what lets a section render without drawing ancestors from the other one. */
   private async carrySubtree(
     projects: Project[],
     moved: Project,
     status: ProjectStatus,
   ) {
+    if (status === moved.projectStatus) return;
+
     const subtree = this.collectSubtreeIds(projects, moved.id);
     subtree.delete(moved.id);
 
-    if (subtree.size > 0) {
-      await this.projectsRepository.updateProjects(
-        { id: { in: [...subtree] } },
-        { projectStatus: status },
-      );
-    }
+    if (subtree.size === 0) return;
 
-    for (const parentId of [moved.id, ...subtree]) {
-      const children = projects.filter(
-        (project) => project.parentProjectId === parentId,
-      );
-      const arriving = children.filter(
-        (child) => child.projectStatus !== status,
-      );
-      const settled = children.filter(
-        (child) => child.projectStatus === status,
-      );
-
-      if (arriving.length === 0 || settled.length === 0) continue;
-
-      const tail = this.sortProjectsByPosition(settled).at(-1) as Project;
-      const keys = generateNKeysBetween(tail.position, null, arriving.length);
-
-      await runInBatches(
-        this.sortProjectsByPosition(arriving).map(
-          ({ id }, index) =>
-            () =>
-              this.projectsRepository.updateProject(
-                { id },
-                { position: keys[index] },
-              ),
-        ),
-      );
-    }
+    await this.projectsRepository.updateProjects(
+      { id: { in: [...subtree] } },
+      { projectStatus: status },
+    );
   }
 
-  /* Only ever triggered by a move into the group, so a group nobody reorders
-     never pays for keys it is not growing. Which also means there is no
-     background pass: the write that lengthens a key is the write that pays. */
   private async rebalance(
     userId: string,
     dto: MoveProjectDto,
