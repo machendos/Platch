@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DragDropProvider, PointerSensor } from '@dnd-kit/react';
 import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom';
 import { isSortable } from '@dnd-kit/react/sortable';
@@ -12,14 +12,13 @@ import {
   PROJECT_ROW_MIN_HEIGHT,
 } from '../../../layout-config';
 import { generateKeyBetween } from 'fractional-indexing';
-import { buildSectionRows } from '../projectTree';
 import type { ProjectStatus } from '../projectTree';
+import { buildSectionRows } from '../projectTree';
 import { collectDescendantIds } from './applyMove';
-import { resolveDrop } from './dropProjection';
 import type { Projection } from './dropProjection';
-import { traceDrop } from './dropTrace';
-import { EMPTY_DRAG, ProjectDragContext } from './ProjectDragContext';
+import { resolveDrop } from './dropProjection';
 import type { DragState } from './ProjectDragContext';
+import { EMPTY_DRAG, ProjectDragContext } from './ProjectDragContext';
 
 type ProjectDragProviderProps = {
   projects: ProjectWithTimeSlots[];
@@ -63,7 +62,6 @@ const findPreviousSibling = (
     )
     .sort((left, right) => (precedes(left, right) ? -1 : 1))
     .at(-1);
-
 
 export const ProjectDragProvider = ({
   projects,
@@ -281,9 +279,6 @@ export const ProjectDragProvider = ({
         update(section, pointerY.current, event.operation.transform.x);
       }}
       onDragEnd={(event) => {
-        const dragged = latest.current.id;
-        if (dragged) traceDrop(dragged);
-
         if (event.canceled) {
           latest.current = {
             id: null,
