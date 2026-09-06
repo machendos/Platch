@@ -47,6 +47,9 @@ export const Dispatcher = ({
      from the one the menu was opened in. */
   const [reveal, setReveal] = useState<RevealRequest | null>(null);
 
+  const revealProject = (id: string) =>
+    setReveal((current) => ({ id, token: (current?.token ?? 0) + 1 }));
+
   const moveToOtherCategory = (id: string) => {
     const project = projects.find((candidate) => candidate.id === id);
     if (!project) return;
@@ -54,7 +57,7 @@ export const Dispatcher = ({
     const target = otherCategory(project.projectStatus);
 
     onMove(resolveCategoryMove(projects, project, target));
-    setReveal((current) => ({ id, token: (current?.token ?? 0) + 1 }));
+    revealProject(id);
   };
 
   const listFor = (status: 'ACTIVE' | 'BACKLOG') => (
@@ -109,7 +112,11 @@ export const Dispatcher = ({
   ].join(' ');
 
   return (
-    <ProjectDragProvider projects={projects} onMove={onMove}>
+    <ProjectDragProvider
+      projects={projects}
+      onMove={onMove}
+      onDropped={revealProject}
+    >
       <div
         className="dispatcher"
         ref={containerRef}

@@ -74,7 +74,12 @@
    neighbour. Animated rather than set outright: dnd-kit inserts the
    placeholder already holding the row's space, so closing it in one frame
    makes the rows below jump. */
-[data-dnd-placeholder] {
+/* Outranks `.project-row-revealing` deliberately. dnd-kit clones the row to make
+   this, class attribute and all, so grabbing a row that is still revealing gave
+   the clone both animations — and the later rule won, leaving the space it
+   should have closed. An uncollapsed placeholder also throws off the gap
+   arithmetic, which puts the consequence line through a card. */
+.project-row[data-dnd-placeholder] {
   visibility: hidden;
   animation: project-row-placeholder-collapse var(--duration-exit)
     var(--easing-standard) forwards;
@@ -93,7 +98,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-dnd-placeholder] {
+  .project-row[data-dnd-placeholder] {
     animation-duration: 1ms;
   }
 }
@@ -152,4 +157,43 @@
 /* Reserved, and sized so the row does not grow when it is filled. */
 .project-row-meta {
   min-height: calc(var(--font-sm) * 1.2);
+}
+
+/* Unfolds from no height at all rather than wiping in place, so everything below
+   is pushed down as it grows — a clip only repaints, and the list would already
+   be at its final layout before the animation started.
+
+   `min-height` has to go, or it floors the height at a full row and nothing
+   moves. The negative top margin absorbs the flex gap, which a zero-height row
+   would otherwise still claim.
+
+   `both`, not `backwards`: backwards holds the collapsed first frame through the
+   stagger delay, forwards holds the full one afterwards. Without forwards the
+   height reverts to `auto` the instant the animation ends while `min-height: 0`
+   is still applied, so the row sizes to its content until the cascade's timer
+   removes the class — a visible resize after it had already arrived. */
+.project-row-revealing:not([data-dnd-placeholder]) {
+  min-height: 0;
+  animation: project-row-reveal var(--project-reveal-duration)
+    var(--easing-standard) both;
+}
+
+@keyframes project-row-reveal {
+  from {
+    height: 0;
+    margin-block-start: calc(var(--project-row-gap) * -1);
+    opacity: 0;
+  }
+
+  to {
+    height: var(--project-row-min-height);
+    margin-block-start: 0;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-row-revealing {
+    animation: none;
+  }
 }

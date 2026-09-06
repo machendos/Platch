@@ -13,7 +13,7 @@ export const childrenOfProjectMap = (projects: ProjectWithTimeSlots[]) => {
   return childrenOf;
 };
 
-const collectDescendantIds = (
+export const collectDescendantIds = (
   projects: ProjectWithTimeSlots[],
   rootId: string,
 ) => {

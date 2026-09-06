@@ -21,6 +21,7 @@ type ProjectRowProps = {
   isExpanded: boolean;
   onToggleExpanded: (id: string) => void;
   onMoveToOtherCategory: (id: string) => void;
+  revealDelayMs: number | null;
 };
 
 export const ProjectRow = ({
@@ -31,6 +32,7 @@ export const ProjectRow = ({
   isExpanded,
   onToggleExpanded,
   onMoveToOtherCategory,
+  revealDelayMs,
 }: ProjectRowProps) => {
   const { project, depth, hasChildren, hexCode, ownsColor } = row;
   const name = projectName(project.name);
@@ -44,7 +46,11 @@ export const ProjectRow = ({
     data: { depth },
     plugins: (defaults) =>
       defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
-    transition: null,
+    /* Zero duration, not `null`. `useSortable` does `{...defaultSortableTransition,
+       ...input.transition}`, and spreading `null` contributes nothing — so `null`
+       silently restores the 250ms default and slides the row from where the drag
+       began to where it landed, after the finger has already carried it there. */
+    transition: { duration: 0, easing: 'linear', idle: false },
   });
 
   return (
@@ -54,6 +60,7 @@ export const ProjectRow = ({
       data-depth={depth}
       className={[
         'project-row',
+        revealDelayMs !== null && 'project-row-revealing',
         opensGap && 'project-row-gap-open',
         isDragSource && 'project-row-dragging',
       ]
@@ -61,6 +68,9 @@ export const ProjectRow = ({
         .join(' ')}
       style={{
         marginInlineStart: `calc(var(--project-indent-step) * ${depth})`,
+        ...(revealDelayMs === null
+          ? {}
+          : { animationDelay: `${Math.round(revealDelayMs)}ms` }),
       }}
     >
       <ColorStrip hexCode={hexCode} isInherited={!ownsColor} />
