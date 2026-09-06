@@ -46,6 +46,8 @@ describe('ProjectList', () => {
   it('draws one row per project, in chain order', () => {
     render(
       <ProjectList
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
         projects={[makeProject('b', null, 'a2'), makeProject('a', null, 'a1')]}
         status="ACTIVE"
       />,
@@ -56,7 +58,12 @@ describe('ProjectList', () => {
   });
 
   it('steps each level by the same shared indent variable', () => {
-    render(<ProjectList projects={tree} status="ACTIVE" />);
+    render(<ProjectList
+        projects={tree}
+        status="ACTIVE"
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
+      />);
 
     expect(findRow('sport').style.marginInlineStart).toBe(
       'calc(var(--project-indent-step) * 0)',
@@ -69,9 +76,11 @@ describe('ProjectList', () => {
     );
   });
 
-  it('marks an ancestor shown for context as a spine, and the project as real', () => {
+  it('draws no ancestor from the other category', () => {
     render(
       <ProjectList
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
         projects={[
           makeProject('sport'),
           makeProject('workout', 'sport'),
@@ -81,13 +90,23 @@ describe('ProjectList', () => {
       />,
     );
 
-    expect(findRow('sport')).toHaveClass('project-row-spine');
-    expect(findRow('workout')).toHaveClass('project-row-spine');
-    expect(findRow('legs')).not.toHaveClass('project-row-spine');
+    expect(screen.queryByText('sport')).toBeNull();
+    expect(screen.queryByText('workout')).toBeNull();
+
+    /* Its parent is in the other category, so it has none here and sits at the
+       top level rather than vanishing with it. */
+    expect(findRow('legs').style.marginInlineStart).toBe(
+      'calc(var(--project-indent-step) * 0)',
+    );
   });
 
   it('gives a chevron only to rows that render children', () => {
-    render(<ProjectList projects={tree} status="ACTIVE" />);
+    render(<ProjectList
+        projects={tree}
+        status="ACTIVE"
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
+      />);
 
     expect(screen.getByRole('button', { name: 'Collapse sport' })).toBeTruthy();
     expect(
@@ -97,7 +116,12 @@ describe('ProjectList', () => {
 
   it('hides the subtree when a chevron is clicked, and brings it back', async () => {
     const user = userEvent.setup();
-    render(<ProjectList projects={tree} status="ACTIVE" />);
+    render(<ProjectList
+        projects={tree}
+        status="ACTIVE"
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
+      />);
 
     await user.click(screen.getByRole('button', { name: 'Collapse workout' }));
     expect(screen.queryByText('legs')).toBeNull();
@@ -109,7 +133,12 @@ describe('ProjectList', () => {
 
   it('renders nothing when no project belongs to the section', () => {
     const { container } = render(
-      <ProjectList projects={tree} status="BACKLOG" />,
+      <ProjectList
+        projects={tree}
+        status="BACKLOG"
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
+      />,
     );
 
     expect(container.querySelectorAll('.project-row')).toHaveLength(0);

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DragDropProvider, PointerSensor } from '@dnd-kit/react';
 import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom';
 import { isSortable } from '@dnd-kit/react/sortable';
@@ -12,16 +12,18 @@ import {
   PROJECT_ROW_MIN_HEIGHT,
 } from '../../../layout-config';
 import { generateKeyBetween } from 'fractional-indexing';
-import { buildSectionRows } from '../projectTree';
 import type { ProjectStatus } from '../projectTree';
-import { resolveDrop } from './dropProjection';
+import { buildSectionRows } from '../projectTree';
+import { collectDescendantIds } from './applyMove';
 import type { Projection } from './dropProjection';
-import { EMPTY_DRAG, ProjectDragContext } from './ProjectDragContext';
+import { resolveDrop } from './dropProjection';
 import type { DragState } from './ProjectDragContext';
+import { EMPTY_DRAG, ProjectDragContext } from './ProjectDragContext';
 
 type ProjectDragProviderProps = {
   projects: ProjectWithTimeSlots[];
   onMove: (dto: MoveProjectDto) => void;
+  onDropped: (id: string) => void;
   children: ReactNode;
 };
 
@@ -61,30 +63,10 @@ const findPreviousSibling = (
     .sort((left, right) => (precedes(left, right) ? -1 : 1))
     .at(-1);
 
-const collectDescendantIds = (projects: ProjectWithTimeSlots[], rootId: string) => {
-  const childrenOf = new Map<string, string[]>();
-  for (const project of projects) {
-    if (project.parentProjectId === null) continue;
-    const ids = childrenOf.get(project.parentProjectId);
-    if (ids) ids.push(project.id);
-    else childrenOf.set(project.parentProjectId, [project.id]);
-  }
-
-  const subtree = new Set<string>();
-  const queue = [rootId];
-  while (queue.length > 0) {
-    const id = queue.pop() as string;
-    if (subtree.has(id)) continue;
-    subtree.add(id);
-    for (const child of childrenOf.get(id) ?? []) queue.push(child);
-  }
-
-  return subtree;
-};
-
 export const ProjectDragProvider = ({
   projects,
   onMove,
+  onDropped,
   children,
 }: ProjectDragProviderProps) => {
   const [drag, setDrag] = useState<DragState>(EMPTY_DRAG);
@@ -262,6 +244,7 @@ export const ProjectDragProvider = ({
     if (unchanged) return;
 
     onMove(dto);
+    onDropped(id);
   };
 
   return (
@@ -276,9 +259,16 @@ export const ProjectDragProvider = ({
       }
       onDragOver={(event) => {
         const { target } = event.operation;
-        if (!isSortable(target)) return;
 
-        const section = target.group as ProjectStatus;
+        /* A row names its own category; the section-wide droppable behind them
+           carries it in `data`, and is what makes the empty space below the last
+           row — and a category with no rows at all — droppable. */
+        const section = isSortable(target)
+          ? (target.group as ProjectStatus)
+          : ((target?.data as { status?: ProjectStatus } | undefined)?.status ??
+            null);
+
+        if (section === null) return;
 
         update(section, pointerY.current, event.operation.transform.x);
       }}

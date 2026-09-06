@@ -20,6 +20,8 @@ type ProjectRowProps = {
   status: ProjectStatus;
   isExpanded: boolean;
   onToggleExpanded: (id: string) => void;
+  onMoveToOtherCategory: (id: string) => void;
+  revealDelayMs: number | null;
 };
 
 export const ProjectRow = ({
@@ -29,8 +31,10 @@ export const ProjectRow = ({
   status,
   isExpanded,
   onToggleExpanded,
+  onMoveToOtherCategory,
+  revealDelayMs,
 }: ProjectRowProps) => {
-  const { project, depth, isSpine, hasChildren, hexCode, ownsColor } = row;
+  const { project, depth, hasChildren, hexCode, ownsColor } = row;
   const name = projectName(project.name);
 
   const { ref, isDragSource } = useSortable({
@@ -39,11 +43,14 @@ export const ProjectRow = ({
     group: status,
     type: 'project',
     accept: 'project',
-    disabled: { draggable: isSpine },
     data: { depth },
     plugins: (defaults) =>
       defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
-    transition: null,
+    /* Zero duration, not `null`. `useSortable` does `{...defaultSortableTransition,
+       ...input.transition}`, and spreading `null` contributes nothing — so `null`
+       silently restores the 250ms default and slides the row from where the drag
+       began to where it landed, after the finger has already carried it there. */
+    transition: { duration: 0, easing: 'linear', idle: false },
   });
 
   return (
@@ -53,7 +60,7 @@ export const ProjectRow = ({
       data-depth={depth}
       className={[
         'project-row',
-        isSpine && 'project-row-spine',
+        revealDelayMs !== null && 'project-row-revealing',
         opensGap && 'project-row-gap-open',
         isDragSource && 'project-row-dragging',
       ]
@@ -61,6 +68,9 @@ export const ProjectRow = ({
         .join(' ')}
       style={{
         marginInlineStart: `calc(var(--project-indent-step) * ${depth})`,
+        ...(revealDelayMs === null
+          ? {}
+          : { animationDelay: `${Math.round(revealDelayMs)}ms` }),
       }}
     >
       <ColorStrip hexCode={hexCode} isInherited={!ownsColor} />
@@ -91,7 +101,9 @@ export const ProjectRow = ({
       </span>
 
       <PopoverMenu
-        items={projectMenuItems(status)}
+        items={projectMenuItems(status, {
+          onMoveToOtherCategory: () => onMoveToOtherCategory(project.id),
+        })}
         label={`${name} actions`}
         icon={ellipsisVertical}
         triggerSize={PROJECT_MENU_TRIGGER_SIZE}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateNKeysBetween } from 'fractional-indexing';
 import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
-import { buildSectionRows, findMaxDepth } from './projectTree';
+import { buildSectionRows } from './projectTree';
 
 type Seed = {
   id: string;
@@ -104,7 +104,6 @@ describe('hierarchy', () => {
 
   it('indents by ancestry length, with no cap', () => {
     expect(buildRows(tree).map((row) => row.depth)).toEqual([0, 1, 2]);
-    expect(findMaxDepth(buildRows(tree))).toBe(2);
   });
 
   it('walks depth first', () => {
@@ -126,56 +125,36 @@ describe('hierarchy', () => {
   });
 });
 
-describe('spines', () => {
+describe('a category holds only its own projects', () => {
   const split: Seed[] = [
     { id: 'sport' },
     { id: 'workout', parent: 'sport' },
     { id: 'legs', parent: 'workout', status: 'BACKLOG' },
   ];
 
-  it('draws the ancestors of a moved project in the other section', () => {
-    expect(listIds(split, 'BACKLOG')).toEqual(['sport', 'workout', 'legs']);
+  it('never draws an ancestor from the other category', () => {
+    expect(listIds(split, 'BACKLOG')).toEqual(['legs']);
   });
 
-  it('marks those ancestors as spines and the project itself as real', () => {
-    expect(buildRows(split, 'BACKLOG').map((row) => row.isSpine)).toEqual([
-      true,
-      true,
-      false,
-    ]);
+  it('renders a project whose parent is elsewhere at the top level', () => {
+    expect(buildRows(split, 'BACKLOG').map((row) => row.depth)).toEqual([0]);
   });
 
-  it('leaves the ancestors real in their own section', () => {
-    const rows = buildRows(split, 'ACTIVE');
-    expect(rows.map((row) => row.project.id)).toEqual(['sport', 'workout']);
-    expect(rows.every((row) => row.isSpine)).toBe(false);
+  it('leaves the other category whole', () => {
+    expect(listIds(split, 'ACTIVE')).toEqual(['sport', 'workout']);
   });
 
-  it('omits a branch with nothing of this section under it', () => {
+  it('omits a branch with nothing of this category in it', () => {
     expect(listIds([...split, { id: 'unrelated' }], 'BACKLOG')).not.toContain(
       'unrelated',
     );
   });
 
-  it('emits members before spines under the same parent', () => {
-    expect(
-      listIds(
-        [
-          { id: 'workout' },
-          { id: 'arms', parent: 'workout', status: 'BACKLOG' },
-          { id: 'legs', parent: 'workout' },
-          { id: 'shin', parent: 'legs', status: 'BACKLOG' },
-        ],
-        'BACKLOG',
-      ),
-    ).toEqual(['workout', 'arms', 'legs', 'shin']);
-  });
-
-  it('stops drawing a spine once its last descendant leaves', () => {
-    const returned = split.map((seed) =>
-      seed.id === 'legs' ? { ...seed, status: 'ACTIVE' as const } : seed,
-    );
-    expect(listIds(returned, 'BACKLOG')).toEqual([]);
+  it('gives no chevron to a parent whose children are all elsewhere', () => {
+    expect(buildRows(split, 'ACTIVE').map((row) => row.hasChildren)).toEqual([
+      true,
+      false,
+    ]);
   });
 });
 
@@ -236,7 +215,7 @@ describe('colour', () => {
     expect(rows.map((row) => row.hexCode)).toEqual([null, null]);
   });
 
-  it('inherits across a spine, whose section does not matter', () => {
+  it('does not inherit from an ancestor in the other category', () => {
     const rows = buildRows(
       [
         { id: 'sport', color: '#ff0000' },
@@ -246,11 +225,7 @@ describe('colour', () => {
       'BACKLOG',
     );
 
-    expect(rows.map((row) => row.hexCode)).toEqual([
-      '#ff0000',
-      '#ff0000',
-      '#ff0000',
-    ]);
+    expect(rows.map((row) => row.hexCode)).toEqual([null]);
   });
 });
 

@@ -9,7 +9,12 @@ import type { CurrentUser } from '../../../api/structures/CurrentUser';
 import type { MoveProjectDto } from '../../../api/structures/MoveProjectDto';
 import type { ProjectWithTimeSlots } from '../../../api/structures/ProjectWithTimeSlots';
 import { ProjectDragProvider } from './projects/dnd/ProjectDragProvider';
+import type { RevealRequest } from './projects/ProjectList';
 import { ProjectList } from './projects/ProjectList';
+import {
+  otherCategory,
+  resolveCategoryMove,
+} from './projects/categoryMove';
 import './Dispatcher.css';
 
 type SectionName = 'plan' | 'active' | 'backlog';
@@ -36,6 +41,33 @@ export const Dispatcher = ({
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+
+  /* Which project to reveal, and a token so the same project can be revealed
+     twice. Held here because the landing section is a different ProjectList
+     from the one the menu was opened in. */
+  const [reveal, setReveal] = useState<RevealRequest | null>(null);
+
+  const revealProject = (id: string) =>
+    setReveal((current) => ({ id, token: (current?.token ?? 0) + 1 }));
+
+  const moveToOtherCategory = (id: string) => {
+    const project = projects.find((candidate) => candidate.id === id);
+    if (!project) return;
+
+    const target = otherCategory(project.projectStatus);
+
+    onMove(resolveCategoryMove(projects, project, target));
+    revealProject(id);
+  };
+
+  const listFor = (status: 'ACTIVE' | 'BACKLOG') => (
+    <ProjectList
+      projects={projects}
+      status={status}
+      reveal={reveal}
+      onMoveToOtherCategory={moveToOtherCategory}
+    />
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { beginDrag, resizePlan, resizeActive } = useSectionResize(
@@ -80,7 +112,11 @@ export const Dispatcher = ({
   ].join(' ');
 
   return (
-    <ProjectDragProvider projects={projects} onMove={onMove}>
+    <ProjectDragProvider
+      projects={projects}
+      onMove={onMove}
+      onDropped={revealProject}
+    >
       <div
         className="dispatcher"
         ref={containerRef}
@@ -108,7 +144,7 @@ export const Dispatcher = ({
           onSetExpanded={(next) => setSectionExpanded('active', next)}
           onAdd={() => setIsCreateProjectOpen(true)}
         >
-          <ProjectList projects={projects} status="ACTIVE" />
+          {listFor('ACTIVE')}
         </DispatcherSection>
 
         {showActiveDivider && (
@@ -126,7 +162,7 @@ export const Dispatcher = ({
           onSetExpanded={(next) => setSectionExpanded('backlog', next)}
           onAdd={() => {}}
         >
-          <ProjectList projects={projects} status="BACKLOG" />
+          {listFor('BACKLOG')}
         </DispatcherSection>
 
         <CreateProjectModal

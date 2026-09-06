@@ -330,7 +330,7 @@ describe('ProjectDragService', () => {
     });
   });
 
-  describe('crossing sections', () => {
+  describe('crossing categories', () => {
     it('carries the whole subtree across', async () => {
       const { service, repository } = buildService([
         { id: 'sport', position: 'a1' },
@@ -338,9 +338,30 @@ describe('ProjectDragService', () => {
         { id: 'legs', parent: 'workout', position: 'a1' },
       ]);
 
+      /* To the root, because a parent decides its children's category — a move
+         under `sport` could not put anything in BACKLOG while `sport` is ACTIVE. */
+      await service.moveProject(
+        makeMove({ id: 'workout', projectStatus: 'BACKLOG' }),
+        'user',
+      );
+
+      expect(
+        repository.rows
+          .filter((row) => row.projectStatus === 'BACKLOG')
+          .map((row) => row.id)
+          .sort(),
+      ).toEqual(['legs', 'workout']);
+    });
+
+    it('takes the category from the new parent, not the request', async () => {
+      const { service, repository } = buildService([
+        { id: 'sport', position: 'a1' },
+        { id: 'errands', position: 'a2', status: 'BACKLOG' },
+      ]);
+
       await service.moveProject(
         makeMove({
-          id: 'workout',
+          id: 'errands',
           parentProjectId: 'sport',
           projectStatus: 'BACKLOG',
         }),
@@ -348,50 +369,23 @@ describe('ProjectDragService', () => {
       );
 
       expect(
-        repository.rows.filter((row) => row.projectStatus === 'BACKLOG'),
-      ).toHaveLength(2);
+        repository.rows.find((row) => row.id === 'errands')?.projectStatus,
+      ).toBe('ACTIVE');
     });
 
-    it('appends arrivals after the members already there', async () => {
+    it('leaves the subtree alone when the category does not change', async () => {
       const { service, repository } = buildService([
         { id: 'workout', position: 'a1' },
         { id: 'legs', parent: 'workout', position: 'a1' },
-        { id: 'shoulders', parent: 'workout', position: 'a2' },
-        { id: 'arms', parent: 'workout', position: 'a1', status: 'BACKLOG' },
-        { id: 'abs', parent: 'workout', position: 'a2', status: 'BACKLOG' },
+        { id: 'errands', position: 'a2' },
       ]);
 
       await service.moveProject(
-        makeMove({ id: 'workout', projectStatus: 'BACKLOG' }),
+        makeMove({ id: 'workout', position: 'a3' }),
         'user',
       );
 
-      expect(listOrderedIds(repository.rows, 'workout', 'BACKLOG')).toEqual([
-        'arms',
-        'abs',
-        'legs',
-        'shoulders',
-      ]);
-    });
-
-    it('leaves a descendant already in the destination ahead of the arrivals', async () => {
-      const { service, repository } = buildService([
-        { id: 'workout', position: 'a1' },
-        { id: 'cardio', parent: 'workout', position: 'a1' },
-        { id: 'stretching', parent: 'workout', position: 'a2' },
-        { id: 'legs', parent: 'workout', position: 'a1', status: 'BACKLOG' },
-      ]);
-
-      await service.moveProject(
-        makeMove({ id: 'workout', projectStatus: 'BACKLOG' }),
-        'user',
-      );
-
-      expect(listOrderedIds(repository.rows, 'workout', 'BACKLOG')).toEqual([
-        'legs',
-        'cardio',
-        'stretching',
-      ]);
+      expect(repository.updateProjects).not.toHaveBeenCalled();
     });
   });
 
