@@ -5,6 +5,10 @@
 .project-row {
   min-height: var(--project-row-min-height);
   box-sizing: border-box;
+  /* Positioned only so the row paints above the swipe surface: that surface is
+     absolutely positioned in the list, and a static row would sit below every
+     positioned sibling. Carries no offsets of its own. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -172,7 +176,11 @@
    height reverts to `auto` the instant the animation ends while `min-height: 0`
    is still applied, so the row sizes to its content until the cascade's timer
    removes the class — a visible resize after it had already arrived. */
-.project-row-revealing:not([data-dnd-placeholder]) {
+/* `:not([data-departing])` is not belt-and-braces: this selector is specificity
+   (0,2,0) and the departure wipe below is (0,2,0) too, so without it the winner
+   is decided by source order alone. A row on its way out must never also be
+   playing the animation for arriving. */
+.project-row-revealing:not([data-dnd-placeholder]):not([data-departing]) {
   min-height: 0;
   animation: project-row-reveal var(--project-reveal-duration)
     var(--easing-standard) both;
@@ -195,5 +203,68 @@
 @media (prefers-reduced-motion: reduce) {
   .project-row-revealing {
     animation: none;
+  }
+}
+
+/* ── Swiped sideways ─────────────────────────────────────────────────────── */
+
+/* The whole card travels, rather than its contents travelling inside it: the
+   row clips itself to its own radius, so moving the children left only ran them
+   into its border. Whatever leaves the section is clipped by `.section-body`
+   instead, which is the edge the card is allowed to reach.
+
+   Gated on the attribute, which exists only while a swipe is in hand. A
+   standing `translateX(0)` would hand every row a compositing layer, and would
+   also be a transform for dnd-kit to fight over on the row it is carrying. */
+/* Only while settling, so neither can ever catch dnd-kit's transforms — the
+   same reason the row's own transition above names `margin-block-start` alone.
+
+   Two motions, not one. Coming back is longer and on the gentler curve: nothing
+   was decided, so it should not arrive like a decision. Leaving keeps the
+   standard curve, because it is going somewhere. */
+.project-row-swipe-returning {
+  transition: transform var(--project-swipe-return) var(--easing-gentle);
+}
+
+.project-row-swipe-leaving {
+  transition: transform var(--project-swipe-exit) var(--easing-standard);
+}
+
+/* The reveal, played backwards, so the rows below rise exactly as they would
+   sink for an arrival. It runs after the row is off the line, on a row React
+   has not yet been told to remove — which is the only reason there is still an
+   element here to close the space with.
+
+   `min-height` has to go or the height cannot reach zero, and the negative top
+   margin swallows the flex gap a zero-height row would still claim. Both mirror
+   `project-row-reveal` above. */
+.project-row[data-departing] {
+  min-height: 0;
+  animation: project-row-depart var(--project-reveal-duration)
+    var(--easing-standard) both;
+}
+
+@keyframes project-row-depart {
+  from {
+    height: var(--project-row-min-height);
+    margin-block-start: 0;
+    opacity: 1;
+  }
+
+  to {
+    height: 0;
+    margin-block-start: calc(var(--project-row-gap) * -1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-row-swipe-returning,
+  .project-row-swipe-leaving {
+    transition: none;
+  }
+
+  .project-row[data-departing] {
+    animation-duration: 1ms;
   }
 }

@@ -1,0 +1,129 @@
+/* The surface a swiped row slides across.
+
+   It covers the whole line, edge to edge of the section — not the strip the row
+   has vacated. The row is opaque and passes over it, so what shows is exactly
+   what the row has uncovered, without anything having to measure that.
+
+   Positioned against `.project-list`, which is already `position: relative` for
+   the consequence line, and placed before the rows in the DOM so it paints
+   underneath them. The rows are `position: relative` for that reason alone: a
+   static row would sit below every positioned sibling, this one included. */
+.project-swipe-action {
+  position: absolute;
+  /* Out past the list's inset so it meets the section's own border. The row can
+     travel that far, so the surface under it has to reach at least as far. */
+  inset-inline: calc(var(--section-body-padding) * -1);
+  top: var(--project-swipe-top, 0);
+  height: var(--project-swipe-height, 0);
+
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-4);
+  overflow: hidden;
+  white-space: nowrap;
+
+  background: var(--accent-surface);
+  color: var(--accent);
+  font-size: var(--font-md);
+}
+
+/* Only ever visible mid-gesture, and only on the side being uncovered — the
+   icon leads at the edge the row is pulling away from. */
+.project-list[data-swipe-side] .project-swipe-action {
+  display: flex;
+}
+
+.project-list[data-swipe-side='end'] .project-swipe-action {
+  flex-direction: row-reverse;
+}
+
+/* Past the commit distance the surface itself takes the accent, so letting go
+   reads as committing rather than as having dragged something a long way. */
+.project-list[data-swipe-armed] .project-swipe-action {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.project-swipe-icon {
+  flex-shrink: 0;
+  font-size: var(--font-xl);
+  width: 1em;
+  height: 1em;
+  stroke-width: var(--icon-stroke-width);
+}
+
+/* The label is the only warning that releasing will move the row, so it must
+   not appear before releasing would actually do anything. */
+.project-swipe-label {
+  display: none;
+}
+
+.project-list[data-swipe-armed] .project-swipe-label {
+  display: inline;
+}
+
+/* Retreating with the row, not switched off after it.
+   
+   The surface is removed on the row's `transitionend`, which is the *formal* end
+   of the return. An ease-out spends its last pixels slowly, so the row looks
+   home about 60ms before that fires — and the one region the row can never cover
+   again is the indent gutter, which for a nested row is wide. It sat there lit,
+   which is the "stays highlighted for a brief moment" everyone can see.
+   
+   Held at full brightness for the first half, so the surface is plainly still
+   there while the row is travelling — a plain fade across the whole return is
+   what made it look like it vanished the instant the finger lifted. Gone by 85%,
+   which is where the row has visually arrived. `linear`, because the stops below
+   already carry the shape. */
+@keyframes project-swipe-surface-retreat {
+  0%,
+  55% {
+    opacity: 1;
+  }
+
+  85%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.project-list[data-swipe-phase='returning'] .project-swipe-action {
+  animation: project-swipe-surface-retreat var(--project-swipe-return) linear
+    forwards;
+}
+
+/* Nothing fades on the way out. The surface has to stay solid the whole way, and
+   is then removed outright the instant a leaving row is clear of the line. Both
+   endings are driven by the row's own motion rather than by a timer — see
+   useProjectSwipe — because a timer is late whenever the tab is not in front. */
+
+@media (prefers-reduced-motion: reduce) {
+  .project-list[data-swipe-phase='returning'] .project-swipe-action {
+    animation: none;
+  }
+}
+
+/* Closes with the space it sat in. The rows leaving collapse over the same
+   duration, so the highlight squeezes shut at exactly the rate the list closes
+   over it — which is what makes the rows below read as climbing into the gap
+   rather than snapping into a hole that was already empty.
+
+   Only a `to`: the height it starts from is whatever the gesture measured for
+   the whole departing run, and there is no point restating it here. */
+@keyframes project-swipe-close {
+  to {
+    height: 0;
+  }
+}
+
+.project-list[data-swipe-phase='departing'] .project-swipe-action {
+  animation: project-swipe-close var(--project-reveal-duration)
+    var(--easing-standard) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-list[data-swipe-phase='departing'] .project-swipe-action {
+    animation-duration: 1ms;
+  }
+}

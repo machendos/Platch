@@ -6,11 +6,13 @@ import { isSortable } from '@dnd-kit/react/sortable';
 import type { MoveProjectDto } from '../../../../../api/structures/MoveProjectDto';
 import type { ProjectWithTimeSlots } from '../../../../../api/structures/ProjectWithTimeSlots';
 import {
+  DRAG_TOUCH_DELAY_MS,
+  DRAG_TOUCH_TOLERANCE_PX,
   PROJECT_DROP_GAP,
   PROJECT_INDENT_STEP,
   PROJECT_ROW_GAP,
   PROJECT_ROW_MIN_HEIGHT,
-} from '../../../layout-config';
+} from '../../layoutConfig';
 import { generateKeyBetween } from 'fractional-indexing';
 import type { ProjectStatus } from '../projectTree';
 import { buildSectionRows } from '../projectTree';
@@ -34,8 +36,8 @@ const sensors = [
         ? [new PointerActivationConstraints.Distance({ value: 4 })]
         : [
             new PointerActivationConstraints.Delay({
-              value: 250,
-              tolerance: 8,
+              value: DRAG_TOUCH_DELAY_MS,
+              tolerance: DRAG_TOUCH_TOLERANCE_PX,
             }),
           ],
   }),

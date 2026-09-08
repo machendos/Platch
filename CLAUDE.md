@@ -180,7 +180,11 @@ happen there. Most changes need nothing else.
 **Escalate to the iPhone simulator when the change is one Chromium cannot
 prove** — rasterisation and hairlines, touch and scroll handling, anything gated
 on device pixel ratio, or layout against the safe areas. Opening the dev server
-in simulator Safari covers almost all of that.
+in simulator Safari covers almost all of that — but **it has to be the LAN
+address, and `npm run dev` alone will not serve one.** Vite binds to `localhost`,
+which the simulator cannot reach; it loads a blank page with no error, in Safari
+or in the console. Start it with `--host` and open
+`http://<your-lan-ip>:5173/`, the same address `capacitor.config.ts` hardcodes.
 
 **Use the installed app** (`npm run ios:dev`) only for what Safari cannot show:
 safe-area insets, status-bar chrome, Capacitor configuration.
@@ -204,6 +208,8 @@ approaches that were tried and do not work, which the code cannot show.
 
 - [`docs/calendar-layout.md`](docs/calendar-layout.md) — calendar rows,
   responsive wrapping, pinch-zoom, mobiscroll workarounds.
+- [`docs/dispatcher.md`](docs/dispatcher.md) — the project list; how the row
+  swipe is told apart from a scroll and from the long-press drag.
 - [`docs/modals.md`](docs/modals.md) — the modal shell, sheet vs page
   presentation, Ionic overlay workarounds.
 - [`docs/ui-primitives.md`](docs/ui-primitives.md) — the reusable controls in

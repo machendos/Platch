@@ -1,3 +1,10 @@
+/* The air between the section's edge and its list. Named because the swipe
+   reaches past it — the action surface cancels exactly this much to sit against
+   the section's own border. */
+:root {
+  --section-body-padding: var(--space-2);
+}
+
 .dispatcher-section {
   min-height: 0; /* lets the grid track shrink the section, not the page */
   display: flex;
@@ -62,5 +69,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto; /* each section scrolls its own content */
-  padding: var(--space-2);
+  /* Sideways is clipped, not scrolled: a swiped row travels past the list's
+     inset and has to stop at the section's own edge. Without this, `visible`
+     computes to `auto` next to `overflow-y` and the section grows a horizontal
+     scrollbar the moment a row moves. */
+  overflow-x: hidden;
+  padding: var(--section-body-padding);
 }

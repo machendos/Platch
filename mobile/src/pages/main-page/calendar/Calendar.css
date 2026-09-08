@@ -12,7 +12,7 @@
   padding-bottom: 0;
   /* The browser keeps vertical panning and never does anything sideways of its
      own, which is the swipe's business. It is only half the story though — see
-     setScrollLocked in pageOffset.ts for the case where iOS has already
+     setScrollLocked in system/helpers/scrollLock.ts for the case where iOS has already
      committed to a scroll before we can classify the gesture. */
   touch-action: pan-y;
 }

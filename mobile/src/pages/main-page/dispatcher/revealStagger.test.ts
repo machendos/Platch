@@ -3,7 +3,7 @@ import {
   PROJECT_REVEAL_CASCADE_MS,
   PROJECT_REVEAL_STAGGER_MS,
   revealStagger,
-} from './layout-config';
+} from './layoutConfig';
 
 const cascade = (rowCount: number) => revealStagger(rowCount) * (rowCount - 1);
 

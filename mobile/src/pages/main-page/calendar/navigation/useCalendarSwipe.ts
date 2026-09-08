@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import { clamp } from '../../../../system/helpers/helpers';
+import { setScrollLocked } from '../../../../system/helpers/scrollLock';
 import {
   easePageOffsetTo,
   holdPageOffset,
   clearPageOffset,
-  setScrollLocked,
 } from './pageOffset';
 import {
   DAMPING,

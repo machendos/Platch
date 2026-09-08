@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CollisionPriority } from '@dnd-kit/abstract';
 import { useDroppable } from '@dnd-kit/react';
 import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
@@ -6,13 +6,13 @@ import type { ProjectStatus } from './projectTree';
 import { buildSectionRows } from './projectTree';
 import { ConsequenceLine } from './ConsequenceLine';
 import { ProjectRow } from './project-card/ProjectRow';
+import { ProjectSwipeBackArea } from './project-card/swipe/ProjectSwipeBackArea';
+import { projectSwipeAction } from './project-card/swipe/projectSwipe';
+import { useProjectSwipe } from './project-card/swipe/useProjectSwipe';
 import { collectDescendantIds } from './dnd/applyMove';
 import { useProjectDrag } from './dnd/ProjectDragContext';
 import { prefersReducedMotion } from '../../../../system/helpers/prefersReducedMotion';
-import {
-  PROJECT_REVEAL_DURATION_MS,
-  revealStagger,
-} from '../../layout-config';
+import { PROJECT_REVEAL_DURATION_MS, revealStagger } from '../layoutConfig';
 import type { ProjectRow as ProjectRowModel } from './projectTree';
 import './ProjectList.css';
 
@@ -83,6 +83,16 @@ export const ProjectList = ({
     collisionPriority: CollisionPriority.Lowest,
     data: { status },
   });
+  /* What this section's rows offer to a swipe, and what taking it up does. The
+     gesture is told only that much — which action belongs to which section is
+     decided here and in projectSwipe.ts, so a future section over different data
+     supplies its own without the gesture changing. */
+  const swipeAction = projectSwipeAction(status);
+  const swipe = swipeAction && {
+    ...swipeAction,
+    onCommit: onMoveToOtherCategory,
+  };
+
   const revealed = useRef<number | null>(null);
   const animated = useRef<number | null>(null);
   const [revealing, setRevealing] = useState<readonly string[]>([]);
@@ -91,6 +101,18 @@ export const ProjectList = ({
     () => buildSectionRows(projects, status, { collapsedIds }),
     [projects, status, collapsedIds],
   );
+
+  useProjectSwipe(listRef, {
+    action: swipe,
+    /* The swiped project carries its subtree, so the whole run has to close its
+       space together — the same set the arrival animates, in the same order. */
+    rowsLeavingWith: (id: string) => {
+      const subtree = collectDescendantIds(projects, id);
+      return rows
+        .map((each) => each.project.id)
+        .filter((each) => subtree.has(each));
+    },
+  });
 
   /* Expanding is a state change, so this runs again on the next render and
      falls through to the scroll once the row is actually on screen. The token
@@ -122,8 +144,12 @@ export const ProjectList = ({
   }, [reveal, rows, collapsedIds, projects]);
 
   /* Held in state for exactly as long as the animation runs, so re-renders
-     during it cannot restart it and nothing lingers afterwards. */
-  useEffect(() => {
+     during it cannot restart it and nothing lingers afterwards.
+
+     Layout, not passive: a plain effect runs *after* the browser has painted, so
+     the arriving rows were drawn once at full height before the class that
+     collapses them landed — a flash of the finished list, then the unfold. */
+  useLayoutEffect(() => {
     if (!reveal || animated.current === reveal.token) return;
 
     const ids = landedRun(rows, projects, reveal.id);
@@ -131,14 +157,25 @@ export const ProjectList = ({
 
     animated.current = reveal.token;
     setRevealing(ids);
+  }, [reveal, rows, projects]);
+
+  /* The clearing timer lives here, keyed on what it clears, and not in the
+     effect above. There it was armed and disarmed together with an effect that
+     re-runs on every `rows`/`projects` identity change: the cleanup cancelled
+     the timer, the token guard then returned early, and it was never re-armed.
+     The class stayed on the row for good — and since it outranks the departure
+     wipe, a row that had ever arrived could never afterwards animate away. */
+  useEffect(() => {
+    if (revealing.length === 0) return;
 
     const clear = globalThis.setTimeout(
       () => setRevealing([]),
-      PROJECT_REVEAL_DURATION_MS + revealStagger(ids.length) * (ids.length - 1),
+      PROJECT_REVEAL_DURATION_MS +
+        revealStagger(revealing.length) * (revealing.length - 1),
     );
 
     return () => globalThis.clearTimeout(clear);
-  }, [reveal, rows, projects]);
+  }, [revealing]);
 
   const toggleExpanded = (id: string) =>
     setCollapsedIds((current) => {
@@ -177,6 +214,8 @@ export const ProjectList = ({
         dropRef(element);
       }}
     >
+      {swipeAction && <ProjectSwipeBackArea action={swipeAction} />}
+
       {placed.map(({ row, opensGap }, index) => (
         <ProjectRow
           key={row.project.id}
