@@ -4,7 +4,7 @@ import { ellipsisVertical } from 'ionicons/icons';
 import { projectName } from '../../../../../config/labels';
 import { IconButton } from '../../../../../ui/buttons/IconButton';
 import { PopoverMenu } from '../../../../../ui/menu/PopoverMenu';
-import { PROJECT_MENU_TRIGGER_SIZE } from '../../../layout-config';
+import { PROJECT_MENU_TRIGGER_SIZE } from '../../layoutConfig';
 import { ColorStrip } from './ColorStrip';
 import { projectMenuItems } from './projectMenu';
 import type {

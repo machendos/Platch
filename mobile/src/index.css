@@ -111,6 +111,10 @@
 
   /* Motion */
   --easing-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Softer than standard, which spends most of its distance in the first third.
+     That reads as decisive when something is arriving somewhere, and as a snap
+     when something is only going back where it was. */
+  --easing-gentle: cubic-bezier(0.33, 1, 0.68, 1);
   --duration-enter: 300ms;
   --duration-exit: 200ms;
 

@@ -48,21 +48,3 @@ export const settlePageOffset = (container: HTMLElement) =>
  */
 export const isPageSliding = (container: HTMLElement) =>
   container.classList.contains(EASING_CLASS);
-
-/**
- * Takes the scroller out of the browser's hands.
- *
- * iOS decides a touch is a scroll before we can classify it. Once it has
- * committed, `touchmove` arrives non-cancelable, `preventDefault()` is ignored,
- * and the compositor keeps scrolling on its own thread — overriding whatever we
- * write. Making the element non-scrollable ends that: there is nothing left for
- * the compositor to scroll, while `scrollTop` stays writable from script.
- *
- * Used by both the pinch and the sideways drag.
- */
-export const setScrollLocked = (container: HTMLElement, locked: boolean) => {
-  const { scrollTop } = container;
-  container.style.overflow = locked ? 'hidden' : '';
-  // Toggling overflow can reset the offset, so put it back.
-  container.scrollTop = scrollTop;
-};

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { clamp } from '../../../../system/helpers/helpers';
-import { setScrollLocked } from '../navigation/pageOffset';
+import { setScrollLocked } from '../../../../system/helpers/scrollLock';
 import { ABSOLUTE_MIN_CELL_HEIGHT } from '../layoutConfig';
 
 // One cell is one hour, always: mobiscroll's `timeCellStep` never changes, so

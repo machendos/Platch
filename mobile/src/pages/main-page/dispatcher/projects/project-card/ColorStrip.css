@@ -1,6 +1,6 @@
 /* Stretches the row's full height: it is the card's leading edge, not a chip
    floating inside it. The row's `overflow: hidden` clips it to the card's
-   radius, so it carries none of its own. Widths come from layout-config.ts.
+   radius, so it carries none of its own. Widths come from dispatcher/layoutConfig.ts.
 
    Wide marks a colour the project owns; the hairline marks one it inherited,
    at any depth. Depth is not what decides this — a nested project with its own
