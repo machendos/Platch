@@ -9,7 +9,6 @@ import {
   ProjectWithTimeSlots,
 } from './project.repository';
 import { TimeComponentsService } from '../time-component/time.component.service';
-import { ErrorCode } from '../system/errors/error.code';
 import { ErrorType, PlatchError } from '../system/errors/platch.error';
 import {
   plainDateToDate,
@@ -93,6 +92,7 @@ export class ProjectsService {
       context: dto.context,
 
       projectStatus: dto.projectStatus,
+      projectType: dto.projectType,
 
       timeNeededMinutes: dto.timeNeededMinutes,
       minBlockMinutes: dto.minBlockMinutes,
@@ -103,7 +103,6 @@ export class ProjectsService {
       deadlineDate: plainDateToDate(dto.deadlineDate),
       deadlineTime: plainTimeToDate(dto.deadlineTime),
 
-      flexibleTimezone: dto.flexibleTimezone,
       originalTimezone: dto.originalTimezone,
 
       user: { connect: { id: userId } },
@@ -121,6 +120,8 @@ export class ProjectsService {
         }),
       ),
     );
+
+    await this.projectsRepository.bumpProjectsVersion(userId);
 
     return this.projectsRepository.getProjectWithTimeSlots({
       id: createdProject.id,
@@ -157,6 +158,7 @@ export class ProjectsService {
         name: dto.name,
         goal: dto.goal,
         context: dto.context,
+        projectType: dto.projectType,
         timeNeededMinutes: dto.timeNeededMinutes,
         minBlockMinutes: dto.minBlockMinutes,
         repetitionsNeeded: dto.repetitionsNeeded,
@@ -164,7 +166,6 @@ export class ProjectsService {
         earliestTime: timeColumn(dto.earliestTime),
         deadlineDate: dateColumn(dto.deadlineDate),
         deadlineTime: timeColumn(dto.deadlineTime),
-        flexibleTimezone: dto.flexibleTimezone,
         originalTimezone: dto.originalTimezone,
 
         // TODO: status can be edited with children follow
@@ -187,6 +188,8 @@ export class ProjectsService {
         ...component,
         projectId: dto.id,
       });
+
+    await this.projectsRepository.bumpProjectsVersion(userId);
 
     return this.projectsRepository.getProjectWithTimeSlots({ id: dto.id });
   }

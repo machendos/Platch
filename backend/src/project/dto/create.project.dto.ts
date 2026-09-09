@@ -1,4 +1,4 @@
-import { ProjectStatus } from '../../../prisma-client';
+import { ProjectStatus, ProjectType } from '../../../prisma-client';
 import {
   DateString,
   Int,
@@ -21,6 +21,7 @@ export class CreateProjectDto {
   context?: string;
 
   projectStatus: ProjectStatus;
+  projectType: ProjectType;
 
   timeNeededMinutes?: Int;
   minBlockMinutes?: Int;
@@ -31,7 +32,6 @@ export class CreateProjectDto {
   deadlineDate?: DateString;
   deadlineTime?: TimeString;
 
-  flexibleTimezone: boolean;
   originalTimezone?: string;
 
   parentProjectId?: Uuid;

@@ -19,7 +19,7 @@ export const ProjectStatusSwitch = (params: {
 }) => {
   return (
     <SegmentedControl
-      className="create-project-status"
+      className="project-form-status"
       options={STATUS_OPTIONS}
       value={params.currentValue}
       onChange={(status) => params.onChange(status)}

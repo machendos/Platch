@@ -142,6 +142,8 @@
 
 /* min-width: 0 so the name can be clipped instead of forcing the row wider
    than the pane. */
+/* A button for the tap, stripped back to the block it was — `color: inherit`
+   in particular, so a spine row still greys its own name. */
 .project-row-lines {
   flex: 1;
   min-width: 0;
@@ -149,6 +151,13 @@
   flex-direction: column;
   justify-content: center;
   padding-block: var(--space-1);
+  appearance: none;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
 }
 
 .project-row-name {

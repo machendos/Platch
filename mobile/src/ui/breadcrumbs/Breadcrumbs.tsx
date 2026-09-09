@@ -11,7 +11,7 @@ import {
 import type { ReactNode } from 'react';
 import { IonPopover } from '@ionic/react';
 import { planBreadcrumbs } from './breadcrumbLayout';
-import { buildAncestry } from './projectAncestry';
+import { projectName } from '../../config/labels';
 import type { ProjectCrumb } from './projectAncestry';
 
 export type { ProjectCrumb } from './projectAncestry';
@@ -22,8 +22,7 @@ export type BreadcrumbItem = {
 };
 
 type BreadcrumbsProps = {
-  projects: ProjectCrumb[];
-  parentProjectId: string | null;
+  ancestors: ProjectCrumb[];
   currentEntityName: ReactNode;
   onSelect: (id: string | null) => void;
   className?: string;
@@ -96,8 +95,7 @@ const CollapsedCrumbs = ({
 };
 
 export const Breadcrumbs = ({
-  projects,
-  parentProjectId,
+  ancestors,
   currentEntityName,
   onSelect,
   className,
@@ -108,15 +106,14 @@ export const Breadcrumbs = ({
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [cursorId, setCursorId] = useState<string>(CURRENT_ID);
 
-  /* Resolving the path is the row's own job: a caller hands it the tree and
-     the parent, not a finished list. The entity is appended rather than looked
-     up, because it is not in the tree — it may not be saved yet. */
   const items = useMemo<BreadcrumbItem[]>(
     () => [
-      ...buildAncestry(projects, parentProjectId),
+      ...ancestors
+        .map(({ id, name }) => ({ id, label: projectName(name) }))
+        .reverse(),
       { id: CURRENT_ID, label: currentEntityName },
     ],
-    [projects, parentProjectId, currentEntityName],
+    [ancestors, currentEntityName],
   );
 
   /* The path and the cursor are two different things, which is the whole point
@@ -128,7 +125,7 @@ export const Breadcrumbs = ({
      The cursor lives here because navigating the row is the row's job — a
      caller is only told where the reader went. It needs no reset: a modal
      opened on a different record remounts with a `key`, the same discipline
-     useFormState's baseline depends on. */
+     useEntityForm's baseline depends on. */
   const cursorIndex = items.findIndex((item) => item.id === cursorId);
   const currentIndex = cursorIndex === -1 ? items.length - 1 : cursorIndex;
 

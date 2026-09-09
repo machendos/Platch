@@ -21,7 +21,14 @@ export type ProjectWithTimeSlots = {
   deadlineDate: null | (string & tags.Format<"date-time">);
   deadlineTime: null | (string & tags.Format<"date-time">);
   projectStatus: "ACTIVE" | "BACKLOG";
-  flexibleTimezone: boolean;
+  projectType: "EXTERNAL" | "INTERNAL";
+
+  /**
+   * Where the wall clock readings above were written. It is a separate field
+   *      from them on purpose: the stamps stay free of any zone, and this applies
+   *      or does not depending on `projectType`. An EXTERNAL project reads its
+   *      times in this zone; an INTERNAL one ignores it.
+   */
   originalTimezone: null | string;
   position: string;
   parentProjectId: null | string;

@@ -181,16 +181,15 @@ happen there. Most changes need nothing else.
 prove** — rasterisation and hairlines, touch and scroll handling, anything gated
 on device pixel ratio, or layout against the safe areas. Opening the dev server
 in simulator Safari covers almost all of that — but **it has to be the LAN
-address, and `npm run dev` alone will not serve one.** Vite binds to `localhost`,
-which the simulator cannot reach; it loads a blank page with no error, in Safari
-or in the console. Start it with `--host` and open
-`http://<your-lan-ip>:5173/`, the same address `capacitor.config.ts` hardcodes.
+address.** `npm run dev` passes `--host`, so Vite serves one; invoking `vite`
+directly does not, and a `localhost`-only server loads a blank page in the
+simulator with no error in Safari or the console.
 
 **Use the installed app** (`npm run ios:dev`) only for what Safari cannot show:
-safe-area insets, status-bar chrome, Capacitor configuration.
-`capacitor.config.ts` points it at a hard-coded LAN address
-(`http://192.168.1.128:5173`), so a changed dev-machine IP makes it open blank
-until the config is updated.
+safe-area insets, status-bar chrome, Capacitor configuration. It loads a dev
+server over the LAN rather than bundling anything, so only one worktree can
+hold it at a time — see [`docs/running.md`](docs/running.md) for the ports,
+the env files and how the app is handed between worktrees.
 
 **There is no way to run JS on the simulator.** To get numbers out of WebKit,
 serve a page that renders them as text: `mobile/public/` is served by Vite, and
@@ -217,6 +216,8 @@ approaches that were tried and do not work, which the code cannot show.
 - [`docs/debugging.md`](docs/debugging.md) — `settleTrace`, for when something
   moves and you cannot say what moved it; and why reading a library's source is
   not evidence.
+- [`docs/running.md`](docs/running.md) — bringing a worktree up, ports and env
+  files, one Postgres schema per worktree, and teardown.
 - [`docs/rich-text.md`](docs/rich-text.md) — the formatted text body, markdown
   as the stored format, and where the formatting toolbar sits.
 

@@ -16,12 +16,12 @@ export class ProjectsController {
   ) {}
 
   @Get()
-  getProjectsByUser(@GetUser() user: UserDescriptor) {
+  async getProjectsByUser(@GetUser() user: UserDescriptor) {
     return this.projectsService.getProjectsByUser(user.id);
   }
 
   @Get('colors')
-  getColors(@GetUser() user: UserDescriptor) {
+  async getColors(@GetUser() user: UserDescriptor) {
     return this.projectsService.getProjectColors(user.id);
   }
 

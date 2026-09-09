@@ -1,6 +1,6 @@
 import './ColorField.css';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { IonIcon } from '@ionic/react';
 import { checkmark } from 'ionicons/icons';
@@ -8,18 +8,16 @@ import { Checkbox } from '../../../ui/checkbox/Checkbox';
 import { Reveal } from '../../../ui/reveal/Reveal';
 import { Warning } from '../../../ui/warning/Warning';
 import { useOutsideClose } from '../useOutsideClose';
-import { apiClient, getConnection } from '../../../system/api.client';
 import { projectName } from '../../../config/labels';
-
-export type ProjectColor = {
-  id: string;
-  hexCode: string;
-  placement: number;
-};
+import type { ColorInUse } from '../../../api/color';
 
 type ColorFieldProps = {
+  colors: ColorInUse[];
   ownColorId: string | null;
   inheritedColorId?: string | null;
+  /** The record this field is editing, so the "also used in" warning can leave
+      it out. Absent while creating, which has no record yet. */
+  editedProjectId?: string | null;
   onChange: (colorId: string | null) => void;
   editable: boolean;
 };
@@ -41,15 +39,14 @@ export const alsoUsedIn = (names: string[]): string | null => {
 };
 
 export const ColorField = ({
+  colors,
   ownColorId,
   onChange,
   editable,
   inheritedColorId = null,
+  editedProjectId = null,
 }: ColorFieldProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [colors, setColors] = useState<
-    Array<ProjectColor & { projects: { id: string; name: string | null }[] }>
-  >([]);
   const root = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setIsOpen(false), []);
@@ -62,8 +59,15 @@ export const ColorField = ({
   const inherited = byId(inheritedColorId);
   const shown = own ?? inherited;
 
+  /* The project being edited is in the palette's own list of who uses the
+     colour, so without dropping it the warning names the project back to
+     itself — "Also used in Sport", read while editing Sport. A creation has no
+     id to drop, which is why this only surfaced once the form could open an
+     existing record. */
   const sharedWith = alsoUsedIn(
-    (own?.projects ?? []).map(({ name }) => projectName(name)),
+    (own?.projects ?? [])
+      .filter(({ id }) => id !== editedProjectId)
+      .map(({ name }) => projectName(name)),
   );
 
   const setUnique = (wanted: boolean) => {
@@ -75,10 +79,6 @@ export const ColorField = ({
     onChange(colorId);
     setIsOpen(false);
   };
-
-  useEffect(() => {
-    apiClient.project.colors.getColors(getConnection()).then(setColors);
-  }, []);
 
   return (
     <div className="color-block" ref={root}>

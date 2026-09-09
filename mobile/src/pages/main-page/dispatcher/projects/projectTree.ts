@@ -1,4 +1,4 @@
-import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
+import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
 
 export type ProjectStatus = ProjectWithTimeSlots['projectStatus'];
 

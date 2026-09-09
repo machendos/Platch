@@ -44,7 +44,7 @@
    not there.
 
    Whatever sits above must not draw this boundary as well, or there are two
-   hairlines a few pixels apart — see CreateProjectModal.css. */
+   hairlines a few pixels apart — see ProjectModal.css. */
 .time-components-head::before {
   content: '';
   flex: 1;

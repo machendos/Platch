@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateNKeysBetween } from 'fractional-indexing';
-import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
+import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
 import { buildSectionRows } from './projectTree';
 
@@ -33,7 +33,7 @@ const makeProject = ({
   deadlineDate: null,
   deadlineTime: null,
   projectStatus: status,
-  flexibleTimezone: false,
+  projectType: 'EXTERNAL',
   originalTimezone: null,
   parentProjectId: parent,
   colorId: null,

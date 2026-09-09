@@ -4,17 +4,15 @@ import { DispatcherSection } from './DispatcherSection';
 import { useSectionResize } from './useSectionResize';
 import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
 import { layoutStorage } from '../layoutStorage';
-import { CreateProjectModal } from '../../../modals/CreateProjectModal';
-import type { CurrentUser } from '../../../api/structures/CurrentUser';
-import type { MoveProjectDto } from '../../../api/structures/MoveProjectDto';
-import type { ProjectWithTimeSlots } from '../../../api/structures/ProjectWithTimeSlots';
+import { ProjectModal } from '../../../modals/ProjectModal';
+import type { CurrentUser } from '../../../api/sdk/structures/CurrentUser';
+import { useMoveProject, useProjectsQuery } from '../../../api/project';
+import { applyMove } from './projects/dnd/applyMove';
 import { ProjectDragProvider } from './projects/dnd/ProjectDragProvider';
 import type { RevealRequest } from './projects/ProjectList';
 import { ProjectList } from './projects/ProjectList';
-import {
-  otherCategory,
-  resolveCategoryMove,
-} from './projects/categoryMove';
+import { ProjectStatus } from '../../../modals/components/projectStatusSwitch/ProjectStatusSwitch';
+import { otherCategory, resolveCategoryMove } from './projects/categoryMove';
 import './Dispatcher.css';
 
 type SectionName = 'plan' | 'active' | 'backlog';
@@ -26,21 +24,17 @@ const DEFAULT_EXPANDED: SectionsExpanded = {
   backlog: false,
 };
 
-type DispatcherProps = {
-  currentUser: CurrentUser;
-  projects: ProjectWithTimeSlots[];
-  onMove: (dto: MoveProjectDto) => void;
-};
+type DispatcherProps = { currentUser: CurrentUser };
 
-export const Dispatcher = ({
-  currentUser,
-  projects,
-  onMove,
-}: DispatcherProps) => {
+export const Dispatcher = ({ currentUser }: DispatcherProps) => {
+  const projects = useProjectsQuery();
+  const move = useMoveProject(applyMove);
   const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [createUnderStatus, setCreateUnderStatus] =
+    useState<ProjectStatus | null>(null);
+  const [editedProjectId, setEditedProjectId] = useState<string | null>(null);
 
   /* Which project to reveal, and a token so the same project can be revealed
      twice. Held here because the landing section is a different ProjectList
@@ -56,7 +50,7 @@ export const Dispatcher = ({
 
     const target = otherCategory(project.projectStatus);
 
-    onMove(resolveCategoryMove(projects, project, target));
+    move(resolveCategoryMove(projects, project, target));
     revealProject(id);
   };
 
@@ -64,6 +58,7 @@ export const Dispatcher = ({
     <ProjectList
       projects={projects}
       status={status}
+      onProjectEditOpen={({ id }) => setEditedProjectId(id)}
       reveal={reveal}
       onMoveToOtherCategory={moveToOtherCategory}
     />
@@ -114,7 +109,7 @@ export const Dispatcher = ({
   return (
     <ProjectDragProvider
       projects={projects}
-      onMove={onMove}
+      onMove={move}
       onDropped={revealProject}
     >
       <div
@@ -142,7 +137,7 @@ export const Dispatcher = ({
           title="ACTIVE PROJECTS"
           expanded={expanded.active}
           onSetExpanded={(next) => setSectionExpanded('active', next)}
-          onAdd={() => setIsCreateProjectOpen(true)}
+          onAdd={() => setCreateUnderStatus(ProjectStatus.ACTIVE)}
         >
           {listFor('ACTIVE')}
         </DispatcherSection>
@@ -160,18 +155,33 @@ export const Dispatcher = ({
           title="BACKLOG"
           expanded={expanded.backlog}
           onSetExpanded={(next) => setSectionExpanded('backlog', next)}
-          onAdd={() => {}}
+          onAdd={() => setCreateUnderStatus(ProjectStatus.BACKLOG)}
         >
           {listFor('BACKLOG')}
         </DispatcherSection>
 
-        <CreateProjectModal
-          isOpen={isCreateProjectOpen}
-          onDismiss={() => setIsCreateProjectOpen(false)}
-          projects={projects}
-          parentProjectId={null}
-          defaultEvenLengthMinutes={currentUser.defaultEvenLengthMinutes}
-        />
+        {createUnderStatus && (
+          <ProjectModal
+            key={createUnderStatus}
+            mode="create"
+            isOpen
+            onDismiss={() => setCreateUnderStatus(null)}
+            parentProjectId={null}
+            status={createUnderStatus}
+            defaultEvenLengthMinutes={currentUser.defaultEvenLengthMinutes}
+          />
+        )}
+
+        {editedProjectId && (
+          <ProjectModal
+            key={editedProjectId}
+            mode="edit"
+            isOpen
+            onDismiss={() => setEditedProjectId(null)}
+            projectId={editedProjectId}
+            defaultEvenLengthMinutes={currentUser.defaultEvenLengthMinutes}
+          />
+        )}
       </div>
     </ProjectDragProvider>
   );

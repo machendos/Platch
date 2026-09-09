@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
+import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
 import { otherCategory, resolveCategoryMove } from './categoryMove';
 
