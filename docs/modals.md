@@ -15,7 +15,7 @@ Three layers, and the split is the whole point:
 ```
 ui/Modal.tsx              presentation — how to be a sheet or a full page
 (content, not yet built)  the fields; knows nothing about its container
-modals/CreateProjectModal binds one content to one presentation and to data
+modals/ProjectModal       binds one content to one presentation and to data
 ```
 
 **React has no `extends`.** A concrete modal does not inherit from an abstract
@@ -161,10 +161,109 @@ depends on where the caret was when the keyboard opened. If someone reports
 
 ## The project form
 
-`CreateProjectModal` is the first form in the app that holds real values, so it
-is also the first thing to give `Modal`'s `isDirty` a source. It is assembled
+`ProjectModal` is the first form in the app that holds real values, so it is
+also the first thing to give `Modal`'s `isDirty` a source. It is assembled
 from blocks rather than written out: the header fields, `TargetComponent`, and
 `TimeComponentsBlock`. Each block owns its own state and reports upward.
+
+### One component creates and edits; three entities stay apart
+
+The split that was chosen is **per entity, not per mode**. `ProjectModal` takes
+a discriminated `mode`, so a creation and an edit are one file; project, task
+and event will be three separate forms even though they share most of their
+sections.
+
+That is deliberate, and it is the opposite of what the screenshots suggest.
+Create and edit differ in four small, enumerable things — the initial values,
+the endpoint, the title, and whether the time components block seeds a first
+component — and nothing else, so one file with a mode prop has no branching to
+speak of. Project, task and event differ in ways that are *not* small: an
+event's target block is a read-only summary of its ancestors' targets, sharing
+no state, no validation and no payload with `TargetComponent`, and its time
+editor is one absolute row rather than a list. Merging those would mean a
+`readOnly` prop that keeps a whole state machine alive behind two lines of
+text.
+
+### Who fixed the time, not what the time zone does
+
+A project is `EXTERNAL` or `INTERNAL`, and that answers the time-zone question
+without ever asking it. `EXTERNAL` means something outside the user set the
+moment — a call, an appointment, a class, a broadcast — so the moment is real
+and the clock reading follows the viewer's zone. `INTERNAL` means the user set
+it, so the clock reading is the point and stays put wherever they are. The tell
+is not whether other people are involved but who chose the hour: a gym *class*
+is external, going to the gym is internal.
+
+**This replaced a `flexibleTimezone` boolean, and the naming was the reason.**
+"Flexible" and "soft" both read two ways with equal force — flexible about
+*which* zone it is in (the clock stays), or flexing *as* the zone changes (the
+clock moves) — and no info button fixes a label that is ambiguous in itself.
+Worse, it asked the user to answer by simulating a trip they may never have
+taken. "Is this a call or my own routine?" is a fact they already hold while
+typing.
+
+**The default is `EXTERNAL`, and the reasoning is asymmetric failure, not
+frequency.** Most projects in this app really are internal routines. But
+reading an appointment as a routine shows it at the wrong local hour after a
+trip, silently, and misses it; reading a routine as an appointment puts the gym
+at 4am, which is absurd on sight and fixed in one tap. Invisible and costly
+beats visible and free, in the wrong direction — and the people most likely to
+hold a wall of external appointments are the ones most likely to travel.
+
+There is no `@default` in the schema, so a caller that omits the type is
+rejected rather than quietly given one; the form supplies `EXTERNAL` instead.
+
+**`originalTimezone` is the anchor, and it is captured when a project becomes
+external — not when it was created.** A project typed in New York, carried to
+LA while internal, then switched to external must anchor to Los Angeles: the
+times on screen are what the user is looking at, and toggling the switch must
+never move them. The same rule reversed covers un-switching. An ordinary edit
+never restates the zone, because rewriting it from wherever the edit happens
+would restate the meaning of times nobody touched.
+
+**Storage is wall clock plus a zone, never a UTC instant.** For a one-off the
+two agree. For anything recurring they come apart twice a year: a weekly 9am
+standup in New York has to stay 9am New York across the DST boundary, and a
+stored instant or a fixed offset cannot say that — it becomes 8am or 10am for
+everyone, including the people who never left the city. Recurring time
+components are first-class here, so this is the difference between correct and
+quietly broken every March.
+
+### `useEntityForm` owns the plumbing, and the reports array is why
+
+Every form repeats the same five things: what the scalar fields hold, whether
+anything changed, whether it may be saved, the in-flight guard, and the
+`isSaved` latch that stops a sheet closing behind a save from offering to
+discard it. `useEntityForm` holds all five and no payload — `save` takes the
+submit as an argument, so the mapping stays a pure function with its own tests.
+
+Blocks register through a single `reports` array rather than one entry per
+aggregate. Written by hand it was three edits per block — a `useState`, an
+entry in `canSave`, an entry in `isDirty` — and the last two are the ones that
+break silently. A missed validity entry lets a half-filled field save; a missed
+dirty entry is worse, because the sheet simply stops asking before it throws
+the work away. One positional entry cannot be half-forgotten.
+
+A registry handing out memoised callbacks per block reads better and was
+rejected: it needs a ref'd callback cache to keep `onChange` identities stable,
+which `TargetComponent` is sensitive to, and care about a child publishing into
+a parent mid-render. The array needs neither.
+
+**Dirty is "does this differ from what we opened with", not "did anyone type".**
+Typing a character and deleting it again leaves the form clean; counting edits
+would earn a "discard changes?" for a typo and its correction. The comparison
+is a shallow scan because every scalar value is a string or a boolean, the
+formatted field included — markdown is the storage format, so there is no tree
+to walk and no deep equality to get wrong. The opening values are captured
+once, so a form left open never re-baselines itself; a modal reused for another
+record remounts with a `key`, the same discipline a formatted field needs for
+its seed.
+
+**A save latches rather than re-baselining.** Moving the scalar baseline to the
+saved values is not enough, because each block keeps a baseline of its own — an
+edited time component would still report dirty and the sheet would offer to
+discard what it had just written. One `isSaved` flag suppresses the whole
+aggregate instead.
 
 ### A block reports, it is not controlled
 
@@ -387,4 +486,8 @@ when a second form asks for it.
 | Existing components still carry literals | The token layer was introduced with values lifted from what the app already draws, so nothing moved. The calendar, header and dispatcher still hardcode their own greys, radii and type sizes; they migrate as they are next touched. |
 | `--modal-dialog-height` is a guess | `min(640px, 80vh)` was chosen before any real form existed. Revisit once the project form has its true length. |
 | A min block is not checked against the total on the way in | The wheel cannot offer one that is too long, and lowering the total wipes it — but a record arriving from the backend with `minBlockMinutes > timeNeededMinutes` is shown as stored. Validation belongs with the save path that does not exist yet. |
+| The zone-aware read path does not exist yet | Times are stored as wall clock and read back as wall clock, so every project currently behaves as `INTERNAL` whatever its type says. `EXTERNAL` needs the conversion described above, and until it lands the switch records an intention rather than changing anything. |
+| An edit cannot move a project | `parentProjectId` is deliberately absent from the update payload — the form has no control for it, and the breadcrumb's `onSelect` is still a no-op. Sending it would put a self-parenting write one bad id away. |
+| An ancestor crumb looks pressable and is not | The crumbs render as buttons and `select` moves the row's cursor, but `onSelect` is a no-op, so tapping an ancestor highlights it and leaves the form below unchanged. Deliberate: breadcrumb navigation waits for a second entity form, so there is a real case to design against. |
+| Deleting a time component deletes its events | Nothing in the schema cascades and `Event.timeComponentId` is not nullable, so an event has no valid state without its component. The repository deletes events, then slots, then the component, in one transaction. Slots keep their ids across an edit precisely so surviving events are not stranded. |
 | The wheels cannot be driven in the preview browser | `requestAnimationFrame` does not run in a hidden pane, so a synthetic tap computes the right target and then never animates to it. The scale rules are covered by `targetState.test.ts`; picking a duration by hand needs the simulator. |

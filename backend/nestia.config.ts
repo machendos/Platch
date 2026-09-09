@@ -7,7 +7,7 @@ const NESTIA_CONFIG: INestiaConfig = {
     const app = await NestFactory.create(AppModule);
     return app;
   },
-  output: '../mobile/src/api',
+  output: '../mobile/src/api/sdk',
   clone: true,
 };
 export default NESTIA_CONFIG;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Temporal } from 'temporal-polyfill';
-import type { TimeComponentWithSlots } from '../../../api/structures/TimeComponentWithSlots';
+import type { TimeComponentWithSlots } from '../../../api/sdk/structures/TimeComponentWithSlots';
 import {
   buildReport,
   displayOrder,
@@ -104,10 +104,6 @@ describe('buildReport', () => {
     });
   });
 
-  /* A form may open on an empty component so there is something to type into.
-     Until something is typed, it must be invisible to the report: otherwise
-     opening the create form and closing it offers to discard changes nobody
-     made, and saving writes an empty record. */
   it('ignores an offered-but-untouched blank component', () => {
     const blank = withType(newTimeComponentDraft(ANCHOR), 'ABSOLUTE');
     const report = buildReport([blank], []);
@@ -130,9 +126,6 @@ describe('buildReport', () => {
     expect(report.changes.createdTimeComponents).toHaveLength(1);
   });
 
-  /* Blankness is only ever about a component nobody has filled in, so it can
-     never hide one the backend already has — a saved component left empty
-     still has to be reported as deleted if it is removed. */
   it('never treats a persisted component as blank', () => {
     const saved = fromApiComponent(absolute());
     const emptied = {
@@ -209,24 +202,25 @@ describe('buildReport', () => {
 
     expect(report.changes.updatedTimeComponents).toHaveLength(1);
     const [updated] = report.changes.updatedTimeComponents;
-    expect(updated.recurringTimeSlots[0]).toEqual({
+    const slots = updated.recurringTimeSlots ?? [];
+    expect(slots[0]).toEqual({
       id: 's1',
       type: 'ABSOLUTE',
       from: '09:00',
       to: '10:00',
     });
-    expect(updated.recurringTimeSlots[1].id).toBeUndefined();
+    expect(slots[1].id).toBeUndefined();
   });
 
-  it('nulls the recurring fields once a component is switched to exact time', () => {
+  it('drops the recurring fields once a component is switched to exact time', () => {
     const initial = [recurring()];
     const [draft] = initial.map(fromApiComponent);
     const report = buildReport([withType(draft, 'ABSOLUTE')], initial);
 
     const [updated] = report.changes.updatedTimeComponents;
     expect(updated.type).toBe('ABSOLUTE');
-    expect(updated.recurringFrequency).toBeNull();
-    expect(updated.recurringTimeSlots).toEqual([]);
+    expect(updated.recurringFrequency).toBeUndefined();
+    expect(updated.recurringTimeSlots).toBeUndefined();
   });
 });
 

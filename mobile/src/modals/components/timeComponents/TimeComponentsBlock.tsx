@@ -5,7 +5,7 @@ import { IonIcon } from '@ionic/react';
 import { addCircleOutline, chevronDownOutline } from 'ionicons/icons';
 import { IconButton } from '../../../ui/buttons/IconButton';
 import { Reveal } from '../../../ui/reveal/Reveal';
-import type { TimeComponentWithSlots } from '../../../api/structures/TimeComponentWithSlots';
+import type { TimeComponentWithSlots } from '../../../api/sdk/structures/TimeComponentWithSlots';
 import { AnimatedEntry } from './AnimatedEntry';
 import { TimeComponentEditor } from './TimeComponentEditor';
 import { serializeTimeComponent } from './serializeTimeComponent';

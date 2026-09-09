@@ -20,6 +20,7 @@ type ProjectRowProps = {
   status: ProjectStatus;
   isExpanded: boolean;
   onToggleExpanded: (id: string) => void;
+  onOpen: (project: ProjectRowModel['project']) => void;
   onMoveToOtherCategory: (id: string) => void;
   revealDelayMs: number | null;
 };
@@ -31,6 +32,7 @@ export const ProjectRow = ({
   status,
   isExpanded,
   onToggleExpanded,
+  onOpen,
   onMoveToOtherCategory,
   revealDelayMs,
 }: ProjectRowProps) => {
@@ -95,10 +97,18 @@ export const ProjectRow = ({
         )}
       </span>
 
-      <span className="project-row-lines">
+      {/* The name block is the row's tap target rather than the row itself:
+          the chevron and the menu are buttons already, and a button cannot
+          nest inside one. It stretches to fill everything between them, so
+          what is left to press is the whole row minus its two controls. */}
+      <button
+        className="project-row-lines"
+        type="button"
+        onClick={() => onOpen(project)}
+      >
         <span className="project-row-name">{name}</span>
         <span className="project-row-meta" aria-hidden="true" />
-      </span>
+      </button>
 
       <PopoverMenu
         items={projectMenuItems(status, {

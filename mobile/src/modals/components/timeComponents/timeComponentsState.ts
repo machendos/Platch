@@ -1,7 +1,9 @@
 import { Temporal } from 'temporal-polyfill';
-import type { TimeComponentFields } from '../../../api/structures/TimeComponentFields';
-import type { TimeComponentWithSlots } from '../../../api/structures/TimeComponentWithSlots';
-import type { TimeSlot } from '../../../api/structures/TimeSlot';
+import { parseApiDateTime } from '../../../system/helpers/dateTimeSerializers';
+import type { TimeComponentFields } from '../../../api/sdk/structures/TimeComponentFields';
+import type { TimeComponentWithSlots } from '../../../api/sdk/structures/TimeComponentWithSlots';
+import type { TimeSlot } from '../../../api/sdk/structures/TimeSlot';
+import type { UpdateTimeComponentDto } from '../../../api/sdk/structures/UpdateTimeComponentDto';
 
 export type TimeComponentType = 'ABSOLUTE' | 'RECURRING';
 export type RecurringFrequency = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
@@ -33,19 +35,31 @@ export type TimeComponentDraft = {
   slots: SlotDraft[];
 };
 
-export type UpdatedTimeSlot = TimeSlot & { id?: string };
+/* The wire shape, not the read shape. An update says what a component *is*
+   now — the same field set a creation sends, plus the ids that let the server
+   update the component and its slots in place rather than replacing them and
+   stranding the events that point at them. So a field the editor no longer
+   sends is one the user cleared, which is what lets a component switch from
+   recurring to exact and leave no cadence behind. */
+export type UpdatedTimeComponent = UpdateTimeComponentDto;
 
-export type UpdatedTimeComponent = Omit<
-  TimeComponentWithSlots,
-  'recurringTimeSlots'
-> & {
-  recurringTimeSlots: UpdatedTimeSlot[];
-};
-
+/* All three lists are always sent, empty when there is nothing in them, so the
+   payload has one shape whatever the form did. An absent list and an empty one
+   would otherwise have to mean the same thing at the far end, and only one of
+   them says so. */
 export type TimeComponentsChanges = {
   createdTimeComponents: TimeComponentFields[];
   updatedTimeComponents: UpdatedTimeComponent[];
   deletedTimeComponentIds: string[];
+};
+
+/* What a form sends before the block has reported — it has not been touched,
+   so it has changed nothing. Named rather than written out at each call site
+   because every entity's form needs the same three empty lists. */
+export const NO_TIME_COMPONENT_CHANGES: TimeComponentsChanges = {
+  createdTimeComponents: [],
+  updatedTimeComponents: [],
+  deletedTimeComponentIds: [],
 };
 
 export type TimeComponentsReport = {
@@ -310,16 +324,12 @@ export const displayOrder = (
   ...drafts.filter((draft) => draft.type === 'ABSOLUTE'),
 ];
 
-const withoutZone = (value: string) => value.replace(/(\.\d+)?Z?$/i, '');
-
-const parseDateTime = (value: string) =>
-  Temporal.PlainDateTime.from(withoutZone(value));
 
 export const fromApiComponent = (
   source: TimeComponentWithSlots,
 ): TimeComponentDraft => {
-  const from = source.absoluteFrom ? parseDateTime(source.absoluteFrom) : null;
-  const to = source.absoluteTo ? parseDateTime(source.absoluteTo) : null;
+  const from = source.absoluteFrom ? parseApiDateTime(source.absoluteFrom) : null;
+  const to = source.absoluteTo ? parseApiDateTime(source.absoluteTo) : null;
 
   return {
     key: source.id,
@@ -336,13 +346,13 @@ export const fromApiComponent = (
     byMonthDay: source.recurringByMonthDay,
     byMonth: source.recurringByMonth,
     startDate: source.recurringStartDate
-      ? parseDateTime(source.recurringStartDate).toPlainDate()
+      ? parseApiDateTime(source.recurringStartDate).toPlainDate()
       : null,
     slots: source.recurringTimeSlots.map((slot) => ({
       key: slot.id,
       id: slot.id,
-      from: slot.from ? parseDateTime(slot.from).toPlainTime() : null,
-      to: slot.to ? parseDateTime(slot.to).toPlainTime() : null,
+      from: slot.from ? parseApiDateTime(slot.from).toPlainTime() : null,
+      to: slot.to ? parseApiDateTime(slot.to).toPlainTime() : null,
       flexibleMinutesNeeded: slot.flexibleMinutesNeeded,
     })),
   };
@@ -399,39 +409,18 @@ type PersistedDraft = TimeComponentDraft & { id: string; projectId: string };
 const isPersisted = (draft: TimeComponentDraft): draft is PersistedDraft =>
   draft.id !== undefined && draft.projectId !== undefined;
 
-export const toUpdated = (draft: PersistedDraft): UpdatedTimeComponent => {
-  const recurring = draft.type === 'RECURRING';
-
-  return {
-    id: draft.id,
-    projectId: draft.projectId,
-    type: draft.type,
-    absoluteFrom:
-      !recurring && draft.fromDate && draft.fromTime
-        ? serializeDateTime(draft.fromDate, draft.fromTime)
-        : null,
-    absoluteTo:
-      !recurring && draft.toDate && draft.toTime
-        ? serializeDateTime(draft.toDate, draft.toTime)
-        : null,
-    recurringInterval: recurring ? draft.interval : null,
-    recurringFrequency: recurring ? draft.frequency : null,
-    recurringByDay:
-      recurring && draft.frequency === 'WEEK' ? sortWeekdays(draft.byDay) : [],
-    recurringByMonthDay:
-      recurring && (draft.frequency === 'MONTH' || draft.frequency === 'YEAR')
-        ? draft.byMonthDay
-        : null,
-    recurringByMonth:
-      recurring && draft.frequency === 'YEAR' ? draft.byMonth : null,
-    recurringStartDate: recurring
-      ? (draft.startDate?.toString() ?? null)
-      : null,
-    recurringTimeSlots: recurring
+/* An update is a creation that knows its own id, so the field mapping is
+   `toCreated`'s and is not repeated here — the only additions are the
+   component's id and, on a recurring one, the id each slot already had. A
+   slot with no id is one the editor has just added. */
+export const toUpdated = (draft: PersistedDraft): UpdatedTimeComponent => ({
+  ...toCreated(draft),
+  id: draft.id,
+  recurringTimeSlots:
+    draft.type === 'RECURRING'
       ? draft.slots.map((slot) => ({ ...toTimeSlot(slot), id: slot.id }))
-      : [],
-  };
-};
+      : undefined,
+});
 
 export const buildReport = (
   drafts: readonly TimeComponentDraft[],

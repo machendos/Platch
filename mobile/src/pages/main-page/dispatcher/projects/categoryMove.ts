@@ -1,6 +1,6 @@
 import { generateKeyBetween } from 'fractional-indexing';
-import type { MoveProjectDto } from '../../../../api/structures/MoveProjectDto';
-import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
+import type { MoveProjectDto } from '../../../../api/sdk/structures/MoveProjectDto';
+import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
 import { buildMemberTree, sortProjectsByPosition } from './projectTree';
 

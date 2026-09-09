@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Temporal } from 'temporal-polyfill';
-import type { ProjectWithTimeSlots } from '../api/structures/ProjectWithTimeSlots';
+import type { ProjectWithTimeSlots } from '../api/sdk/structures/ProjectWithTimeSlots';
 import {
   buildCreateProjectDto,
   buildUpdateProjectDto,

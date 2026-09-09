@@ -6,28 +6,27 @@ import type { MoveProjectDto } from './sdk/structures/MoveProjectDto';
 import type { ProjectWithTimeSlots } from './sdk/structures/ProjectWithTimeSlots';
 import type { UpdateProjectDto } from './sdk/structures/UpdateProjectDto';
 import { apiClient, getConnection } from '../system/api.client';
-
-/* Reading and writing projects. Every caller goes through here, so keeping the
-   cache correct after a write is this file's job rather than something each
-   caller has to remember. */
+import { COLORS_KEY } from './color';
 
 export const PROJECTS_KEY = ['projects'] as const;
 
+export const projectsQuery = {
+  queryKey: PROJECTS_KEY,
+  queryFn: async () =>
+    (await apiClient.project.getProjectsByUser(getConnection())).projects,
+};
+
 export const useProjectsQuery = () => {
-  const { data } = useQuery({
-    queryKey: PROJECTS_KEY,
-    queryFn: async () =>
-      (await apiClient.project.getProjectsByUser(getConnection())).projects,
-  });
+  const { data } = useQuery(projectsQuery);
 
   return data ?? [];
 };
 
-export const useReloadProjects = () => {
+export const useRefreshProjects = () => {
   const client = useQueryClient();
 
   return useCallback(
-    () => client.invalidateQueries({ queryKey: PROJECTS_KEY }),
+    () => client.query({ ...projectsQuery, staleTime: 0 }),
     [client],
   );
 };
@@ -104,7 +103,12 @@ export const useMoveProject = (reorder: Reorder) => {
 
 export const useSaveProject = () => {
   const client = useQueryClient();
-  const settle = () => client.invalidateQueries({ queryKey: PROJECTS_KEY });
+  /* Colours too: the palette carries which projects wear each colour, so
+     saving one leaves the "also used in" list stale. */
+  const settle = async () => {
+    await client.invalidateQueries({ queryKey: PROJECTS_KEY });
+    await client.invalidateQueries({ queryKey: COLORS_KEY });
+  };
 
   const create = useMutation({
     mutationFn: (dto: CreateProjectDto) =>

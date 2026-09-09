@@ -1,7 +1,7 @@
-import type { CreateProjectDto } from '../api/structures/CreateProjectDto';
-import type { ProjectWithTimeSlots } from '../api/structures/ProjectWithTimeSlots';
-import type { TimeComponentFields } from '../api/structures/TimeComponentFields';
-import type { UpdateProjectDto } from '../api/structures/UpdateProjectDto';
+import type { CreateProjectDto } from '../api/sdk/structures/CreateProjectDto';
+import type { ProjectWithTimeSlots } from '../api/sdk/structures/ProjectWithTimeSlots';
+import type { TimeComponentFields } from '../api/sdk/structures/TimeComponentFields';
+import type { UpdateProjectDto } from '../api/sdk/structures/UpdateProjectDto';
 import { parseApiDateTime } from '../system/helpers/dateTimeSerializers';
 import type { ProjectStatus } from './components/projectStatusSwitch/ProjectStatusSwitch';
 import type { ProjectType } from './components/projectTypeSwitch/ProjectTypeSwitch';

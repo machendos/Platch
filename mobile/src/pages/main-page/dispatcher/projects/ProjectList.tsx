@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CollisionPriority } from '@dnd-kit/abstract';
 import { useDroppable } from '@dnd-kit/react';
-import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
+import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
 import { buildSectionRows } from './projectTree';
 import { ConsequenceLine } from './ConsequenceLine';
@@ -21,6 +21,7 @@ export type RevealRequest = { id: string; token: number };
 type ProjectListProps = {
   projects: ProjectWithTimeSlots[];
   status: ProjectStatus;
+  onProjectEditOpen: (project: ProjectWithTimeSlots) => void;
   reveal: RevealRequest | null;
   onMoveToOtherCategory: (id: string) => void;
 };
@@ -63,6 +64,7 @@ const withAncestorsExpanded = (
 export const ProjectList = ({
   projects,
   status,
+  onProjectEditOpen,
   reveal,
   onMoveToOtherCategory,
 }: ProjectListProps) => {
@@ -225,6 +227,7 @@ export const ProjectList = ({
           status={status}
           isExpanded={!collapsedIds.has(row.project.id)}
           onToggleExpanded={toggleExpanded}
+          onOpen={onProjectEditOpen}
           onMoveToOtherCategory={onMoveToOtherCategory}
           revealDelayMs={
             revealing.indexOf(row.project.id) === -1

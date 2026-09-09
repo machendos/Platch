@@ -1,9 +1,10 @@
-import unboundedApi from '../api';
+import unboundedApi from '../api/sdk';
 import { authStorage } from '../pages/login/save.tokens';
 
-// const API_HOST = 'https://platch.machekhin.com';
-
-const API_HOST = 'http://192.168.1.128:3001';
+/* The default is the shared backend every worktree can borrow. A worktree
+   running its own, or serving the installed app over the LAN, sets
+   VITE_API_HOST in `mobile/.env.local` — see docs/running.md. */
+const API_HOST = import.meta.env.VITE_API_HOST ?? 'http://localhost:3001';
 
 export const apiClient = unboundedApi.functional;
 

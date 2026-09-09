@@ -50,7 +50,7 @@ wherever a node is clicked. A caller is told where the reader went and nothing
 else; it does not track the position, and must not rebuild the path from the
 node just selected, which would truncate exactly what this row exists not to
 truncate. It resets by remount — a modal opened on a different record carries a
-`key`, the same discipline `useFormState`'s baseline depends on.
+`key`, the same discipline `useEntityForm`'s baseline depends on.
 
 `onSelect` receives `string | null`, and **`null` is the entity itself** —
 which is how stepping back down to it is reported, since a record being created

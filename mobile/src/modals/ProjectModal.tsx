@@ -1,6 +1,6 @@
 import './ProjectModal.css';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal } from '../ui/modal/Modal';
 import { Breadcrumbs } from '../ui/breadcrumbs/Breadcrumbs';
 import { ancestorsOf } from '../ui/breadcrumbs/projectAncestry';
@@ -17,8 +17,12 @@ import {
   toTargetDraft,
 } from './projectPayload';
 import type { ProjectFormValues } from './projectPayload';
-import { apiClient, getConnection } from '../system/api.client';
-import type { ProjectWithTimeSlots } from '../api/structures/ProjectWithTimeSlots';
+import {
+  useProjectsQuery,
+  useRefreshProjects,
+  useSaveProject,
+} from '../api/project';
+import { useColorsQuery, useRefreshColors } from '../api/color';
 import { ColorField } from './components/colorComponent/ColorField';
 import { TargetComponent } from './components/targetComponent/TargetComponent';
 import type { TargetReport } from './components/targetComponent/targetState';
@@ -38,8 +42,6 @@ import {
 type ProjectModalProps = {
   isOpen: boolean;
   onDismiss: () => void;
-  onReloadProjects: () => Promise<void>;
-  projects: ProjectWithTimeSlots[];
   defaultEvenLengthMinutes: number;
 } & (
   | { mode: 'create'; parentProjectId: string | null; status: ProjectStatus }
@@ -54,18 +56,25 @@ const BLANK: Omit<ProjectFormValues, 'status'> = {
   colorId: null,
 };
 
-/* The form seeds itself once, so it must not mount until the list it seeds
-   from is current: a dispatcher left open overnight would otherwise offer
-   yesterday's values for editing. This waits for the refresh, then hands a
-   settled list to the form below. */
+type FormState = { canSave: boolean; isDirty: boolean; save: () => void };
+
+/* The sheet opens on the tap and fills in when the list arrives, rather than
+   waiting to appear at all. The form still seeds once from settled data — it
+   just mounts inside a sheet that is already on screen.
+
+   Done lives up here because the header does, so the body reports what it can
+   do, the same way the blocks inside it report to the form. */
 export const ProjectModal = (props: ProjectModalProps) => {
-  const { onReloadProjects } = props;
+  const { isOpen, onDismiss } = props;
+  const refreshProjects = useRefreshProjects();
+  const refreshColors = useRefreshColors();
   const [isRefreshed, setIsRefreshed] = useState(false);
+  const [form, setForm] = useState<FormState | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
 
-    onReloadProjects()
+    Promise.all([refreshProjects(), refreshColors()])
       .catch(() => {})
       .finally(() => {
         if (isCurrent) setIsRefreshed(true);
@@ -74,21 +83,43 @@ export const ProjectModal = (props: ProjectModalProps) => {
     return () => {
       isCurrent = false;
     };
-  }, [onReloadProjects]);
+  }, [refreshProjects, refreshColors]);
 
-  if (!isRefreshed) return null;
-
-  return <ProjectForm {...props} />;
+  return (
+    <Modal
+      isOpen={isOpen}
+      onDismiss={onDismiss}
+      presentation="sheet"
+      title={props.mode === 'edit' ? 'Edit project' : 'Create project'}
+      isDirty={form?.isDirty ?? false}
+      leading={
+        <button className="modal-action" type="button" onClick={onDismiss}>
+          Cancel
+        </button>
+      }
+      trailing={
+        <button
+          className="modal-action modal-action-primary"
+          type="button"
+          disabled={!form?.canSave}
+          onClick={() => form?.save()}
+        >
+          Done
+        </button>
+      }
+    >
+      {isRefreshed && <ProjectForm {...props} onFormState={setForm} />}
+    </Modal>
+  );
 };
 
-const ProjectForm = (props: ProjectModalProps) => {
-  const {
-    isOpen,
-    onDismiss,
-    onReloadProjects,
-    projects,
-    defaultEvenLengthMinutes,
-  } = props;
+const ProjectForm = (
+  props: ProjectModalProps & { onFormState: (state: FormState) => void },
+) => {
+  const { onDismiss, defaultEvenLengthMinutes, onFormState } = props;
+  const projects = useProjectsQuery();
+  const colors = useColorsQuery();
+  const { createProject, updateProject } = useSaveProject();
 
   const isEdit = props.mode === 'edit';
 
@@ -110,7 +141,11 @@ const ProjectForm = (props: ProjectModalProps) => {
       ancestors,
       values: project
         ? toProjectFormValues(project)
-        : { ...BLANK, status: props.mode === 'create' ? props.status : ProjectStatus.ACTIVE },
+        : {
+            ...BLANK,
+            status:
+              props.mode === 'create' ? props.status : ProjectStatus.ACTIVE,
+          },
       target: project ? toTargetDraft(project) : EMPTY_TARGET,
       timeComponents: project ? project.timeComponents : [],
       inheritedColorId:
@@ -133,8 +168,7 @@ const ProjectForm = (props: ProjectModalProps) => {
   const save = () =>
     form.save(async () => {
       if (opened.project) {
-        await apiClient.project.updateProject(
-          getConnection(),
+        await updateProject(
           buildUpdateProjectDto({
             id: opened.project.id,
             values,
@@ -143,8 +177,7 @@ const ProjectForm = (props: ProjectModalProps) => {
           }),
         );
       } else {
-        await apiClient.project.createProject(
-          getConnection(),
+        await createProject(
           buildCreateProjectDto({
             values,
             target: target?.value ?? EMPTY_TARGET,
@@ -154,109 +187,89 @@ const ProjectForm = (props: ProjectModalProps) => {
           }),
         );
       }
-
-      await onReloadProjects();
     });
+
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  const { canSave, isDirty } = form;
+  useEffect(() => {
+    onFormState({ canSave, isDirty, save: () => saveRef.current() });
+  }, [canSave, isDirty, onFormState]);
 
   if (props.mode === 'edit' && !opened.project) return null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onDismiss={onDismiss}
-      presentation="sheet"
-      title={isEdit ? 'Edit project' : 'Create project'}
-      isDirty={form.isDirty}
-      leading={
-        <button className="modal-action" type="button" onClick={onDismiss}>
-          Cancel
-        </button>
-      }
-      trailing={
-        <button
-          className="modal-action modal-action-primary"
-          type="button"
-          disabled={!form.canSave}
-          onClick={save}
-        >
-          Done
-        </button>
-      }
-    >
-      {/* One bar for the whole form, not one per field: the provider holds
-          whichever formatted field has the caret and the toolbar portals
-          itself into that field's shell, so a formatted field added anywhere
-          below is served without moving it. */}
-      <ActiveFieldProvider>
-        <RichTextToolbar />
+    <ActiveFieldProvider>
+      <RichTextToolbar />
 
-        <Breadcrumbs
-          ancestors={opened.ancestors}
-          currentEntityName={projectName(values.name)}
-          onSelect={() => {}}
-        />
+      <Breadcrumbs
+        ancestors={opened.ancestors}
+        currentEntityName={projectName(values.name)}
+        onSelect={() => {}}
+      />
 
-        <div className="project-form-headline">
-          <Field
-            {...NAME_FIELD}
-            className="project-form-name"
-            value={values.name}
-            onChange={(name) => set({ name })}
-          />
-
-          <ProjectStatusSwitch
-            currentValue={values.status}
-            onChange={(status: ProjectStatus) => set({ status })}
-          />
-        </div>
-
+      <div className="project-form-headline">
         <Field
-          {...GOAL_FIELD}
-          className="project-form-field"
-          value={values.goal}
-          onChange={(goal) => set({ goal })}
+          {...NAME_FIELD}
+          className="project-form-name"
+          value={values.name}
+          onChange={(name) => set({ name })}
         />
 
-        <Field
-          {...CONTEXT_FIELD}
-          className="project-form-field"
-          value={values.context}
-          onChange={(context) => set({ context })}
+        <ProjectStatusSwitch
+          currentValue={values.status}
+          onChange={(status: ProjectStatus) => set({ status })}
+        />
+      </div>
+
+      <Field
+        {...GOAL_FIELD}
+        className="project-form-field"
+        value={values.goal}
+        onChange={(goal) => set({ goal })}
+      />
+
+      <Field
+        {...CONTEXT_FIELD}
+        className="project-form-field"
+        value={values.context}
+        onChange={(context) => set({ context })}
+      />
+
+      <div className="project-form-targets">
+        <TargetComponent
+          initial={opened.target}
+          defaultEvenLengthMinutes={defaultEvenLengthMinutes}
+          onChange={setTarget}
+        />
+      </div>
+
+      <div className="project-form-time-components">
+        <TimeComponentsBlock
+          initialTimeComponents={opened.timeComponents}
+          seedFirstComponent={!isEdit}
+          onChange={setTime}
         />
 
-        <div className="project-form-targets">
-          <TargetComponent
-            initial={opened.target}
-            defaultEvenLengthMinutes={defaultEvenLengthMinutes}
-            onChange={setTarget}
+        <div className="project-form-row">
+          <span className="project-form-label">Project type</span>
+
+          <ProjectTypeSwitch
+            currentValue={values.type}
+            onChange={(type: ProjectType) => set({ type })}
           />
         </div>
 
-        <div className="project-form-time-components">
-          <TimeComponentsBlock
-            initialTimeComponents={opened.timeComponents}
-            seedFirstComponent={!isEdit}
-            onChange={setTime}
-          />
-
-          <div className="project-form-row">
-            <span className="project-form-label">Project type</span>
-
-            <ProjectTypeSwitch
-              currentValue={values.type}
-              onChange={(type: ProjectType) => set({ type })}
-            />
-          </div>
-
-          <ColorField
-            ownColorId={values.colorId}
-            onChange={(colorId) => set({ colorId })}
-            editable={true}
-            inheritedColorId={opened.inheritedColorId}
-            editedProjectId={opened.project?.id ?? null}
-          />
-        </div>
-      </ActiveFieldProvider>
-    </Modal>
+        <ColorField
+          colors={colors}
+          ownColorId={values.colorId}
+          onChange={(colorId) => set({ colorId })}
+          editable={true}
+          inheritedColorId={opened.inheritedColorId}
+          editedProjectId={opened.project?.id ?? null}
+        />
+      </div>
+    </ActiveFieldProvider>
   );
 };

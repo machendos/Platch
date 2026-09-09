@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ProjectWithTimeSlots } from '../../../../api/structures/ProjectWithTimeSlots';
+import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
 import type { ProjectStatus } from './projectTree';
 import { ProjectList } from './ProjectList';
 
@@ -25,7 +25,7 @@ const makeProject = (
   deadlineDate: null,
   deadlineTime: null,
   projectStatus: status,
-  flexibleTimezone: false,
+  projectType: 'EXTERNAL',
   originalTimezone: null,
   parentProjectId: parent,
   colorId: null,
@@ -46,6 +46,7 @@ describe('ProjectList', () => {
   it('draws one row per project, in chain order', () => {
     render(
       <ProjectList
+        onProjectEditOpen={() => {}}
         reveal={null}
         onMoveToOtherCategory={() => {}}
         projects={[makeProject('b', null, 'a2'), makeProject('a', null, 'a1')]}
@@ -58,12 +59,15 @@ describe('ProjectList', () => {
   });
 
   it('steps each level by the same shared indent variable', () => {
-    render(<ProjectList
+    render(
+      <ProjectList
         projects={tree}
         status="ACTIVE"
+        onProjectEditOpen={() => {}}
         reveal={null}
         onMoveToOtherCategory={() => {}}
-      />);
+      />,
+    );
 
     expect(findRow('sport').style.marginInlineStart).toBe(
       'calc(var(--project-indent-step) * 0)',
@@ -79,6 +83,7 @@ describe('ProjectList', () => {
   it('draws no ancestor from the other category', () => {
     render(
       <ProjectList
+        onProjectEditOpen={() => {}}
         reveal={null}
         onMoveToOtherCategory={() => {}}
         projects={[
@@ -101,12 +106,15 @@ describe('ProjectList', () => {
   });
 
   it('gives a chevron only to rows that render children', () => {
-    render(<ProjectList
+    render(
+      <ProjectList
         projects={tree}
         status="ACTIVE"
+        onProjectEditOpen={() => {}}
         reveal={null}
         onMoveToOtherCategory={() => {}}
-      />);
+      />,
+    );
 
     expect(screen.getByRole('button', { name: 'Collapse sport' })).toBeTruthy();
     expect(
@@ -116,12 +124,15 @@ describe('ProjectList', () => {
 
   it('hides the subtree when a chevron is clicked, and brings it back', async () => {
     const user = userEvent.setup();
-    render(<ProjectList
+    render(
+      <ProjectList
         projects={tree}
         status="ACTIVE"
+        onProjectEditOpen={() => {}}
         reveal={null}
         onMoveToOtherCategory={() => {}}
-      />);
+      />,
+    );
 
     await user.click(screen.getByRole('button', { name: 'Collapse workout' }));
     expect(screen.queryByText('legs')).toBeNull();
@@ -136,11 +147,50 @@ describe('ProjectList', () => {
       <ProjectList
         projects={tree}
         status="BACKLOG"
+        onProjectEditOpen={() => {}}
         reveal={null}
         onMoveToOtherCategory={() => {}}
       />,
     );
 
     expect(container.querySelectorAll('.project-row')).toHaveLength(0);
+  });
+
+  it('hands the whole project to onOpen when its name is pressed', async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(
+      <ProjectList
+        projects={tree}
+        status="ACTIVE"
+        onProjectEditOpen={onOpen}
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
+      />,
+    );
+
+    await user.click(screen.getByText('workout'));
+
+    expect(onOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'workout' }),
+    );
+  });
+
+  it('does not open the form when the chevron is pressed', async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(
+      <ProjectList
+        projects={tree}
+        status="ACTIVE"
+        onProjectEditOpen={onOpen}
+        reveal={null}
+        onMoveToOtherCategory={() => {}}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Collapse workout' }));
+
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });
