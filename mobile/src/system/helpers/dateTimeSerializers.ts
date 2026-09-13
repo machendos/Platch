@@ -91,6 +91,24 @@ export const serializeDuration = (totalMinutes: number): string => {
   return `${hours}h ${minutes}m`;
 };
 
+/* A day's clock against the device's, for the calendar's day headers. Null at
+   zero rather than "+0": a day in the zone you are already in has nothing to
+   explain, and the header simply shows no marker. Minutes are kept because
+   not every zone is a whole hour from its neighbours — India is +5:30, Nepal
+   +5:45, Chatham +12:45. */
+export const serializeTimezoneOffset = (minutes: number): string | null => {
+  if (minutes === 0) return null;
+
+  const sign = minutes < 0 ? '-' : '+';
+  const total = Math.abs(minutes);
+  const wholeHours = Math.floor(total / 60);
+  const remainder = total % 60;
+
+  return remainder === 0
+    ? `${sign}${wholeHours}`
+    : `${sign}${wholeHours}:${String(remainder).padStart(2, '0')}`;
+};
+
 const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const serializeWeekday = (date: Temporal.PlainDate): string =>

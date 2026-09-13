@@ -12,14 +12,21 @@ import { useRef } from 'react';
 import { MbscEventcalendarView } from '@mobiscroll/react/dist/src/core/components/eventcalendar/eventcalendar.types.public';
 import type { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
 import { Temporal } from 'temporal-polyfill';
-import { toJsDate } from '../../../system/helpers/helpers';
+import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
 import {
   DEFAULT_CELL_STEP_MINUTES,
   DEFAULT_LABEL_STEP_MINUTES,
+  dayHeaderFontSize,
+  dayHeaderLabelChars,
+  dayHeaderOffsetChars,
+  dayHeaderStyles,
   getTimeGutterStyles,
+  schedulerAreaWidth,
   zoomDetailStyles,
   SLIDE_DURATION_MS,
 } from './layoutConfig';
+import { DayHeader } from './DayHeader';
+import { useTimezone } from '../useTimezone';
 
 const getSchedulerViewOption = (
   days: number,
@@ -71,14 +78,38 @@ export const Calendar = ({
 
   const today = Temporal.Now.plainDateISO();
 
+  const { getTimezoneOnDates } = useTimezone();
+  const timezoneOffsetByDay = new Map<string, number>(
+    getTimezoneOnDates([pageStart, pageStart.add({ days: dayCount - 1 })]).map(
+      (offsetMinutes, index): [string, number] => [
+        pageStart.add({ days: index }).toString(),
+        offsetMinutes,
+      ],
+    ),
+  );
+
   let dayOffset = 0;
   const rowRanges = rows.map((days) => {
     const start = pageStart.add({ days: dayOffset });
     dayOffset += days;
     const todayOffset = start.until(today).days;
+
+    const columnWidth = schedulerAreaWidth(paneWidth) / days;
+    const fontSize = Math.min(
+      ...Array.from({ length: days }, (_, index) => {
+        const date = start.add({ days: index });
+        return dayHeaderFontSize(
+          columnWidth,
+          dayHeaderLabelChars(date),
+          dayHeaderOffsetChars(timezoneOffsetByDay.get(date.toString())),
+        );
+      }),
+    );
+
     return {
       start,
       days,
+      fontSize,
       // Which of this row's columns is today, if today is on this row at all.
       // Handed to CSS, which narrows mobiscroll's current-time line — drawn
       // across the whole instance — onto that one column.
@@ -98,10 +129,11 @@ export const Calendar = ({
           '--calendar-slide-duration': `${SLIDE_DURATION_MS}ms`,
           ...getTimeGutterStyles(paneWidth),
           ...zoomDetailStyles,
+          ...dayHeaderStyles,
         } as React.CSSProperties
       }
     >
-      {rowRanges.map(({ start, days, todayIndex }, rowIndex) => (
+      {rowRanges.map(({ start, days, todayIndex, fontSize }, rowIndex) => (
         <div
           className={[
             'calendar-week-row',
@@ -114,12 +146,15 @@ export const Calendar = ({
             .join(' ')}
           key={rowIndex}
           style={
-            todayIndex === null
-              ? undefined
-              : ({
-                  '--calendar-today-index': todayIndex,
-                  '--calendar-row-days': days,
-                } as React.CSSProperties)
+            {
+              '--calendar-day-header-font-size': `${fontSize}px`,
+              ...(todayIndex === null
+                ? {}
+                : {
+                    '--calendar-today-index': todayIndex,
+                    '--calendar-row-days': days,
+                  }),
+            } as React.CSSProperties
           }
         >
           <Eventcalendar
@@ -142,6 +177,22 @@ export const Calendar = ({
             // corner above the gutter anyway — with nothing rendered into it
             // there is no longer anything that can flash.
             renderHeader={() => null}
+            /* `renderSchedulerDay`, not `renderSchedulerDayContent`: the
+               header item renders `renderDay ? ours : <builtins>`, while
+               `renderDayContent` is appended *after* the built-in dayname and
+               date, which shows both. The wrapper cell and its sticky
+               positioning sit outside that branch either way, so this replaces
+               only the content. */
+            renderSchedulerDay={({ date }) => {
+              const day = fromJsDate(date);
+              return (
+                <DayHeader
+                  date={day}
+                  isToday={day.equals(today)}
+                  offsetMinutes={timezoneOffsetByDay.get(day.toString())}
+                />
+              );
+            }}
           />
         </div>
       ))}
