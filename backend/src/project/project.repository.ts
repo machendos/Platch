@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Color, Prisma, Project } from '../../prisma-client';
 import { TimeComponentWithSlots } from '../time-component/time.component.repository';
-import { Repository } from '../system/database/repository';
+import { BaseRepository } from '../system/database/base-repositoty.service';
 
 export interface ProjectWithTimeSlots extends Project {
   timeComponents: TimeComponentWithSlots[];
@@ -14,7 +14,7 @@ export interface ProjectsSnapshot {
 }
 
 @Injectable()
-export class ProjectsRepository extends Repository {
+export class ProjectsRepository extends BaseRepository {
   async bumpProjectsVersion(userId: string): Promise<number> {
     const { projectsVersion } = await this.db.user.update({
       where: { id: userId },

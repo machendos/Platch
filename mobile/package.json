@@ -13,7 +13,8 @@
     "lint": "eslint src/",
     "verify": "npm run typecheck && npm run lint && vitest run",
     "ios:dev": "ionic cap run ios -l --external --port=${PORT:-5173}",
-    "ios:release": "npm run build && npx cap sync ios && npx cap open ios"
+    "ios:release": "npm run build && npx cap sync ios && npx cap open ios",
+    "script:tz-generate": "node ./scripts/build-timezone-cities.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.0",

@@ -1,5 +1,10 @@
 import type { CSSProperties } from 'react';
+import type { Temporal } from 'temporal-polyfill';
 import { clamp } from '../../../system/helpers/helpers';
+import {
+  serializeTimezoneOffset,
+  serializeWeekday,
+} from '../../../system/helpers/dateTimeSerializers';
 
 export const CALENDAR_MIN_COLUMN_WIDTH = 80;
 
@@ -60,6 +65,78 @@ export const getTimeGutterStyles = (paneWidth: number) => ({
   '--calendar-time-label-padding': `${timeLabelPadding(paneWidth)}px`,
   '--calendar-pane-padding': `${calendarPanePadding(paneWidth)}px`,
 });
+
+// Day header
+// A row's headers are all one size, chosen so the widest label in that row
+// fits its column. Rows therefore only differ when one of them actually
+// carries a timezone offset long enough to need the room, which makes the
+// difference mean something rather than look arbitrary.
+//
+// The width is *estimated* from the character count rather than measured.
+// Measuring means render-read-resize, and mobiscroll settles asynchronously
+// for up to ~1.5s while Ionic can report zero during the first render — see
+// docs/calendar-layout.md. An estimate is deterministic and testable, and is
+// deliberately generous so it errs toward shrinking a little early rather
+// than overflowing.
+// Larger than mobiscroll's own 16px date, deliberately. Its date sat on its
+// own line under the weekday, which lent it weight this one-line layout does
+// not have; matching it by the number alone reads noticeably smaller.
+const DAY_HEADER_FONT_SIZE = 18;
+const MIN_DAY_HEADER_FONT_SIZE = 10;
+// Average character advance as a fraction of the font size.
+const DAY_HEADER_CHAR_RATIO = 0.58;
+// The offset marker rides as a superscript, so it costs less than its length.
+// Reaches CSS as a custom property, so raising it enlarges the marker and
+// charges it more room in the same move. The extra width bold costs sits
+// inside the slack already in DAY_HEADER_CHAR_RATIO.
+const DAY_HEADER_SUPERSCRIPT_SCALE = 0.7;
+const DAY_HEADER_PADDING = 4;
+// Today's date sits in a disc this many times the type size.
+const DAY_HEADER_BADGE_SCALE = 1.7;
+
+/* The header box is a fixed height, so it does not breathe as the type scales
+   with the pane or as the badge comes and goes — the row a badge lands in was
+   otherwise a pixel taller than its neighbours. Tall enough for the largest
+   thing it can hold, which is the badge at full size. */
+const DAY_HEADER_HEIGHT = Math.ceil(
+  DAY_HEADER_FONT_SIZE * DAY_HEADER_BADGE_SCALE,
+);
+
+// What each day asks of its column, in characters. Beside the fitting maths
+// rather than beside the markup, so the estimate and the thing it estimates
+// cannot drift apart.
+export const dayHeaderLabelChars = (date: Temporal.PlainDate) =>
+  serializeWeekday(date).length + 1 + String(date.day).length;
+
+export const dayHeaderOffsetChars = (offsetMinutes: number | undefined) =>
+  offsetMinutes === undefined
+    ? 0
+    : (serializeTimezoneOffset(offsetMinutes)?.length ?? 0);
+
+export const dayHeaderStyles = {
+  '--calendar-day-header-superscript-scale': DAY_HEADER_SUPERSCRIPT_SCALE,
+  '--calendar-day-badge-scale': DAY_HEADER_BADGE_SCALE,
+  '--calendar-day-header-height': `${DAY_HEADER_HEIGHT}px`,
+} as CSSProperties;
+
+export const dayHeaderFontSize = (
+  columnWidth: number,
+  labelChars: number,
+  offsetChars: number,
+) => {
+  const advancePerFontPx =
+    (labelChars + offsetChars * DAY_HEADER_SUPERSCRIPT_SCALE) *
+    DAY_HEADER_CHAR_RATIO;
+
+  const available = columnWidth - DAY_HEADER_PADDING * 2;
+  if (advancePerFontPx <= 0 || available <= 0) return DAY_HEADER_FONT_SIZE;
+
+  return clamp(
+    available / advancePerFontPx,
+    MIN_DAY_HEADER_FONT_SIZE,
+    DAY_HEADER_FONT_SIZE,
+  );
+};
 
 // Page motions (swipes/slides)
 // How far a finger must travel sideways before the page actually turns

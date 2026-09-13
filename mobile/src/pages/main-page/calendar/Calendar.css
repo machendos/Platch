@@ -148,6 +148,95 @@
   font-weight: inherit;
 }
 
+/* Mobiscroll drops the divider on the first header item, because that one
+   abuts the time gutter rather than another day — the lines separate days
+   from each other. A one-day row renders the whole week and hides six of
+   them, but `display: none` does not change which element matches
+   `:first-child`, so the visible day keeps a divider unless it happens to be
+   the weekday `firstDay` points at — Sunday, since this calendar passes none.
+   Its single column abuts the gutter too, so the divider should be absent for
+   every weekday, not only for Sunday. */
+.calendar .calendar-week-row-single .mbsc-schedule-header-item.mbsc-selected {
+  border-left: 0;
+}
+
+/* ===== Day header =====
+
+   The content is ours — see DayHeader.tsx — so the three shapes mobiscroll
+   chose between on measured width (one letter above the date, three above it,
+   three beside it) no longer happen. What is left is undoing the block layout
+   its own classes still carry, and taking the size from the row instead of
+   from the theme's ems: `--calendar-day-header-font-size` is set per row in
+   Calendar.tsx, from the widest label that row has to fit. */
+.calendar .calendar-day-header {
+  --calendar-day-badge-size: calc(var(--calendar-day-badge-scale) * 1em);
+
+  display: block;
+  font-size: var(--calendar-day-header-font-size);
+  /* Fixed, and equal to the height, so the box holds still while the type
+     scales inside it and a single line stays centred. */
+  height: var(--calendar-day-header-height);
+  line-height: var(--calendar-day-header-height);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Centred on each other rather than sharing a baseline. Today's date is a
+   circle, and an inline-block's baseline is its own last line box — so on the
+   baseline the circle hangs below the weekday instead of beside it. `middle`
+   puts both midpoints on the same line, which is what "next to" means when
+   one of the two is a disc. */
+.calendar .calendar-day-header .mbsc-schedule-header-dayname,
+.calendar .calendar-day-header .mbsc-schedule-header-day {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  vertical-align: middle;
+}
+
+/* Weekday and date are set at the same size, so a digit stands exactly as
+   tall as the weekday's capital. Mobiscroll graded them (11px against 16px)
+   because they sat on separate lines, where the date had to carry the column
+   on its own; sharing one line, a graded pair reads as a mistake. Keeping them
+   equal is also what makes the width estimate in layoutConfig exact rather
+   than merely conservative. */
+
+/* Today keeps the filled badge it had when the date sat on its own block line.
+   Mobiscroll's own rule only recolours the text; the disc comes from the
+   `mbsc-selected` background, whose geometry is on `.mbsc-ios
+   .mbsc-schedule-header-day` — `height`, `width` and `line-height` all at
+   1.875em.
+
+   All three are restated here, and that is the point rather than tidiness:
+   overriding `line-height` alone leaves mobiscroll's `height` in force, so the
+   text centres inside a shorter line box than the disc it sits in and rides
+   visibly high. The three have to move together or not at all. */
+.calendar .calendar-day-header .mbsc-schedule-header-day-today {
+  background: var(--accent);
+  border-radius: 50%;
+  color: var(--accent-contrast);
+  display: inline-block;
+  font-weight: 700;
+  height: var(--calendar-day-badge-size);
+  line-height: var(--calendar-day-badge-size);
+  text-align: center;
+  width: var(--calendar-day-badge-size);
+}
+
+/* Rides above the date as an index. The scale comes from layoutConfig because
+   the fitting maths charges the offset by exactly this fraction — the two
+   cannot be allowed to drift. */
+.calendar .calendar-day-header-offset {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: calc(var(--calendar-day-header-superscript-scale) * 1em);
+  line-height: 0;
+  margin-inline-start: 0.15em;
+  vertical-align: super;
+}
+
 /* Undo mobiscroll's "fill the container and scroll inside" sizing so each
    week can report its true height to the pane above. These all sit in
    column-direction (or block) parents, so flex here only governs height. */

@@ -9,6 +9,7 @@ import {
   serializeRange,
   serializeTimeOfDay,
   serializeTimeRange,
+  serializeTimezoneOffset,
   serializeWeekday,
 } from './dateTimeSerializers';
 
@@ -178,5 +179,29 @@ describe('serializeTimeRange', () => {
         new Temporal.PlainTime(13, 0),
       ),
     ).toBe('11:30 AM–1 PM');
+  });
+});
+
+describe('serializeTimezoneOffset', () => {
+  it('says nothing when the day is in the zone you are already in', () => {
+    expect(serializeTimezoneOffset(0)).toBeNull();
+  });
+
+  it('drops the minutes on a whole hour', () => {
+    expect(serializeTimezoneOffset(180)).toBe('+3');
+    expect(serializeTimezoneOffset(-120)).toBe('-2');
+  });
+
+  it('keeps the minutes on a zone that is not a whole hour from here', () => {
+    expect(serializeTimezoneOffset(165)).toBe('+2:45');
+    expect(serializeTimezoneOffset(-330)).toBe('-5:30');
+  });
+
+  it('pads a single-digit minute count', () => {
+    expect(serializeTimezoneOffset(305)).toBe('+5:05');
+  });
+
+  it('carries the sign on the hours, not on each part', () => {
+    expect(serializeTimezoneOffset(-765)).toBe('-12:45');
   });
 });

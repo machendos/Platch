@@ -4,7 +4,7 @@ import { PrismaService } from './prisma.service';
 import { TransactionsService } from './transactions.service';
 
 @Injectable()
-export class Repository {
+export class BaseRepository {
   constructor(
     protected readonly prismaService: PrismaService,
     protected readonly transactionsService: TransactionsService,
