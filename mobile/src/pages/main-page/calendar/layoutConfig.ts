@@ -113,6 +113,19 @@ export const dayHeaderOffsetChars = (offsetMinutes: number | undefined) =>
     ? 0
     : (serializeTimezoneOffset(offsetMinutes)?.length ?? 0);
 
+// Timezone strips
+/* The label sizes itself to the strip it sits in — see Calendar.css. These
+   are only the ends of that range: the ceiling so a strip covering a whole
+   afternoon does not shout, the floor so a one-hour strip on a zoomed-out
+   grid still says something rather than shrinking away. */
+const TZ_BAND_FONT_MIN = 7;
+const TZ_BAND_FONT_MAX = 16;
+
+export const timezoneBandStyles = {
+  '--calendar-tz-band-font-min': `${TZ_BAND_FONT_MIN}px`,
+  '--calendar-tz-band-font-max': `${TZ_BAND_FONT_MAX}px`,
+} as CSSProperties;
+
 export const dayHeaderStyles = {
   '--calendar-day-header-superscript-scale': DAY_HEADER_SUPERSCRIPT_SCALE,
   '--calendar-day-badge-scale': DAY_HEADER_BADGE_SCALE,

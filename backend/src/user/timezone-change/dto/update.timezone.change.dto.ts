@@ -5,4 +5,5 @@ export class UpdateTimezoneChangeDto {
   ianaTimezone?: string;
   changesAt?: string;
   cityLabel?: string;
+  countryLabel?: string;
 }

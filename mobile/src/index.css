@@ -37,6 +37,17 @@
   --accent-surface: #d9e4ff;
   --accent-contrast: #ffffff;
 
+  /* Brand accent, migrating in */
+  --accent-primary: #2f7270;
+  --accent-primary-rgb: 47, 114, 112;
+
+  /* Timezone strips on the calendar. See docs/calendar-layout.md. */
+  --calendar-tz-dead-surface: #dcdcdf;
+  --calendar-tz-dead-hatch: rgba(60, 60, 67, 0.2);
+  --calendar-tz-dead-label: #5a6274;
+  --calendar-tz-doubled-tint: rgba(var(--accent-primary-rgb), 0.18);
+  --calendar-tz-doubled-label: #265b59;
+
   /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
