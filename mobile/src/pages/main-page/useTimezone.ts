@@ -4,6 +4,7 @@ import {
   useTimezoneChangesQuery,
 } from '../../api/timezone.change';
 import { Temporal } from 'temporal-polyfill';
+import { timezoneBands } from './calendar/timezoneBands';
 
 const canonical = (zone: string) =>
   new Intl.DateTimeFormat('en', { timeZone: zone }).resolvedOptions().timeZone;
@@ -115,6 +116,9 @@ export const useTimezone = () => {
       datesRange: [Temporal.PlainDate, Temporal.PlainDate],
     ) => getTimezoneOffsetOnDates(datesRange),
     getTimezoneOnMoment: (moment: Date) => getTimezoneOnMoment(history, moment),
+    getTimezoneBands: (
+      datesRange: [Temporal.PlainDate, Temporal.PlainDate],
+    ) => timezoneBands(history, datesRange),
     currentTimezone: currentDeviceTz(),
   };
 };

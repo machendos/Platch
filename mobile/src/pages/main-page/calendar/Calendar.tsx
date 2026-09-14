@@ -20,12 +20,14 @@ import {
   dayHeaderLabelChars,
   dayHeaderOffsetChars,
   dayHeaderStyles,
+  timezoneBandStyles,
   getTimeGutterStyles,
   schedulerAreaWidth,
   zoomDetailStyles,
   SLIDE_DURATION_MS,
 } from './layoutConfig';
 import { DayHeader } from './DayHeader';
+import type { TimezoneBand } from './timezoneBands';
 import { useTimezone } from '../useTimezone';
 
 const getSchedulerViewOption = (
@@ -78,7 +80,7 @@ export const Calendar = ({
 
   const today = Temporal.Now.plainDateISO();
 
-  const { getTimezoneOnDates } = useTimezone();
+  const { getTimezoneOnDates, getTimezoneBands } = useTimezone();
   const timezoneOffsetByDay = new Map<string, number>(
     getTimezoneOnDates([pageStart, pageStart.add({ days: dayCount - 1 })]).map(
       (offsetMinutes, index): [string, number] => [
@@ -87,6 +89,30 @@ export const Calendar = ({
       ],
     ),
   );
+
+  const pageEnd = pageStart.add({ days: dayCount - 1 });
+  const bands = getTimezoneBands([pageStart, pageEnd]);
+
+  /* A strip belongs to every row whose days it touches — it can start on the
+     last day of one row and finish on the first day of the next. */
+  const bandsForRow = (start: Temporal.PlainDate, days: number) => {
+    const end = start.add({ days: days - 1 });
+    return bands.filter(
+      (band) =>
+        Temporal.PlainDate.compare(fromJsDate(band.start), end) <= 0 &&
+        Temporal.PlainDate.compare(fromJsDate(band.end), start) >= 0,
+    );
+  };
+
+  const ofKind = (rowBands: TimezoneBand[], kind: TimezoneBand['kind']) =>
+    rowBands
+      .filter((band) => band.kind === kind)
+      .map(({ start, end, title }) => ({
+        start,
+        end,
+        title,
+        cssClass: `calendar-tz-band calendar-tz-${kind}`,
+      }));
 
   let dayOffset = 0;
   const rowRanges = rows.map((days) => {
@@ -106,10 +132,14 @@ export const Calendar = ({
       }),
     );
 
+    const rowBands = bandsForRow(start, days);
+
     return {
       start,
       days,
       fontSize,
+      invalidBands: ofKind(rowBands, 'dead'),
+      colorBands: ofKind(rowBands, 'doubled'),
       // Which of this row's columns is today, if today is on this row at all.
       // Handed to CSS, which narrows mobiscroll's current-time line — drawn
       // across the whole instance — onto that one column.
@@ -130,10 +160,15 @@ export const Calendar = ({
           ...getTimeGutterStyles(paneWidth),
           ...zoomDetailStyles,
           ...dayHeaderStyles,
+          ...timezoneBandStyles,
         } as React.CSSProperties
       }
     >
-      {rowRanges.map(({ start, days, todayIndex, fontSize }, rowIndex) => (
+      {rowRanges.map(
+        (
+          { start, days, todayIndex, fontSize, invalidBands, colorBands },
+          rowIndex,
+        ) => (
         <div
           className={[
             'calendar-week-row',
@@ -172,6 +207,14 @@ export const Calendar = ({
             selectedDate={toJsDate(start)}
             view={getSchedulerViewOption(days, timeFrame)}
             data={events}
+            /* A forward change leaves clock readings that never happened, so
+               they are marked invalid rather than merely shaded — that also
+               stops drag-to-create, move and resize landing in them, which
+               `invalidateEvent` handles at its 'strict' default. A backward
+               change leaves readings that happened twice, which are ordinary
+               schedulable time and only need marking. */
+            invalid={invalidBands}
+            colors={colorBands}
             // Empties the header rather than hiding it. CSS already hides the
             // box, but during a resize the month/year title flashed in the
             // corner above the gutter anyway — with nothing rendered into it
@@ -195,7 +238,8 @@ export const Calendar = ({
             }}
           />
         </div>
-      ))}
+        ),
+      )}
 
       {/* Carries the grid past the last row and under the home indicator, so
           the stack reaches the bottom of the screen while its events still
