@@ -1,6 +1,6 @@
 /* Sizes shared with the layout math (--section-header-height,
-   --divider-size) are defined once in layoutConfig.ts and applied
-   as CSS variables on .main-page-shell in MainPage.tsx. */
+   are defined once in layoutConfig.ts and applied as CSS variables on
+   .main-page-shell in MainPage.tsx. */
 
 /* ===== Page shell: Header on top, workspace fills the rest ===== */
 
@@ -43,43 +43,4 @@
   flex: 1;
   min-height: 0; /* lets children shrink to fit instead of overflowing the page */
   display: grid;
-}
-
-/* ===== Dividers (drag handles) =====
-
-   An invisible overlay (::before) extends the touch area beyond the lane so it
-   is easy to grab on a phone. The lane draws nothing of its own: the hairline
-   and its grip replace the painted lane and the pill. */
-
-.divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative; /* anchor for the ::before touch overlay */
-  z-index: 1; /* keep the touch overlay above the sections next to it */
-  touch-action: none; /* required for pointer-dragging to work on touch screens */
-}
-
-/* the invisible touch overlay */
-.divider::before {
-  content: '';
-  position: absolute;
-}
-
-.divider-horizontal {
-  height: var(--divider-size);
-  cursor: row-resize;
-}
-
-.divider-horizontal::before {
-  inset: -8px 0; /* the lane + 8px above and below = comfortable touch area */
-}
-
-.divider-vertical {
-  width: var(--divider-size);
-  cursor: col-resize;
-}
-
-.divider-vertical::before {
-  inset: 0 -8px;
 }

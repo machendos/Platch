@@ -4,7 +4,7 @@ import { Temporal } from 'temporal-polyfill';
 import { Calendar } from './calendar/Calendar';
 import { Dispatcher } from './dispatcher/Dispatcher';
 import { Header } from './header/Header';
-import { Divider } from './Divider';
+import { Divider } from '../../ui/divider/Divider';
 import { testEvents } from './test.data';
 import { DEFAULT_PANE_WEIGHTS, layoutCssVariables } from './layout-config';
 import './MainPage.css';
@@ -109,6 +109,7 @@ export const MainPage = () => {
               {panes.dispatcher && panes.calendar && (
                 <Divider
                   orientation="vertical"
+                  draggable
                   onDragStart={rememberWidths}
                   onDrag={resizePanes}
                   onDragEnd={() => layoutStorage.setPaneWeights(paneWeights)}

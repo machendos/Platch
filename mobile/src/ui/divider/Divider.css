@@ -1,0 +1,166 @@
+/* The seam between two panes, or between two stacked sections. The hairline is
+   always drawn; the grip and the rail belong to `.divider-draggable` and so
+   appear only where the seam can actually move. */
+
+:root {
+  --divider-size: 1px;
+
+  --divider-grip-thickness: 3px;
+  --divider-grip-length: 26px;
+  --divider-grip-hover-scale: 1.3;
+  --divider-grip-drag-scale: 1.6;
+
+  --divider-rail-rest-scale: 0.34;
+  --divider-rail-drag-opacity: 0.9;
+
+  /* Slop exists so a finger can find a one-pixel line, and it is taken out of
+     whatever sits beside the seam — measured, the bottom 9px of the last row
+     above and the top 9px of the 36px header below. A mouse needs none of
+     that, so it pays a quarter of the price. */
+  --divider-hit-slop-vertical: 11px;
+  --divider-hit-slop-horizontal: 9px;
+  --divider-hit-slop-pointer: 4px;
+}
+
+.divider {
+  position: relative;
+  background: var(--separator-solid);
+}
+
+.divider-vertical {
+  width: var(--divider-size);
+}
+
+.divider-horizontal {
+  height: var(--divider-size);
+}
+
+.divider-draggable {
+  z-index: 1;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  --divider-grip-scale: 1;
+  --divider-rail-scale: var(--divider-rail-rest-scale);
+  --divider-rail-opacity: 0;
+}
+
+.divider-vertical.divider-draggable {
+  cursor: col-resize;
+}
+
+.divider-horizontal.divider-draggable {
+  cursor: row-resize;
+}
+
+.divider-draggable::before {
+  content: '';
+  position: absolute;
+  touch-action: none;
+}
+
+.divider-vertical.divider-draggable::before {
+  inset: 0 calc(-1 * var(--divider-hit-slop-vertical));
+}
+
+.divider-horizontal.divider-draggable::before {
+  inset: calc(-1 * var(--divider-hit-slop-horizontal)) 0;
+}
+
+.divider-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: var(--radius-pill);
+  background: var(--border-control);
+  pointer-events: none;
+  transition:
+    background var(--duration-exit) var(--easing-standard),
+    transform var(--duration-exit) var(--easing-standard);
+}
+
+.divider-vertical .divider-grip {
+  width: var(--divider-grip-thickness);
+  height: var(--divider-grip-length);
+  transform: translate(-50%, -50%) scaleX(var(--divider-grip-scale));
+}
+
+.divider-horizontal .divider-grip {
+  width: var(--divider-grip-length);
+  height: var(--divider-grip-thickness);
+  transform: translate(-50%, -50%) scaleY(var(--divider-grip-scale));
+}
+
+.divider-draggable::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  opacity: var(--divider-rail-opacity);
+  pointer-events: none;
+  transition:
+    opacity var(--duration-exit) var(--easing-standard),
+    transform var(--duration-exit) var(--easing-standard);
+}
+
+.divider-vertical.divider-draggable::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--divider-grip-thickness);
+  transform: translateX(-50%) scaleX(var(--divider-rail-scale));
+}
+
+.divider-horizontal.divider-draggable::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--divider-grip-thickness);
+  transform: translateY(-50%) scaleY(var(--divider-rail-scale));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .divider-draggable {
+    --divider-hit-slop-vertical: var(--divider-hit-slop-pointer);
+    --divider-hit-slop-horizontal: var(--divider-hit-slop-pointer);
+  }
+
+  .divider-draggable:hover {
+    --divider-grip-scale: var(--divider-grip-hover-scale);
+  }
+
+  .divider-draggable:hover .divider-grip {
+    background: var(--accent);
+  }
+}
+
+/* Three classes, so the drag state outranks `.divider-draggable:hover` rather
+   than merely coming after it — a drag is a hover too, and at equal weight the
+   seam would lose its accent the moment source order moved. */
+.divider.divider-draggable.divider-dragging {
+  --divider-grip-scale: var(--divider-grip-drag-scale);
+  --divider-rail-scale: 1;
+  --divider-rail-opacity: var(--divider-rail-drag-opacity);
+}
+
+.divider-dragging .divider-grip {
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .divider-grip,
+  .divider-draggable::after {
+    transition: none;
+  }
+}
+
+body.is-dragging-col,
+body.is-dragging-col * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.is-dragging-row,
+body.is-dragging-row * {
+  cursor: row-resize !important;
+  user-select: none;
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Divider } from '../Divider';
+import { Divider } from '../../../ui/divider/Divider';
 import { DispatcherSection } from './DispatcherSection';
 import { useSectionResize } from './useSectionResize';
 import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
@@ -93,16 +93,13 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
 
   if (!isLoaded) return <div className="dispatcher" />;
 
-  const showPlanDivider = expanded.plan && expanded.active;
-  const showActiveDivider = expanded.active && expanded.backlog;
-
   const sectionTrack = (isExpanded: boolean, weight: number) =>
     isExpanded ? `minmax(var(--section-header-height), ${weight}fr)` : 'auto';
   const gridTemplateRows = [
     sectionTrack(expanded.plan, weights.plan),
-    ...(showPlanDivider ? ['auto'] : []),
+    'auto',
     sectionTrack(expanded.active, weights.active),
-    ...(showActiveDivider ? ['auto'] : []),
+    'auto',
     sectionTrack(expanded.backlog, weights.backlog),
   ].join(' ');
 
@@ -124,14 +121,13 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
           onAdd={() => {}}
         />
 
-        {showPlanDivider && (
-          <Divider
-            orientation="horizontal"
-            onDragStart={beginDrag}
-            onDrag={resizePlan}
-            onDragEnd={saveWeights}
-          />
-        )}
+        <Divider
+          orientation="horizontal"
+          draggable={expanded.plan && expanded.active}
+          onDragStart={beginDrag}
+          onDrag={resizePlan}
+          onDragEnd={saveWeights}
+        />
 
         <DispatcherSection
           title="ACTIVE PROJECTS"
@@ -142,14 +138,13 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
           {listFor('ACTIVE')}
         </DispatcherSection>
 
-        {showActiveDivider && (
-          <Divider
-            orientation="horizontal"
-            onDragStart={beginDrag}
-            onDrag={resizeActive}
-            onDragEnd={saveWeights}
-          />
-        )}
+        <Divider
+          orientation="horizontal"
+          draggable={expanded.active && expanded.backlog}
+          onDragStart={beginDrag}
+          onDrag={resizeActive}
+          onDragEnd={saveWeights}
+        />
 
         <DispatcherSection
           title="BACKLOG"

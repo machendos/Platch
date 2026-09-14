@@ -11,6 +11,15 @@ export const DISPATCHER_SECTION_HEADER_HEIGHT = 36;
 export const PROJECT_ROW_MIN_HEIGHT = 48;
 export const PROJECT_ROW_GAP = 6;
 
+/* Two rows is where a section stops being worth the space it claims. Three was
+   the original figure and does not fit: rows measure 48px and headers 36, so a
+   three-row floor is 192px, and three expanded sections would need 578px of a
+   dispatcher that is about 590px on a 360x640 phone. */
+export const SECTION_MIN_HEIGHT =
+  DISPATCHER_SECTION_HEADER_HEIGHT +
+  2 * PROJECT_ROW_MIN_HEIGHT +
+  PROJECT_ROW_GAP;
+
 export const PROJECT_INDENT_STEP = 24;
 
 export const PROJECT_STRIP_WIDTH = 8;

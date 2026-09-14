@@ -9,15 +9,12 @@ import type { CSSProperties } from 'react';
 import { CALENDAR_MIN_COLUMN_WIDTH } from './calendar/layoutConfig';
 import { dispatcherCssVariables } from './dispatcher/layoutConfig';
 
-export const DIVIDER_SIZE = 12;
-
 export const DISPATCHER_MIN_PANE_WIDTH = 60;
 
 // TODO: dynamic default pane weights
 export const DEFAULT_PANE_WEIGHTS = { dispatcher: 1, calendar: 2 };
 
 export const layoutCssVariables = {
-  '--divider-size': `${DIVIDER_SIZE}px`,
   '--calendar-min-column-width': `${CALENDAR_MIN_COLUMN_WIDTH}px`,
   ...dispatcherCssVariables,
 } as CSSProperties;
