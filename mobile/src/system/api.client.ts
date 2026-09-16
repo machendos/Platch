@@ -1,10 +1,18 @@
 import unboundedApi from '../api/sdk';
 import { authStorage } from '../pages/login/save.tokens';
 
-/* The default is the shared backend every worktree can borrow. A worktree
-   running its own, or serving the installed app over the LAN, sets
-   VITE_API_HOST in `mobile/.env.local` — see docs/running.md. */
-const API_HOST = import.meta.env.VITE_API_HOST ?? 'http://localhost:3001';
+/* Anything served by Vite — a browser, simulator Safari, the installed app —
+   calls the backend same-origin through the dev proxy, because a direct call to
+   VITE_API_HOST is killed by ad-blocking extensions before it is sent and
+   Chrome records no request at all. A built bundle has no Vite in front of it
+   and calls the host directly; the default there is the shared backend every
+   worktree can borrow. See docs/running.md.
+
+   The origin is spelled out rather than left bare: @nestia/fetcher builds
+   `new URL(host + path)`, which throws on a host that is not absolute. */
+const API_HOST = import.meta.env.DEV
+  ? `${window.location.origin}/api`
+  : (import.meta.env.VITE_API_HOST ?? 'http://localhost:3001');
 
 export const apiClient = unboundedApi.functional;
 

@@ -16,7 +16,7 @@ in a gitignored env file, so a branch cannot carry another machine's setup into
 | `PORT` | `backend/.env` | the Nest server, to choose where to listen |
 | `DATABASE_URL` | `backend/.env` | Prisma — its `?schema=` picks this backend's own tables, when it has any |
 | `PORT` | `mobile/.env.local` | `vite.config.ts`, to pin the frontend port instead of letting Vite pick |
-| `VITE_API_HOST` | `mobile/.env.local` | `api.client.ts`, to reach *this* worktree's backend |
+| `VITE_API_HOST` | `mobile/.env.local` | `vite.config.ts`, as the target of the `/api` proxy; `api.client.ts` in a built bundle |
 | `DEV_LAN_IP` | `mobile/.env.local` | `capacitor.config.ts`, to build the installed app's URL |
 
 **`PORT` appears twice on purpose and means something different each time** —
@@ -43,6 +43,25 @@ Two defaults are deliberate rather than missing configuration:
 - `capacitor.config.ts` fixes the port at **5173** and throws if `DEV_LAN_IP` is
   unset. It throws rather than guesses because a wrong address here shows an
   empty app with nothing on screen explaining it.
+
+## The API is same-origin in development
+
+Anything Vite serves — a desktop browser, simulator Safari, the installed app —
+calls the backend at `/api` on its own origin, and Vite forwards to
+`VITE_API_HOST` with the prefix stripped. `api.client.ts` builds that origin
+itself rather than sending a bare path, because `@nestia/fetcher` composes the
+URL as `new URL(host + path)` and that throws on a host which is not absolute.
+
+It is worth knowing why the direct call was given up, because the failure
+looked like a bug in the app. `VITE_API_HOST` is normally a bare LAN address,
+and a desktop browser with an ad-blocking or privacy extension kills a request
+to one of those before it leaves the page: Chrome reports
+`net::ERR_BLOCKED_BY_CLIENT` and records no request in the network panel at
+all. Signing in simply did nothing, with nothing anywhere to say why.
+
+A built bundle has no Vite in front of it, so it keeps calling `VITE_API_HOST`
+directly — which is what that value is for, and why it still carries the `VITE_`
+prefix that puts it in the bundle.
 
 ## Procedure for a new worktree
 
