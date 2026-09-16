@@ -95,9 +95,22 @@
   --font-lg: 17px;
   --font-xl: 20px;
 
-  /* Controls */
-  --control-height: 34px;
-  --icon-button-size: 28px;
+  /* Controls. Two rungs, and this is the only place either is a number: a
+     control selects a rung, a dense container re-values what the rungs mean,
+     and nothing downstream writes a size of its own. Height is the shared
+     dimension — a square control takes its width from it, a labelled one takes
+     width from its text.
+
+     The rungs are deliberately NOT aliased here (--control-height-lg:
+     var(--control-height-compact-lg) and so on). A custom property that
+     substitutes on :root bakes :root's value, so every compact container would
+     inherit the global number and the density block would silently do nothing.
+     Containers select; :root only states. */
+  --control-height-md: 26px;
+  --control-height-lg: 34px;
+  --control-height-compact-md: 22px;
+  --control-height-compact-lg: 30px;
+
   --touch-target: 44px;
   /* THE form rhythm, and the only thing that states it. A row is at least
      --touch-target tall and carries no margin of its own, so the air around
@@ -137,6 +150,14 @@
      a prop so it stays with the size that governs it. */
   --icon-stroke-width: 1.5;
 
+  /* The glyph is a fraction of its button rather than a size of its own, so it
+     follows the rung and the compact density without either being restated.
+     0.61 is the ratio the icon set is drawn at: 21px in a 34px button, 17 in a
+     28. Before this, glyph size *was* the size system — a button meant to read
+     as secondary said so with a smaller font-size — which the rungs now say
+     instead, and the two disagreed. */
+  --icon-glyph-ratio: 0.65;
+
   /* A filled glyph carries more visual mass than an outline in the same box,
      so it has to be drawn slightly smaller to read as the same size. The
      correction is optical, not geometric, so it is applied as a transform: the
@@ -151,8 +172,28 @@
      That reads as decisive when something is arriving somewhere, and as a snap
      when something is only going back where it was. */
   --easing-gentle: cubic-bezier(0.33, 1, 0.68, 1);
+  /* Overshoots on the way back, which --easing-standard cannot express. The
+     overshoot is what makes a release read as a spring rather than a fade. */
+  --easing-overshoot: cubic-bezier(0.34, 1.42, 0.64, 1);
   --duration-enter: 300ms;
   --duration-exit: 200ms;
+  --duration-press: 500ms;
+
+  /* Press. Every control in the app responds with these, so they are stated
+     once here rather than in press.css.
+
+     The control fills rather than shrinking. A scale reads as the button
+     moving away from the finger and, on a control the size of these, the
+     change is too small to see at all — while a fill lights the whole target,
+     which is what makes a small button legible as pressed. Two steps, because a
+     pointer can hover: --press-hover answers "you are on it", --press-dim
+     answers "you are pressing it". */
+  /* Held while the finger is down, and the value the release curve starts
+     from — press.css's keyframes open on this exact number, so the two must
+     agree or the spring begins with a jump. */
+  --press-scale: 0.94;
+  --press-hover: rgba(0, 0, 0, 0.04);
+  --press-dim: rgba(0, 0, 0, 0.08);
 
   /* Elevation */
   --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.1);

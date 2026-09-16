@@ -1,0 +1,97 @@
+/* Two boxes, on purpose.
+
+   The button is the hit area and draws nothing. The face inside it is the
+   visible chip, and takes the size, the radius and the press fill. That split
+   is what lets the target be larger than the drawing without a pseudo-element
+   reaching outside the button.
+
+   The old ::before expander did reach outside, by 8px in every direction, and
+   it poached presses: two section headers sit 36px apart, so their buttons'
+   targets overlapped and a press in the gap between them activated whichever
+   came later in the DOM — with the pointer nowhere near it. A button's own box
+   cannot overflow its row, so this cannot happen. */
+
+/* Each rung only selects; neither writes a number. No base rule sets one
+   either — `size` is required, so there is no default to disagree with an
+   opt-in and no base-versus-modifier cascade to get wrong. */
+.icon-button-md {
+  --icon-button-size: var(--control-height-md);
+}
+
+.icon-button-lg {
+  --icon-button-size: var(--control-height-lg);
+}
+
+.icon-button {
+  /* Fills its row wherever the row sets a height — a 36px section header —
+     and falls back to the face's own size where nothing does. */
+  align-self: stretch;
+  min-height: var(--icon-button-size);
+  min-width: var(--icon-button-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: calc(var(--icon-button-size) * var(--icon-glyph-ratio));
+  line-height: 1;
+  /* Muted at rest so the states above it read as gaining weight rather than
+     losing it — the glyph darkens on hover and stays dark under the finger. */
+  color: var(--text-secondary);
+}
+
+.icon-button-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-button-size);
+  height: var(--icon-button-size);
+  border-radius: var(--radius-md);
+}
+
+/* The press paints the face, not the button. .pressable fills its own host by
+   default, which here is the hit area — a 28x36 rectangle with no radius — so
+   it drew a square highlight behind the chip's rounded one. The host keeps the
+   spring and gives up the fill. */
+/* The selector has to carry the same :not() pair as press.css's, because each
+   :not() adds its argument's specificity — without them this rule is (0,3,0)
+   against that one's (0,4,0) and silently loses, which is exactly what left a
+   square highlight behind the chip. */
+.icon-button.pressable:hover:not(:disabled):not([aria-disabled='true']),
+.icon-button.pressable.is-pressing {
+  background-image: none;
+}
+
+/* Filling the hit area would light a box visibly larger than the control. */
+/* Outranks the hover rule below, which is (0,4,0): a pointer keeps :hover
+   while the button is held, so at equal weight the 4% hover fill would win and
+   the press would paint lighter than the state it came from. */
+.icon-button.is-pressing:not(:disabled):not([aria-disabled='true'])
+  .icon-button-face {
+  background-color: var(--press-dim);
+}
+
+/* Pressed is the strongest state, so the glyph goes to full ink rather than
+   fading. Fading it was backwards: the fill darkens 4% -> 8% but the icon
+   carries most of a 28px control, so dimming it made the press read lighter
+   than the hover it came from. */
+.icon-button.is-pressing {
+  color: var(--text-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-button {
+    cursor: pointer;
+  }
+
+  .icon-button:hover:not(:disabled) {
+    color: var(--text-primary);
+  }
+
+  .icon-button:hover:not(:disabled) .icon-button-face {
+    background-color: var(--press-hover);
+  }
+}

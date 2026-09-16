@@ -1,7 +1,7 @@
 :root {
   /* The chip is a field-sized control, so it lines up with the time triggers
      and the count on the rows above it. */
-  --color-chip-size: var(--control-height);
+  --color-chip-size: var(--control-height-lg);
   /* Nine columns, because the palette IS nine hues in two tones: a wrapping
      row would line the pairs up only by accident, and not at all on a wide
      screen.

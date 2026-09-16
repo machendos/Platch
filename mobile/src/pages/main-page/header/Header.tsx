@@ -1,6 +1,7 @@
 import './Header.css';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import '@mobiscroll/react/dist/css/mobiscroll.min.css';
 import { Datepicker } from '@mobiscroll/react';
 import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/components/datepicker/datepicker.types.public';
@@ -10,6 +11,42 @@ import type { DateRange } from '../../../system/helpers/dateRange';
 import { WEEK_STARTS_ON } from '../../../config/calendarPreferences';
 import { DateFrameInput } from './DateFrameInput';
 import { HeaderMenu } from './HeaderMenu';
+import { usePress } from '../../../ui/buttons/pressable/usePress';
+
+/* usePress is a hook, so each control needs its own call — hence a component
+   rather than a shared class name. Local to the header because these are the
+   toolbar's own controls; the general one arrives with Button. */
+const HeaderButton = ({
+  onClick,
+  className,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  className?: string;
+  label?: string;
+  children: ReactNode;
+}) => {
+  const press = usePress();
+
+  return (
+    <button
+      ref={press.ref}
+      className={[press.className, 'header-button', className]
+        .filter(Boolean)
+        .join(' ')}
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      onPointerDown={press.onPointerDown}
+      onPointerUp={press.onPointerUp}
+      onPointerCancel={press.onPointerCancel}
+      onPointerLeave={press.onPointerLeave}
+    >
+      {children}
+    </button>
+  );
+};
 
 type HeaderProps = {
   isDispatcherVisible: boolean;
@@ -55,37 +92,33 @@ export const Header = ({
   return (
     <header className="main-page-header">
       {/* TODO: A and B are placeholders for the pane toggles. */}
-      <button
-        className={
-          isDispatcherVisible ? 'header-button active' : 'header-button'
-        }
+      <HeaderButton
+        className={isDispatcherVisible ? 'active' : undefined}
         onClick={onToggleDispatcher}
       >
         A
-      </button>
-      <button
-        className={isCalendarVisible ? 'header-button active' : 'header-button'}
+      </HeaderButton>
+      <HeaderButton
+        className={isCalendarVisible ? 'active' : undefined}
         onClick={onToggleCalendar}
       >
         B
-      </button>
-      <button
-        className="header-button header-button-glyph"
-        aria-label="Previous period"
+      </HeaderButton>
+      <HeaderButton
+        className="header-button-glyph"
+        label="Previous period"
         onClick={() => onPageChange(-1)}
       >
         ‹
-      </button>
-      <button className="header-button" onClick={onToday}>
-        Today
-      </button>
-      <button
-        className="header-button header-button-glyph"
-        aria-label="Next period"
+      </HeaderButton>
+      <HeaderButton onClick={onToday}>Today</HeaderButton>
+      <HeaderButton
+        className="header-button-glyph"
+        label="Next period"
         onClick={() => onPageChange(1)}
       >
         ›
-      </button>
+      </HeaderButton>
 
       <Datepicker
         select="range"

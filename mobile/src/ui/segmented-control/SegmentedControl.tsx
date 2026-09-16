@@ -1,10 +1,46 @@
 import './SegmentedControl.css';
 
 import type { CSSProperties, ReactNode } from 'react';
+import { usePress } from '../buttons/pressable/usePress';
 
 export type SegmentedOption<T extends string> = {
   value: T;
   label: ReactNode;
+};
+
+/* Its own component because usePress is a hook and the options are a map. */
+const SegmentedOptionButton = ({
+  selected,
+  label,
+  onSelect,
+}: {
+  selected: boolean;
+  label: ReactNode;
+  onSelect: () => void;
+}) => {
+  const press = usePress();
+
+  return (
+    <button
+      ref={press.ref}
+      className={[
+        press.className,
+        'segmented-option',
+        selected ? 'segmented-option-selected' : null,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      type="button"
+      aria-pressed={selected}
+      onClick={onSelect}
+      onPointerDown={press.onPointerDown}
+      onPointerUp={press.onPointerUp}
+      onPointerCancel={press.onPointerCancel}
+      onPointerLeave={press.onPointerLeave}
+    >
+      {label}
+    </button>
+  );
 };
 
 type SegmentedControlProps<T extends string> = {
@@ -46,19 +82,12 @@ export const SegmentedControl = <T extends string>({
       )}
 
       {options.map((option) => (
-        <button
+        <SegmentedOptionButton
           key={option.value}
-          className={
-            option.value === value
-              ? 'segmented-option segmented-option-selected'
-              : 'segmented-option'
-          }
-          type="button"
-          aria-pressed={option.value === value}
-          onClick={() => onChange(option.value)}
-        >
-          {option.label}
-        </button>
+          selected={option.value === value}
+          label={option.label}
+          onSelect={() => onChange(option.value)}
+        />
       ))}
     </div>
   );

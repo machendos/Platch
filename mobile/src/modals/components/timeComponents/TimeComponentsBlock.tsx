@@ -3,7 +3,7 @@ import './TimeComponentsBlock.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IonIcon } from '@ionic/react';
 import { addCircleOutline, chevronDownOutline } from 'ionicons/icons';
-import { IconButton } from '../../../ui/buttons/IconButton';
+import { IconButton } from '../../../ui/buttons/icon-button/IconButton';
 import { Reveal } from '../../../ui/reveal/Reveal';
 import type { TimeComponentWithSlots } from '../../../api/sdk/structures/TimeComponentWithSlots';
 import { AnimatedEntry } from './AnimatedEntry';
@@ -136,6 +136,7 @@ export const TimeComponentsBlock = ({
           <IconButton
             label="Done editing time components"
             onClick={stopEditing}
+            size="large"
           >
             <IonIcon icon={chevronDownOutline} aria-hidden="true" />
           </IconButton>

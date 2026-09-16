@@ -3,7 +3,7 @@
   --project-status-offset: calc(
     (
         var(--field-line-height) + 2 * var(--field-padding-block) -
-          var(--control-height)
+          var(--control-height-lg)
       ) /
       2
   );

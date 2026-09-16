@@ -32,7 +32,7 @@
   box-sizing: border-box;
   width: 100%;
   min-width: var(--date-input-min-width);
-  height: var(--control-height);
+  height: var(--control-height-lg);
   padding: 0 var(--date-input-icon-space) 0 var(--date-input-padding);
   border: none;
   background: transparent;

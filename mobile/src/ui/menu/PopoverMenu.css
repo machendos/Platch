@@ -245,7 +245,7 @@
 }
 
 .popover-menu-item:active:not(:disabled)::before {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--press-dim);
 }
 
 .popover-menu-item:disabled {

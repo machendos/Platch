@@ -179,7 +179,7 @@
    re-checked, so it misses a mouse plugged in later. */
 @media (hover: hover) and (pointer: fine) {
   :root {
-    --select-row-height: var(--control-height);
+    --select-row-height: var(--control-height-lg);
   }
 
   .select-field {

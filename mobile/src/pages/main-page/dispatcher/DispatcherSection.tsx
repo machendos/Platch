@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { IonIcon } from '@ionic/react';
 import { addCircleOutline } from 'ionicons/icons';
-import { IconButton } from '../../../ui/buttons/IconButton';
+import { IconButton } from '../../../ui/buttons/icon-button/IconButton';
 import './DispatcherSection.css';
 
 type DispatcherSectionProps = {
@@ -25,6 +25,7 @@ export const DispatcherSection = ({
         className="chevron-button"
         label={expanded ? `Collapse ${title}` : `Expand ${title}`}
         onClick={() => onSetExpanded(!expanded)}
+        size="large"
       >
         <span className={expanded ? 'chevron chevron-expanded' : 'chevron'}>
           ›
@@ -37,7 +38,7 @@ export const DispatcherSection = ({
           balances the chevron, and the title is centred between the two. */}
       <span className="section-header-slot">
         {onAdd && (
-          <IconButton label={`Add to ${title}`} onClick={onAdd}>
+          <IconButton label={`Add to ${title}`} onClick={onAdd} size="large">
             <IonIcon icon={addCircleOutline} aria-hidden="true" />
           </IconButton>
         )}

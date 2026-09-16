@@ -327,10 +327,11 @@
 }
 
 /* Removing one slot is a smaller act than removing the whole component, and
-   its button says so: smaller and grey against the card delete's red. */
+   its button says so: grey against the card delete's red, and a rung down —
+   the size comes from `size="medium"`, not from a font-size here, so it stays
+   in step with the control scale and the compact density. */
 .time-slot-delete {
   color: var(--text-secondary);
-  font-size: var(--font-md);
 }
 
 .time-slot-dim {

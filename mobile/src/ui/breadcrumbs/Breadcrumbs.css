@@ -145,7 +145,7 @@
 }
 
 .breadcrumbs-popover-item:active {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--press-dim);
 }
 
 .breadcrumbs-popover-item + .breadcrumbs-popover-item {

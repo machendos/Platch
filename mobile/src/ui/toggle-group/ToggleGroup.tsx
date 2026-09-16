@@ -1,6 +1,36 @@
 import './ToggleGroup.css';
 
 import type { ReactNode } from 'react';
+import { usePress } from '../buttons/pressable/usePress';
+const ToggleOptionButton = ({
+  selected,
+  label,
+  onToggle,
+}: {
+  selected: boolean;
+  label: ReactNode;
+  onToggle: () => void;
+}) => {
+  const press = usePress();
+
+  return (
+    <button
+      ref={press.ref}
+      className={['toggle-option', selected ? 'toggle-option-selected' : null]
+        .filter(Boolean)
+        .join(' ')}
+      type="button"
+      aria-pressed={selected}
+      onClick={onToggle}
+      onPointerDown={press.onPointerDown}
+      onPointerUp={press.onPointerUp}
+      onPointerCancel={press.onPointerCancel}
+      onPointerLeave={press.onPointerLeave}
+    >
+      {label}
+    </button>
+  );
+};
 
 export type ToggleOption<T extends string> = {
   value: T;
@@ -65,19 +95,12 @@ export const ToggleGroup = <T extends string>({
           const selected = values.includes(option.value);
 
           return (
-            <button
+            <ToggleOptionButton
               key={option.value}
-              className={
-                selected
-                  ? 'toggle-option toggle-option-selected'
-                  : 'toggle-option'
-              }
-              type="button"
-              aria-pressed={selected}
-              onClick={() => toggle(option.value)}
-            >
-              {option.label}
-            </button>
+              selected={selected}
+              label={option.label}
+              onToggle={() => toggle(option.value)}
+            />
           );
         })}
       </div>

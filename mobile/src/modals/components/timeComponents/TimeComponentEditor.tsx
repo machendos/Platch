@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { IonIcon } from '@ionic/react';
 import { addOutline, trashOutline } from 'ionicons/icons';
-import { IconButton } from '../../../ui/buttons/IconButton';
+import { IconButton } from '../../../ui/buttons/icon-button/IconButton';
 import { SegmentedControl } from '../../../ui/segmented-control/SegmentedControl';
 import type { SegmentedOption } from '../../../ui/segmented-control/SegmentedControl';
 import { Select } from '../../../ui/select/Select';
@@ -166,6 +166,7 @@ const SlotEditor = ({
           <IconButton
             className="time-slot-delete"
             label="Delete time slot"
+            size="medium"
             onClick={onRemove}
           >
             <IonIcon icon={trashOutline} aria-hidden="true" />
@@ -253,6 +254,7 @@ export const TimeComponentEditor = ({
         <IconButton
           className="time-component-delete"
           label="Delete time component"
+          size="large"
           onClick={onDelete}
         >
           <IonIcon icon={trashOutline} aria-hidden="true" />
@@ -434,6 +436,7 @@ export const TimeComponentEditor = ({
             <IconButton
               className="time-component-add-slot"
               label="Add time slot"
+              size="large"
               onClick={addSlot}
             >
               <IonIcon icon={addOutline} aria-hidden="true" />

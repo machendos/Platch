@@ -21,8 +21,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 0 var(--space-1);
-  border: var(--hairline-width) solid var(--border-control);
+  /* More room at the trailing edge than the leading one: the chevron reads
+     from its glyph and sits close, while the add button is a filled target
+     that needs to clear the section's edge. */
+  padding: 0 var(--space-2) 0 var(--space-1);
   background: var(--surface-header);
 }
 
@@ -48,11 +50,15 @@
   align-items: center;
   justify-content: flex-end;
   flex-shrink: 0;
-  width: var(--icon-button-size);
+  width: var(--control-height-lg);
+  /* Stretch so the button inside can take the row's full height as its target.
+     It still cannot exceed the row, which is the point. */
+  align-self: stretch;
 }
 
 .chevron-button {
-  font-size: var(--font-lg);
+  /* No font-size: the glyph is a fraction of the button, which the rung sets. */
+  display: flex;
 }
 
 .chevron {

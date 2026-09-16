@@ -48,7 +48,7 @@
 
 /* No border, radius or fill of its own — the chrome is FieldShell's, exactly
    as Select's trigger works. Which is why the trigger's height is the touch
-   target rather than --control-height: nothing about it is visible, so the
+   target rather than --control-height-lg: nothing about it is visible, so the
    only thing that height decides is how much of the field a finger can hit,
    and it was deciding 30px on the most-tapped control in the form.
 
@@ -259,7 +259,6 @@
 
 .time-component-delete {
   color: var(--text-destructive);
-  font-size: var(--font-lg);
 }
 
 .time-component-add-slot {

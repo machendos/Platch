@@ -1,0 +1,115 @@
+/* Press feedback, for anything tappable.
+
+   Two halves, and they are different kinds of thing. The press is a *state* —
+   it lasts exactly as long as the finger is down, so it is instant and it is
+   held. The release is an *event*, so it is an animation with its own life:
+   the control springs past its own size and settles back.
+
+   The release cannot be a transition. A transition from 0.94 back to 1 can
+   only overshoot by a fraction of that 0.06 of travel — a real spring at
+   damping 0.45 overshoots 5% of the distance, which is 0.003 of scale, a fifth
+   of a pixel on a 70px button. That is why the earlier cubic-bezier version
+   looked like nothing happened. Growing visibly past full size has to be asked
+   for, so the keyframes below are a damped oscillator released with velocity,
+   solved so its first peak lands at 1.05. */
+
+.pressable {
+  -webkit-tap-highlight-color: transparent;
+  /* Kills the 300ms click delay without disabling pinch-zoom the way `none`
+     would — the calendar is zoomable and shares this stylesheet. */
+  touch-action: manipulation;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover:not(:disabled):not([aria-disabled='true']) {
+    background-image: linear-gradient(var(--press-hover), var(--press-hover));
+  }
+}
+
+/* Held, not animated: it has to land in the frame the finger does. */
+.pressable.is-pressing {
+  background-image: linear-gradient(var(--press-dim), var(--press-dim));
+  transform: scale(var(--press-scale));
+}
+
+.pressable.is-releasing {
+  /* linear, because the easing is already in the keyframes — a timing function
+     on top of them would ease the spring twice and flatten it. */
+  animation: press-release var(--duration-press) linear;
+}
+
+@keyframes press-release {
+  0% {
+    transform: scale(0.94);
+  }
+  5% {
+    transform: scale(0.9826);
+  }
+  10% {
+    transform: scale(1.0151);
+  }
+  15% {
+    transform: scale(1.0366);
+  }
+  20% {
+    transform: scale(1.0476);
+  }
+  25% {
+    transform: scale(1.0499);
+  }
+  30% {
+    transform: scale(1.0456);
+  }
+  35% {
+    transform: scale(1.0373);
+  }
+  40% {
+    transform: scale(1.0269);
+  }
+  45% {
+    transform: scale(1.0164);
+  }
+  50% {
+    transform: scale(1.0069);
+  }
+  55% {
+    transform: scale(0.9993);
+  }
+  60% {
+    transform: scale(0.994);
+  }
+  65% {
+    transform: scale(0.9909);
+  }
+  70% {
+    transform: scale(0.9898);
+  }
+  75% {
+    transform: scale(0.9901);
+  }
+  80% {
+    transform: scale(0.9916);
+  }
+  85% {
+    transform: scale(0.9936);
+  }
+  90% {
+    transform: scale(0.9958);
+  }
+  95% {
+    transform: scale(0.9978);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pressable.is-pressing {
+    transform: none;
+  }
+
+  .pressable.is-releasing {
+    animation: none;
+  }
+}

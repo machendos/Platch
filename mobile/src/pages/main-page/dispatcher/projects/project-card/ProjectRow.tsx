@@ -2,7 +2,7 @@ import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { ellipsisVertical } from 'ionicons/icons';
 import { projectName } from '../../../../../config/labels';
-import { IconButton } from '../../../../../ui/buttons/IconButton';
+import { IconButton } from '../../../../../ui/buttons/icon-button/IconButton';
 import { PopoverMenu } from '../../../../../ui/menu/PopoverMenu';
 import { PROJECT_MENU_TRIGGER_SIZE } from '../../layoutConfig';
 import { ColorStrip } from './ColorStrip';
@@ -82,6 +82,7 @@ export const ProjectRow = ({
           <IconButton
             className="project-row-chevron-button"
             label={isExpanded ? `Collapse ${name}` : `Expand ${name}`}
+            size="medium"
             onClick={() => onToggleExpanded(project.id)}
           >
             <span

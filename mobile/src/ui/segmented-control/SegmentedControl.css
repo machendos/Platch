@@ -7,7 +7,7 @@
   display: flex;
   flex-shrink: 0;
   box-sizing: border-box;
-  height: var(--control-height);
+  height: var(--control-height-lg);
   padding: var(--segmented-track-padding);
   border-radius: var(--radius-sm);
   background: var(--surface-sunken);
@@ -57,13 +57,13 @@
 
 /* A full finger's worth of target without a finger's worth of box — the idiom
    IconButton and ToggleGroup use. Unlike a picker trigger, the track here is a
-   visible control and keeps --control-height; only the hit area grows, out
+   visible control and keeps --control-height-lg; only the hit area grows, out
    past the track and into the row, which the option's own 26px could not
    otherwise reach.
 
    `100%` is the option's own height, so the shortfall is measured rather than
    restated — no arithmetic here to fall out of step with the track padding
-   above, and nothing to re-state when --control-height changes at the compact
+   above, and nothing to re-state when --control-height-lg changes at the compact
    density. */
 .segmented-option::before {
   content: '';
