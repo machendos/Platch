@@ -15,7 +15,7 @@ import { Register } from './pages/login/Register';
 import { MainPage } from './pages/main-page/MainPage';
 import { queryClient } from './api/query.client';
 
-setupIonicReact();
+setupIonicReact({ mode: 'ios' });
 
 // IonRouterOutlet (instead of a plain react-router Switch) drives Ionic's
 // page transitions and lifecycle events (useIonViewDidEnter etc.).
