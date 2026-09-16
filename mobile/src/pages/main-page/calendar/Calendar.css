@@ -395,8 +395,8 @@
    In dark mode the calendar keeps mobiscroll's own dark surface, since the
    app background is a light colour. */
 .calendar:not(.calendar-dark) {
-  --mbsc-ios-background: var(--app-background);
-  --mbsc-ios-background-alt: var(--app-background);
+  --mbsc-ios-background: var(--surface);
+  --mbsc-ios-background-alt: var(--surface);
 }
 
 /* ===== Grid lines =====

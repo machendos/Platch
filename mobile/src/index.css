@@ -5,48 +5,66 @@
    would inherit none of these. HeaderMenu.css already had to do this for the
    same reason. Anything an overlay reads belongs here.
 
-   Values are lifted from what the app already draws, so introducing them
-   changes nothing on screen. Existing components still carry their own
-   literals; they migrate onto these as they are next touched. */
+   These are chosen values rather than a description of what the app already
+   drew, so editing one changes the screen. Components still carrying their own
+   literals migrate onto these as they are next touched. */
 :root {
   /* Surfaces */
-  --surface: #ffffff;
-  --surface-sunken: #ececec;
-  --surface-subtle: #f5f5f5;
-  --surface-header: #f2f2f2;
+  --surface: #faf7f2;
+  --surface-rgb: 250, 247, 242;
+  --surface-header: #f2f0ec;
+  --surface-subtle: #e9eae5;
+  --surface-sunken: rgba(10, 59, 57, 0.09);
+  /* The brand cream, and the sign-in page only. Nothing in the workspace
+     stands on it. */
+  --surface-auth: #f5efe6;
 
   /* Text */
-  --text-primary: #1c1c1e;
-  --text-secondary: #8e8e93;
-  --text-destructive: #ff3b30;
-
-  /* Warning: something is allowed but worth knowing. The icon is the brighter
-     orange because a mark is not read; the words sit at 4.7:1 on the surface,
-     which is what keeps them legible. */
-  --warning-surface: #fff3e0;
-  --warning-icon: #e8820c;
-  --warning-text: #a85800;
+  --text-primary: #35312c;
+  --text-primary-rgb: 53, 49, 44;
+  --text-secondary: #68625a;
+  /* Deliberately not neutral-400 #aba49c, which is 2.3:1 on the canvas and so
+     cannot carry a word at any size. */
+  --text-tertiary: #867e74;
+  --text-destructive: #a33329;
 
   /* Lines */
-  --separator: rgba(60, 60, 67, 0.29);
-  --border-control: #999;
+  --separator: #0a3b391f;
+  --border-control: #0a3b393d;
   --hairline-width: 1px;
 
   /* Accent */
-  --accent: #4a6fd0;
-  --accent-surface: #d9e4ff;
-  --accent-contrast: #ffffff;
+  --accent: #2f7270;
+  --accent-rgb: 47, 114, 112;
+  --accent-surface: rgba(47, 114, 112, 0.13);
+  --accent-contrast: #f5efe6;
+  /* The mark, and only the mark. Never a UI tint — that is --accent. */
+  --brand: #0a3b39;
 
-  /* Brand accent, migrating in */
-  --accent-primary: #2f7270;
-  --accent-primary-rgb: 47, 114, 112;
+  /* Attention. Sand is named for fill because #e9a23b is 1.89:1 on every light
+     ground in this palette: it can fill a shape and can never carry text. */
+  --attn-fill: #e9a23b;
+  --on-attn: #141210;
 
-  /* Timezone strips on the calendar. See docs/calendar-layout.md. */
-  --calendar-tz-dead-surface: #dcdcdf;
-  --calendar-tz-dead-hatch: rgba(60, 60, 67, 0.2);
-  --calendar-tz-dead-label: #5a6274;
-  --calendar-tz-doubled-tint: rgba(var(--accent-primary-rgb), 0.18);
-  --calendar-tz-doubled-label: #265b59;
+  /* Warning: something is allowed but worth knowing. The icon carries the
+     colour because a mark is not read, and the words are ordinary body ink,
+     under the same rule as --attn-fill above. The surface is sand at a tenth
+     over the canvas — enough to be a plane, which #fff3e0 no longer was once
+     the ground went warm: 1.026:1 against it. */
+  --warning-surface: #f8eee0;
+  --warning-icon: var(--attn-fill);
+  --warning-text: var(--text-primary);
+
+  /* Timezone strips on the calendar. See docs/calendar-layout.md. The dead
+     surface is the kit's own next neutral rather than a grey: #dcdcdf spreads
+     3 across its channels and arrived on a warm ground as a third hue, the
+     same failure that kept #d2cdc6 out of the header. The hatch is tinted with
+     pine to match --separator instead of the old cool grey. */
+  --calendar-tz-dead-surface: #e7e4de;
+  --calendar-tz-dead-hatch: rgba(10, 59, 57, 0.2);
+  --calendar-tz-dead-label: #4d4842;
+  --calendar-tz-doubled-tint: rgba(var(--accent-rgb), 0.18);
+  --calendar-tz-doubled-label: #15514e;
 
   /* Spacing */
   --space-1: 4px;
@@ -159,6 +177,6 @@ body {
 }
 
 ion-content {
-  --background: var(--app-background);
-  --color: var(--app-text-color);
+  --background: var(--surface);
+  --color: var(--text-primary);
 }

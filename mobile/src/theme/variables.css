@@ -1,31 +1,44 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+/* Ionic's token contract, mapped onto the palette in index.css.
 
+   Two vocabularies, and only one of them is ours to name: Ionic's components
+   read `--ion-*` and nothing can rename them, so this file exists to translate.
+   It holds no values of its own — a literal here would be a second definition
+   of a colour index.css already states, and the two would drift.
+
+   The dependency runs one way: index.css never reads a name declared here. It
+   used to, through `--app-background`, which made Ionic's scaffolded file the
+   source of truth for the workspace ground; that token is gone and its callers
+   read --surface directly.
+
+   Load order does not matter even though App.tsx imports this first. Both
+   blocks are :root, and a custom property substitutes at computed-value time
+   rather than in declaration order, so the var()s below resolve against the
+   finished cascade. */
 :root {
-  /* App tokens */
-  --app-background: #ececec;
-  --app-text-color: #1c1c1e;
-
   /* Ionic page/content */
-  --ion-background-color: #ececec;
-  --ion-background-color-rgb: 236, 236, 236;
-  --ion-text-color: #1c1c1e;
-  --ion-text-color-rgb: 28, 28, 30;
-  --ion-border-color: #e0e0e0;
+  --ion-background-color: var(--surface);
+  --ion-background-color-rgb: var(--surface-rgb);
+  --ion-text-color: var(--text-primary);
+  --ion-text-color-rgb: var(--text-primary-rgb);
+  --ion-border-color: var(--separator);
 
-  /* Elevated surfaces */
-  --ion-item-background: #ffffff;
-  --ion-card-background: #ffffff;
-  --ion-overlay-background-color: #ffffff;
+  /* Elevated surfaces. One workspace ground: a card is not a lighter plane
+     than the page, it is the same plane, and what separates it is its hairline
+     and its radius. --surface-subtle is the step down for content *inside* a
+     card, which is not what Ionic means by these. */
+  --ion-item-background: var(--surface);
+  --ion-card-background: var(--surface);
+  --ion-overlay-background-color: var(--surface);
 
   /* Toolbar / header */
-  --ion-toolbar-background: #ffffff;
-  --ion-toolbar-color: #1c1c1e;
-  --ion-toolbar-border-color: #e0e0e0;
+  --ion-toolbar-background: var(--surface-header);
+  --ion-toolbar-color: var(--text-primary);
+  --ion-toolbar-border-color: var(--separator);
 
-  /* Tab bar */
-  --ion-tab-bar-background: #ffffff;
-  --ion-tab-bar-border-color: #e0e0e0;
-  --ion-tab-bar-color: #8c8c8c;
-  --ion-tab-bar-color-selected: var(--ion-color-primary);
+  /* Tab bar. Nothing renders one today; these are kept so that adding one
+     cannot silently fall back to Ionic's stock white. */
+  --ion-tab-bar-background: var(--surface-header);
+  --ion-tab-bar-border-color: var(--separator);
+  --ion-tab-bar-color: var(--text-secondary);
+  --ion-tab-bar-color-selected: var(--accent);
 }
