@@ -40,13 +40,11 @@
 
 /* ===== Dividers (drag handles) =====
 
-   Styled like the iOS sheet "grabber": a lane with a small rounded pill
-   in the middle. The pill (::after) shows that the divider is draggable;
-   an invisible overlay (::before) extends the touch area beyond the lane
-   so it is easy to grab on a phone. */
+   An invisible overlay (::before) extends the touch area beyond the lane so it
+   is easy to grab on a phone. The lane draws nothing of its own: the hairline
+   and its grip replace the painted lane and the pill. */
 
 .divider {
-  background: #dededf; /* the lane is visible too, so the divider is easy to spot */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,32 +53,15 @@
   touch-action: none; /* required for pointer-dragging to work on touch screens */
 }
 
-/* the visible pill */
-.divider::after {
-  content: '';
-  border-radius: 3px;
-  background: #a9a9af;
-}
-
 /* the invisible touch overlay */
 .divider::before {
   content: '';
   position: absolute;
 }
 
-/* while dragging, the pill darkens as feedback */
-.divider-dragging::after {
-  background: #8e8e93;
-}
-
 .divider-horizontal {
   height: var(--divider-size);
   cursor: row-resize;
-}
-
-.divider-horizontal::after {
-  width: 36px;
-  height: 5px;
 }
 
 .divider-horizontal::before {
@@ -90,11 +71,6 @@
 .divider-vertical {
   width: var(--divider-size);
   cursor: col-resize;
-}
-
-.divider-vertical::after {
-  width: 5px;
-  height: 36px;
 }
 
 .divider-vertical::before {

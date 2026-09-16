@@ -30,6 +30,13 @@
 
   /* Lines */
   --separator: #0a3b391f;
+  /* --separator already flattened over --surface. The calendar needs an opaque
+     line: its column boundaries are fractional, so a hairline there is already
+     split across two device pixels and drawn at about half alpha, and a colour
+     carrying 12% of its own compounds with that into nothing. Anything drawn
+     on the canvas can use either; anything on a fractional boundary must use
+     this one. */
+  --separator-solid: #dde0dc;
   --border-control: #0a3b393d;
   --hairline-width: 1px;
 

@@ -8,15 +8,15 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 8px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--separator);
 }
 
 .header-button {
   min-width: 44px;
   padding: 6px 12px;
-  border: 1px solid #999;
+  border: 1px solid var(--border-control);
   border-radius: 6px;
-  background: white;
+  background: var(--surface);
   font: inherit;
   /* A fixed line box, so a button carrying a larger glyph is still exactly as
      tall as the lettered ones and their borders line up. */
@@ -27,8 +27,8 @@
 }
 
 .header-button.active {
-  background: #d9e4ff;
-  border-color: #4a6fd0;
+  background: var(--accent-surface);
+  border-color: var(--accent);
 }
 
 /* Chevrons are punctuation-sized at the body font size, so the glyph buttons
@@ -45,9 +45,9 @@
   align-items: center;
   min-width: 44px;
   padding: 6px 12px;
-  border: 1px solid #999;
+  border: 1px solid var(--border-control);
   border-radius: 6px;
-  background: white;
+  background: var(--surface);
   font: inherit;
   line-height: 20px;
   white-space: nowrap;

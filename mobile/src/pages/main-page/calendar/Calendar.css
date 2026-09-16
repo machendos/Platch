@@ -428,7 +428,7 @@
    grid at once, with that caveat. */
 .calendar {
   --calendar-hairline-width: 1px;
-  --calendar-hairline-color: #ccc;
+  --calendar-hairline-color: var(--separator-solid);
 
   --mbsc-ios-border: var(--calendar-hairline-color);
 }
