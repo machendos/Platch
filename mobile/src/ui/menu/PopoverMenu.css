@@ -48,7 +48,7 @@
   height: var(--popover-menu-trigger-size);
   padding: 0;
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   background: none;
   font-size: var(--font-lg);
   line-height: 1;

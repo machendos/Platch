@@ -1,54 +1,93 @@
+/* THE FOUR NUMBERS THE DATE FRAME IS TUNED BY. Everything else about it is
+   derived from these, so this block is the only place to change how it sizes.
+
+   The two widths are "tight": each is the widest label its shape can reach at
+   the standard font, plus the caret, the gap and the padding — so "Sep 30" and
+   "Sep 30-Nov 30" both sit in their box with no slack to spare and nothing
+   clips. Measured with the header's own font, not estimated.
+
+   The box is fixed so that the arrow, Today and the menu after it never move
+   as the label changes. A label that still does not fit — which needs a year,
+   so it needs paging out of this one — shrinks instead, down to the floor
+   below. Only if the floor is not enough does the box expand, which is the one
+   case where the controls after it shift. */
+:root {
+  /* "Sep 30" and the widest single date, tight. */
+  --header-range-width-day: 72px;
+  /* "Sep 30-Nov 30" and the widest span, tight. */
+  --header-range-width-span: 132px;
+  /* How much closer the date sits to the arrows than the toolbar's own rhythm
+     would put it. The arrows already carry ~6px of their own inset around
+     their glyph, so the standard gap lands the date about 18px from each
+     chevron and the nav reads as three separate things. */
+  --header-range-pull: calc(var(--space-1) - var(--space-2));
+  /* Below this a date stops being comfortable to read, so the box gives way
+     instead of the text. */
+  --header-range-min-font: 12px;
+}
+
 /* The header is the shell's first flex child and keeps its natural height;
    the workspace below takes the rest. */
 .main-page-header {
+  /* A stacking context above the workspace. The header is the shell's first
+     flex child and the panes come after it, so anything it needs to overhang
+     them with — the pane group's refusal, and any popover anchored here —
+     paints underneath them without this. */
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   /* TODO: flexible picker layout, so no wrap or clip will ever happen*/
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px;
-  border-bottom: 1px solid var(--separator);
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-bottom: var(--hairline-width) solid var(--separator);
+  background: var(--surface-header);
 }
 
-.header-button {
-  min-width: 44px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-control);
-  border-radius: 6px;
-  background: var(--surface);
-  font: inherit;
-  /* A fixed line box, so a button carrying a larger glyph is still exactly as
-     tall as the lettered ones and their borders line up. */
-  line-height: 20px;
-  /* Without this a squeezed row breaks "Today" across two lines, which makes
-     the whole header taller than the other buttons' fixed line box. */
-  white-space: nowrap;
+/* Split on input capability, not on width, and kept in its own query for that
+   reason: iPad portrait is wide enough for desktop density and a three-day
+   range but is still a touchscreen, so it takes the touch nav. A swipe already
+   pages the calendar there, and a chevron nobody taps is 34pt of a 390pt bar
+   spent on nothing. */
+@media (hover: none) and (pointer: coarse) {
+  .header-step {
+    display: none;
+  }
 }
 
-.header-button.active {
-  background: var(--accent-surface);
-  border-color: var(--accent);
+/* Qualified with `.text-button`, not left as `.header-range-input` alone.
+   TextButton.css is imported through the component and so lands after
+   Header.css; at equal weight the later rule wins, and this one silently did
+   nothing — the label stayed centred, which is the space either side of it. */
+.text-button.header-range-input {
+  /* The caret belongs to the date, so it sits against it and moves with it.
+     Anchoring it to the box's far edge instead put every spare pixel between
+     the date and its own chevron, which read as a hole inside one control.
+
+     The fixed width is not there to place the caret — it is there so that the
+     arrow, Today and the menu after it never move as the label changes. The
+     slack lands at the trailing edge, where a control with no fill and no
+     border shows nothing at all. */
+  /* EXPERIMENT: centred rather than left. The box still never changes, so
+     nothing after it moves — but the label recentres as it grows and shrinks,
+     so the text itself shifts while paging. Flip to flex-start to undo. */
+  justify-content: center;
+  /* None at all: the width is fixed, so padding here buys nothing except
+     distance from the arrows. The widths above are 8px smaller than they were
+     to pay for it, so the room left for text is unchanged. */
+  padding-inline: 0;
+  margin-inline: var(--header-range-pull);
+  width: var(--header-range-width-span);
 }
 
-/* Chevrons are punctuation-sized at the body font size, so the glyph buttons
-   set their own. */
-.header-button-glyph {
-  font-size: 18px;
+.text-button.header-range-input-day {
+  width: var(--header-range-width-day);
 }
 
-/* Shares the buttons' box so the row reads as one set of controls, but sizes
-   to its text — the range grows and shrinks as months and years drop in and
-   out of the serialized form. */
-.header-range-input {
-  display: flex;
-  align-items: center;
-  min-width: 44px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-control);
-  border-radius: 6px;
-  background: var(--surface);
-  font: inherit;
-  line-height: 20px;
-  white-space: nowrap;
+/* Pinned to the far end, so anything added to the bar later lands beside it
+   rather than between the nav controls. */
+.header-menu-trigger {
+  margin-left: auto;
 }

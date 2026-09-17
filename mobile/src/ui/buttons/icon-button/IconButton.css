@@ -36,11 +36,30 @@
   border: none;
   background: none;
   font: inherit;
-  font-size: calc(var(--icon-button-size) * var(--icon-glyph-ratio));
+  /* Rounded to a whole pixel, not left fractional. A ratio of a rung rarely
+     divides evenly — 26 x 0.56 is 14.56px — and a glyph sized in fractions
+     rasterises at one subpixel offset while the press animation owns a
+     compositor layer, then snaps to the pixel grid when that layer is
+     discarded. The icon appears to slide a fraction after the button has
+     already settled. Rounding the size is what removes the fraction that
+     causes it. */
+  font-size: round(
+    calc(var(--icon-button-size) * var(--icon-glyph-ratio)),
+    1px
+  );
   line-height: 1;
   /* Muted at rest so the states above it read as gaining weight rather than
      losing it — the glyph darkens on hover and stays dark under the finger. */
   color: var(--text-secondary);
+}
+
+/* lucide renders a fixed 24px svg and ignores font-size, where ionicons sizes
+   itself from it. Normalising here is what lets one ratio govern both — and
+   the ratio is on font-size because that is the only size a glyph from either
+   family inherits. */
+.icon-button-face svg {
+  width: 1em;
+  height: 1em;
 }
 
 .icon-button-face {

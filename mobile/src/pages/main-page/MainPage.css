@@ -32,7 +32,14 @@
    Column sizes come from an inline grid-template-columns built in
    MainPage.tsx (the dispatcher column width is draggable state). */
 
+/* Its own stacking context, so everything the panes contain is sealed inside
+   it. Without this the calendar's internals compete with the header directly —
+   mobiscroll gives its sticky schedule header z-index 10 — and anything the
+   header overhangs the workspace with is painted over by a pane, however high
+   the header itself is raised. `isolation` rather than a z-index, because the
+   workspace does not want a rank of its own, only a boundary. */
 .workspace {
+  isolation: isolate;
   flex: 1;
   min-height: 0; /* lets children shrink to fit instead of overflowing the page */
   display: grid;

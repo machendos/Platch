@@ -11,7 +11,7 @@ const ToggleOptionButton = ({
   label: ReactNode;
   onToggle: () => void;
 }) => {
-  const press = usePress();
+  const press = usePress({ animate: false });
 
   return (
     <button

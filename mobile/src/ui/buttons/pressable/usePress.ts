@@ -1,6 +1,7 @@
 import './press.css';
 
 import { useCallback, useEffect, useRef } from 'react';
+import type { Ref } from 'react';
 import { pressHaptic } from '../../../system/feedback/pressHaptic';
 
 /* :active cannot drive this. The press is held and the release is an
@@ -10,15 +11,39 @@ import { pressHaptic } from '../../../system/feedback/pressHaptic';
    classes, set from pointer events, and the release is cleared when its own
    animation ends rather than on a timer that could drift from it. */
 
-type Options = { haptic?: boolean };
+type Options<T> = {
+  haptic?: boolean;
+  /** The visible half. Off for a control that already answers a press some
+      other way — a toggle whose own selected fill says it, or a trigger whose
+      answer is the panel it opens — where a press state on top of that is a
+      second, quieter reply to the same tap. Stated here rather than by a
+      caller dropping `className` on the floor, so the exception is legible. */
+  animate?: boolean;
+  /** Merged rather than replaced. A host that already owes its ref to someone
+      else — Mobiscroll anchors its picker to one, PopoverMenu positions its
+      panel against one — still needs this hook to reach the element, and
+      choosing between the two silently costs whichever lost. */
+  ref?: Ref<T>;
+};
 
 const PRESSING = 'is-pressing';
 const RELEASING = 'is-releasing';
 
 export const usePress = <T extends HTMLElement = HTMLButtonElement>({
   haptic = true,
-}: Options = {}) => {
-  const ref = useRef<T>(null);
+  animate = true,
+  ref: borrowed,
+}: Options<T> = {}) => {
+  const ref = useRef<T | null>(null);
+
+  const attach = useCallback(
+    (el: T | null) => {
+      ref.current = el;
+      if (typeof borrowed === 'function') borrowed(el);
+      else if (borrowed) borrowed.current = el;
+    },
+    [borrowed],
+  );
 
   const isDisabled = (el: T) =>
     (el as HTMLElement & { disabled?: boolean }).disabled === true ||
@@ -28,10 +53,12 @@ export const usePress = <T extends HTMLElement = HTMLButtonElement>({
     const el = ref.current;
     if (!el || isDisabled(el)) return;
 
-    el.classList.remove(RELEASING);
-    el.classList.add(PRESSING);
+    if (animate) {
+      el.classList.remove(RELEASING);
+      el.classList.add(PRESSING);
+    }
     if (haptic) pressHaptic();
-  }, [haptic]);
+  }, [haptic, animate]);
 
   const release = useCallback(() => {
     const el = ref.current;
@@ -66,8 +93,8 @@ export const usePress = <T extends HTMLElement = HTMLButtonElement>({
   }, []);
 
   return {
-    ref,
-    className: 'pressable',
+    ref: attach,
+    className: animate ? 'pressable' : '',
     onPointerDown,
     onPointerUp: release,
     onPointerCancel: release,

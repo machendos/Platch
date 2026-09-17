@@ -1,0 +1,93 @@
+/* The chips are wider than they are tall, and smaller than a standalone icon
+   button, so the track reads as a track rather than as two buttons touching.
+   Derived from the control scale rather than stated: the group steps down a
+   rung and widens from there, so it follows a compact density like everything
+   else. */
+:root {
+  --pane-chip-aspect: 1.3;
+  /* A glyph in a chip carries less of it than one in a bare icon button, since
+     the chip is doing some of the work of being visible — but not by much:
+     0.5 left the icon floating in its chip, and the bare 0.61 filled it. */
+  --pane-glyph-ratio: 0.56;
+}
+
+.pane-group-shell {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+/* Sunken, so the ON chips read as lifted out of the track rather than drawn on
+   top of it. */
+.pane-group {
+  /* The rung comes from the buttons' own `size`, not from here: a rung class
+     sets --icon-button-size on the element, which outranks anything the track
+     inherits down. Only the ratio is the track's to say. */
+  --icon-glyph-ratio: var(--pane-glyph-ratio);
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.pane-group .icon-button {
+  min-width: auto;
+  color: var(--text-secondary);
+}
+
+.pane-group .icon-button-face {
+  /* Rounded for the same reason the glyph size is: 26 x 1.3 is 33.8, and
+     centring a whole 15px glyph in a fractional box puts the glyph itself on
+     a fraction. Both have to be whole or the icon re-rasterises a subpixel
+     over when the press animation's compositor layer is discarded — which
+     reads as the icon sliding a pixel a beat after the button has settled. */
+  width: round(calc(var(--icon-button-size) * var(--pane-chip-aspect)), 1px);
+  border-radius: var(--radius-sm);
+}
+
+/* On: a raised chip and an accent glyph. Two signals rather than one, because
+   a chip alone reads as "selected out of a set", and the colour is what says
+   these are independent switches. */
+.pane-group .icon-button[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.pane-group .icon-button[aria-pressed='true'] .icon-button-face {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+/* The one that cannot turn off keeps its chip — it is still on, and the state
+   it shows has to stay true — but loses the lift, so the pair no longer reads
+   as two things that can both move. */
+.pane-group .icon-button[aria-disabled='true'] .icon-button-face {
+  box-shadow: none;
+}
+
+.pane-group-refusal {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: 1;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  box-shadow: var(--shadow-raised);
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-exit) var(--easing-standard);
+}
+
+.pane-group-refusal:not(:empty) {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane-group-refusal {
+    transition: none;
+  }
+}

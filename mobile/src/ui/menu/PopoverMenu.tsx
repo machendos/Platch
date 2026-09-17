@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { IonIcon, IonPopover } from '@ionic/react';
 import { ellipsisHorizontal } from 'ionicons/icons';
 import { useDismissOnOutside } from './useDismissOnOutside';
+import { usePress } from '../buttons/pressable/usePress';
 import { usePopoverAnchor } from './usePopoverAnchor';
 import { LucideIcon } from '../../system/lucideIcons';
 import { DynamicIcon } from 'lucide-react/dynamic';
@@ -46,6 +47,10 @@ export const PopoverMenu = ({
 
   const triggerId = `popover-menu-${useId().replace(/[^\w-]/g, '')}`;
 
+  /* The trigger owes its ref to the anchor maths and the outside-dismiss
+     watcher, so the press hook borrows it rather than replacing it. */
+  const press = usePress<HTMLButtonElement>({ ref: trigger });
+
   useDismissOnOutside(isOpen, [popover, trigger], () =>
     popover.current?.dismiss(),
   );
@@ -65,18 +70,20 @@ export const PopoverMenu = ({
     <>
       <button
         id={triggerId}
-        ref={trigger}
-        className={
-          triggerClassName
-            ? `popover-menu-trigger ${triggerClassName}`
-            : 'popover-menu-trigger'
-        }
+        ref={press.ref}
+        className={[press.className, 'popover-menu-trigger', triggerClassName]
+          .filter(Boolean)
+          .join(' ')}
         style={sizing}
         type="button"
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => isOpen && popover.current?.dismiss()}
+        onPointerDown={press.onPointerDown}
+        onPointerUp={press.onPointerUp}
+        onPointerCancel={press.onPointerCancel}
+        onPointerLeave={press.onPointerLeave}
       >
         <IonIcon icon={icon} aria-hidden="true" />
       </button>

@@ -90,16 +90,10 @@ export const MainPage = () => {
         {isLoaded && currentUser && (
           <div className="main-page-shell" style={layoutCssVariables}>
             <Header
-              isDispatcherVisible={panes.dispatcher}
-              isCalendarVisible={panes.calendar}
+              panes={panes}
               isDarkModeEnabled={isDarkModeEnabled}
               dateFrame={dateFrame}
-              onToggleDispatcher={() =>
-                showPanes({ ...panes, dispatcher: !panes.dispatcher })
-              }
-              onToggleCalendar={() =>
-                showPanes({ ...panes, calendar: !panes.calendar })
-              }
+              onPanesChange={showPanes}
               onPageChange={goToPage}
               onToday={goToToday}
               onRangeChange={goToDateFrame}

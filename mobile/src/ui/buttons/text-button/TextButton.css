@@ -1,0 +1,69 @@
+/* Height comes from the rung, width from the text — the same scale IconButton
+   selects from, so a label and a glyph sitting in one row line up without
+   either restating a number. */
+
+.text-button-md {
+  --text-button-height: var(--control-height-md);
+}
+
+.text-button-lg {
+  --text-button-height: var(--control-height-lg);
+}
+
+.text-button {
+  /* A token, not just a value: a caller that fits its label to a box has to
+     read the size the label *would* be, and the computed one is whatever the
+     last fit set. */
+  --text-button-font: var(--font-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  height: var(--text-button-height);
+  padding-inline: var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  font: inherit;
+  font-size: var(--text-button-font);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--accent);
+  /* A squeezed row would otherwise break a two-word label across lines and
+     make the whole toolbar taller than its rung. */
+  white-space: nowrap;
+}
+
+/* A standing exit rather than one action among several, so it carries an
+   outline where the others are bare. Stadium, not a rounded rectangle: the
+   radius is larger than the box can ever be, so the ends stay semicircular at
+   every rung and in every density. */
+.text-button-outlined {
+  border: var(--hairline-width) solid var(--border-control);
+  border-radius: var(--radius-pill);
+}
+
+.text-button-trailing {
+  display: flex;
+  align-items: center;
+  /* Quieter than the label it belongs to: it says the label opens something,
+     which is a smaller claim than the label itself. */
+  color: var(--text-tertiary);
+}
+
+.text-button-trailing svg {
+  width: calc(var(--text-button-height) * var(--icon-glyph-ratio) * 0.7);
+  height: calc(var(--text-button-height) * var(--icon-glyph-ratio) * 0.7);
+}
+
+.text-button:disabled,
+.text-button[aria-disabled='true'] {
+  color: var(--text-tertiary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .text-button {
+    cursor: pointer;
+  }
+}

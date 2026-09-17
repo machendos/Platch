@@ -1,5 +1,3 @@
-import './HeaderMenu.css';
-
 import { useIonRouter } from '@ionic/react';
 import { logOutOutline, settingsOutline } from 'ionicons/icons';
 import { PopoverMenu } from '../../../ui/menu/PopoverMenu';

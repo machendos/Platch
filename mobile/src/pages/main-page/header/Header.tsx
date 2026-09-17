@@ -1,7 +1,6 @@
 import './Header.css';
 
 import { useState } from 'react';
-import type { ReactNode } from 'react';
 import '@mobiscroll/react/dist/css/mobiscroll.min.css';
 import { Datepicker } from '@mobiscroll/react';
 import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/components/datepicker/datepicker.types.public';
@@ -9,52 +8,19 @@ import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
 import { serializeRange } from '../../../system/helpers/dateTimeSerializers';
 import type { DateRange } from '../../../system/helpers/dateRange';
 import { WEEK_STARTS_ON } from '../../../config/calendarPreferences';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DateFrameInput } from './DateFrameInput';
 import { HeaderMenu } from './HeaderMenu';
-import { usePress } from '../../../ui/buttons/pressable/usePress';
-
-/* usePress is a hook, so each control needs its own call — hence a component
-   rather than a shared class name. Local to the header because these are the
-   toolbar's own controls; the general one arrives with Button. */
-const HeaderButton = ({
-  onClick,
-  className,
-  label,
-  children,
-}: {
-  onClick: () => void;
-  className?: string;
-  label?: string;
-  children: ReactNode;
-}) => {
-  const press = usePress();
-
-  return (
-    <button
-      ref={press.ref}
-      className={[press.className, 'header-button', className]
-        .filter(Boolean)
-        .join(' ')}
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      onPointerDown={press.onPointerDown}
-      onPointerUp={press.onPointerUp}
-      onPointerCancel={press.onPointerCancel}
-      onPointerLeave={press.onPointerLeave}
-    >
-      {children}
-    </button>
-  );
-};
+import { PaneGroup } from './PaneGroup';
+import { IconButton } from '../../../ui/buttons/icon-button/IconButton';
+import { TextButton } from '../../../ui/buttons/text-button/TextButton';
+import type { PanesVisible } from '../layoutStorage';
 
 type HeaderProps = {
-  isDispatcherVisible: boolean;
-  isCalendarVisible: boolean;
+  panes: PanesVisible;
   isDarkModeEnabled: boolean;
   dateFrame: DateRange;
-  onToggleDispatcher: () => void;
-  onToggleCalendar: () => void;
+  onPanesChange: (panes: PanesVisible) => void;
   /** Whole pages, signed: -1 is back, 1 is forward. */
   onPageChange: (delta: number) => void;
   onToday: () => void;
@@ -62,12 +28,10 @@ type HeaderProps = {
 };
 
 export const Header = ({
-  isDispatcherVisible,
-  isCalendarVisible,
+  panes,
   isDarkModeEnabled,
   dateFrame,
-  onToggleDispatcher,
-  onToggleCalendar,
+  onPanesChange,
   onPageChange,
   onToday,
   onRangeChange,
@@ -91,34 +55,15 @@ export const Header = ({
 
   return (
     <header className="main-page-header">
-      {/* TODO: A and B are placeholders for the pane toggles. */}
-      <HeaderButton
-        className={isDispatcherVisible ? 'active' : undefined}
-        onClick={onToggleDispatcher}
-      >
-        A
-      </HeaderButton>
-      <HeaderButton
-        className={isCalendarVisible ? 'active' : undefined}
-        onClick={onToggleCalendar}
-      >
-        B
-      </HeaderButton>
-      <HeaderButton
-        className="header-button-glyph"
+      <PaneGroup panes={panes} onChange={onPanesChange} />
+      <IconButton
+        className="header-step"
         label="Previous period"
+        size="large"
         onClick={() => onPageChange(-1)}
       >
-        ‹
-      </HeaderButton>
-      <HeaderButton onClick={onToday}>Today</HeaderButton>
-      <HeaderButton
-        className="header-button-glyph"
-        label="Next period"
-        onClick={() => onPageChange(1)}
-      >
-        ›
-      </HeaderButton>
+        <ChevronLeft />
+      </IconButton>
 
       <Datepicker
         select="range"
@@ -144,9 +89,26 @@ export const Header = ({
         inputComponent={DateFrameInput}
         inputProps={{
           serializedRange: serializeRange(dateFrame.start, dateFrame.end),
+          isSingleDay: dateFrame.start.equals(dateFrame.end),
         }}
         onChange={handleRangeChange}
       />
+
+      <IconButton
+        className="header-step"
+        label="Next period"
+        size="large"
+        onClick={() => onPageChange(1)}
+      >
+        <ChevronRight />
+      </IconButton>
+
+      {/* Permanent in both builds. With the arrows gone on touch it is the
+          only way back — a swipe has no "return to origin", so a control that
+          is the sole exit cannot be the conditional one. */}
+      <TextButton size="large" outlined onClick={onToday}>
+        Today
+      </TextButton>
 
       <HeaderMenu />
     </header>
