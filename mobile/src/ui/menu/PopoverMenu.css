@@ -40,6 +40,10 @@
    chrome. A caller wanting the panel-in-miniature look passes its own class
    through `triggerClassName` — see .header-menu-trigger. */
 .popover-menu-trigger {
+  /* Never the item that gives way. It was the only control in the toolbar that
+     could shrink, so when the bar ran out of room this button alone deformed —
+     a squashed target rather than a layout that visibly does not fit. */
+  flex-shrink: 0;
   position: relative;
   display: flex;
   align-items: center;
