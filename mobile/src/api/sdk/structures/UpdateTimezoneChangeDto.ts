@@ -6,4 +6,5 @@ export type UpdateTimezoneChangeDto = {
   changesAt?: undefined | string;
   cityLabel?: undefined | string;
   countryLabel?: undefined | string;
+  deviceId?: undefined | string;
 };

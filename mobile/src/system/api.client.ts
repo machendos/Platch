@@ -13,10 +13,19 @@ export const getConnection = () => ({
   fetch: authenticatedFetch,
 });
 
+/** For signing in and signing up, which have no session yet. */
+export const getPublicConnection = () => ({ host: API_HOST });
+
+export const isAuthenticated = async () =>
+  Boolean(await authStorage.getAccessToken());
+
+// Never redirect away from these: it would interrupt someone signing in.
+const AUTH_SCREENS = ['/login', '/register'];
+
 const redirectToLogin = async () => {
   await authStorage.clearTokens?.();
 
-  if (window.location.pathname !== '/login') {
+  if (!AUTH_SCREENS.includes(window.location.pathname)) {
     window.location.replace('/login');
   }
 };
@@ -64,7 +73,14 @@ const getRefreshedAccessToken = (): Promise<string | null> => {
 };
 
 const authenticatedFetch: typeof fetch = async (input, init) => {
-  const accessToken = (await authStorage.getAccessToken()) ?? '';
+  const accessToken = await authStorage.getAccessToken();
+
+  /* No token, no request. The redirect still happens: nothing else guards the
+     routes, so without it a signed-out user sits on a page that loads nothing. */
+  if (!accessToken) {
+    await redirectToLogin();
+    throw new Error('Not signed in');
+  }
 
   const headers = mixTokenToHeaders(init, accessToken);
   const response = await fetch(input, { ...init, headers });

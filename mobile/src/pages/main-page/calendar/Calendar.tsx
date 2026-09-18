@@ -27,8 +27,8 @@ import {
   SLIDE_DURATION_MS,
 } from './layoutConfig';
 import { DayHeader } from './DayHeader';
-import type { TimezoneBand } from './timezoneBands';
-import { useTimezone } from '../useTimezone';
+import type { TimezoneBand } from '../../../features/timezone/timezoneBands';
+import { useTimezone } from '../../../features/timezone/useTimezone';
 
 const getSchedulerViewOption = (
   days: number,
@@ -80,14 +80,15 @@ export const Calendar = ({
 
   const today = Temporal.Now.plainDateISO();
 
-  const { getTimezoneOnDates, getTimezoneBands } = useTimezone();
+  const { getOffsetMinutesPerDay, getTimezoneBands } = useTimezone();
   const timezoneOffsetByDay = new Map<string, number>(
-    getTimezoneOnDates([pageStart, pageStart.add({ days: dayCount - 1 })]).map(
-      (offsetMinutes, index): [string, number] => [
-        pageStart.add({ days: index }).toString(),
-        offsetMinutes,
-      ],
-    ),
+    getOffsetMinutesPerDay([
+      pageStart,
+      pageStart.add({ days: dayCount - 1 }),
+    ]).map((offsetMinutes, index): [string, number] => [
+      pageStart.add({ days: index }).toString(),
+      offsetMinutes,
+    ]),
   );
 
   const pageEnd = pageStart.add({ days: dayCount - 1 });
@@ -169,75 +170,75 @@ export const Calendar = ({
           { start, days, todayIndex, fontSize, invalidBands, colorBands },
           rowIndex,
         ) => (
-        <div
-          className={[
-            'calendar-week-row',
-            // A one-day row still gets a whole week of day names; Calendar.css
-            // drops the six that are not this row's day.
-            days === 1 ? 'calendar-week-row-single' : '',
-            todayIndex === null ? '' : 'calendar-week-row-has-today',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          key={rowIndex}
-          style={
-            {
-              '--calendar-day-header-font-size': `${fontSize}px`,
-              ...(todayIndex === null
-                ? {}
-                : {
-                    '--calendar-today-index': todayIndex,
-                    '--calendar-row-days': days,
-                  }),
-            } as React.CSSProperties
-          }
-        >
-          <Eventcalendar
-            // Pinned, not left on mobiscroll's `auto`. Auto picks by platform,
-            // so the same build renders `mbsc-ios` in one environment and
-            // `mbsc-material` in another — and every override in Calendar.css
-            // is scoped `.mbsc-ios` to outrank mobiscroll's own two-class
-            // rules, so under material they all silently stop applying. That
-            // was live: the hour labels lost `white-space: nowrap` and wrapped
-            // onto two lines, and the bottom strip's hairline (which reads the
-            // iOS border token) stopped matching the columns' material one.
-            theme="ios"
-            themeVariant={isDarkModeEnabled ? 'dark' : 'light'}
-            refDate={toJsDate(start)}
-            selectedDate={toJsDate(start)}
-            view={getSchedulerViewOption(days, timeFrame)}
-            data={events}
-            /* A forward change leaves clock readings that never happened, so
+          <div
+            className={[
+              'calendar-week-row',
+              // A one-day row still gets a whole week of day names; Calendar.css
+              // drops the six that are not this row's day.
+              days === 1 ? 'calendar-week-row-single' : '',
+              todayIndex === null ? '' : 'calendar-week-row-has-today',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            key={rowIndex}
+            style={
+              {
+                '--calendar-day-header-font-size': `${fontSize}px`,
+                ...(todayIndex === null
+                  ? {}
+                  : {
+                      '--calendar-today-index': todayIndex,
+                      '--calendar-row-days': days,
+                    }),
+              } as React.CSSProperties
+            }
+          >
+            <Eventcalendar
+              // Pinned, not left on mobiscroll's `auto`. Auto picks by platform,
+              // so the same build renders `mbsc-ios` in one environment and
+              // `mbsc-material` in another — and every override in Calendar.css
+              // is scoped `.mbsc-ios` to outrank mobiscroll's own two-class
+              // rules, so under material they all silently stop applying. That
+              // was live: the hour labels lost `white-space: nowrap` and wrapped
+              // onto two lines, and the bottom strip's hairline (which reads the
+              // iOS border token) stopped matching the columns' material one.
+              theme="ios"
+              themeVariant={isDarkModeEnabled ? 'dark' : 'light'}
+              refDate={toJsDate(start)}
+              selectedDate={toJsDate(start)}
+              view={getSchedulerViewOption(days, timeFrame)}
+              data={events}
+              /* A forward change leaves clock readings that never happened, so
                they are marked invalid rather than merely shaded — that also
                stops drag-to-create, move and resize landing in them, which
                `invalidateEvent` handles at its 'strict' default. A backward
                change leaves readings that happened twice, which are ordinary
                schedulable time and only need marking. */
-            invalid={invalidBands}
-            colors={colorBands}
-            // Empties the header rather than hiding it. CSS already hides the
-            // box, but during a resize the month/year title flashed in the
-            // corner above the gutter anyway — with nothing rendered into it
-            // there is no longer anything that can flash.
-            renderHeader={() => null}
-            /* `renderSchedulerDay`, not `renderSchedulerDayContent`: the
+              invalid={invalidBands}
+              colors={colorBands}
+              // Empties the header rather than hiding it. CSS already hides the
+              // box, but during a resize the month/year title flashed in the
+              // corner above the gutter anyway — with nothing rendered into it
+              // there is no longer anything that can flash.
+              renderHeader={() => null}
+              /* `renderSchedulerDay`, not `renderSchedulerDayContent`: the
                header item renders `renderDay ? ours : <builtins>`, while
                `renderDayContent` is appended *after* the built-in dayname and
                date, which shows both. The wrapper cell and its sticky
                positioning sit outside that branch either way, so this replaces
                only the content. */
-            renderSchedulerDay={({ date }) => {
-              const day = fromJsDate(date);
-              return (
-                <DayHeader
-                  date={day}
-                  isToday={day.equals(today)}
-                  offsetMinutes={timezoneOffsetByDay.get(day.toString())}
-                />
-              );
-            }}
-          />
-        </div>
+              renderSchedulerDay={({ date }) => {
+                const day = fromJsDate(date);
+                return (
+                  <DayHeader
+                    date={day}
+                    isToday={day.equals(today)}
+                    offsetMinutes={timezoneOffsetByDay.get(day.toString())}
+                  />
+                );
+              }}
+            />
+          </div>
         ),
       )}
 

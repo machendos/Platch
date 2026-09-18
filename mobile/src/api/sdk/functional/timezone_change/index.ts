@@ -32,15 +32,16 @@ export namespace getUserTimezoneChanges {
     userId: string;
     ianaTimezone: string;
     changesAt: string & tags.Format<"date-time">;
-
-    /**
-     * Kept apart rather than as one display string. Both halves can contain a
-     *      comma — "Glendale, AZ" carries the state that tells two of them apart,
-     *      and GeoNames spells one country "Bonaire, Saint Eustatius and Saba" — so
-     *      anything that joined them would have no separator left to split on.
-     */
     cityLabel: null | string;
     countryLabel: null | string;
+
+    /**
+     * Which device reported this. Two devices in two zones answer differently,
+     *      and the later answer is not automatically the right one — without knowing
+     *      who said what, rows that disagree cannot be untangled afterwards. An
+     *      install id, not a hardware one: reinstalling reads as a new device.
+     */
+    deviceId: null | string;
   }[];
 
   export const METADATA = {
@@ -90,15 +91,16 @@ export namespace createTimezoneChange {
     userId: string;
     ianaTimezone: string;
     changesAt: string & tags.Format<"date-time">;
-
-    /**
-     * Kept apart rather than as one display string. Both halves can contain a
-     *      comma — "Glendale, AZ" carries the state that tells two of them apart,
-     *      and GeoNames spells one country "Bonaire, Saint Eustatius and Saba" — so
-     *      anything that joined them would have no separator left to split on.
-     */
     cityLabel: null | string;
     countryLabel: null | string;
+
+    /**
+     * Which device reported this. Two devices in two zones answer differently,
+     *      and the later answer is not automatically the right one — without knowing
+     *      who said what, rows that disagree cannot be untangled afterwards. An
+     *      install id, not a hardware one: reinstalling reads as a new device.
+     */
+    deviceId: null | string;
   };
 
   export const METADATA = {
@@ -151,15 +153,16 @@ export namespace updateTimezoneChange {
     userId: string;
     ianaTimezone: string;
     changesAt: string & tags.Format<"date-time">;
-
-    /**
-     * Kept apart rather than as one display string. Both halves can contain a
-     *      comma — "Glendale, AZ" carries the state that tells two of them apart,
-     *      and GeoNames spells one country "Bonaire, Saint Eustatius and Saba" — so
-     *      anything that joined them would have no separator left to split on.
-     */
     cityLabel: null | string;
     countryLabel: null | string;
+
+    /**
+     * Which device reported this. Two devices in two zones answer differently,
+     *      and the later answer is not automatically the right one — without knowing
+     *      who said what, rows that disagree cannot be untangled afterwards. An
+     *      install id, not a hardware one: reinstalling reads as a new device.
+     */
+    deviceId: null | string;
   };
 
   export const METADATA = {
