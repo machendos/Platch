@@ -3,4 +3,5 @@ export class CreateTimezoneChangeDto {
   changesAt: string;
   cityLabel?: string;
   countryLabel?: string;
+  deviceId?: string;
 }

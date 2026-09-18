@@ -6,4 +6,5 @@ export class UpdateTimezoneChangeDto {
   changesAt?: string;
   cityLabel?: string;
   countryLabel?: string;
+  deviceId?: string;
 }

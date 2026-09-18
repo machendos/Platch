@@ -3,4 +3,5 @@ export type CreateTimezoneChangeDto = {
   changesAt: string;
   cityLabel?: undefined | string;
   countryLabel?: undefined | string;
+  deviceId?: undefined | string;
 };

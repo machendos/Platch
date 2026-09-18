@@ -15,7 +15,7 @@ const DUMP = 'https://download.geonames.org/export/dump';
    ~70 000 places. It is the source rather than `cities15000` because it is the
    smallest dump reaching all 371 zones; the 15 000 floor misses 15 of them. */
 const LARGEST_CITIES = 5000;
-const OUTPUT = resolve(process.argv[2] ?? 'src/config/timezoneCities.json');
+const OUTPUT = resolve(process.argv[2] ?? 'src/features/timezone/timezoneCities.json');
 
 /* GeoNames `geoname` table columns, 1-based, as documented in
    https://download.geonames.org/export/dump/readme.txt */

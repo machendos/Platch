@@ -13,7 +13,11 @@ import {
 import './Login.css';
 import { useEffect, useState } from 'react';
 import { authStorage } from './save.tokens';
-import { apiClient, getConnection } from '../../system/api.client';
+import {
+  apiClient,
+  getConnection,
+  getPublicConnection,
+} from '../../system/api.client';
 
 export const Login = () => {
   const { push } = useIonRouter();
@@ -26,11 +30,12 @@ export const Login = () => {
     setIncorrectCredentials(false);
 
     try {
-      const res = await apiClient.auth.login(getConnection(), {
+      const res = await apiClient.auth.login(getPublicConnection(), {
         username,
         password,
       });
       await authStorage.saveTokens(res.accessToken, res.refreshToken);
+
       push('/home', 'root', 'replace');
     } catch (err) {
       console.error('login error:', err);
@@ -39,11 +44,12 @@ export const Login = () => {
   };
 
   useEffect(() => {
-    apiClient.user.getCurrentUser(getConnection()).then((user) => {
-      if (user.id) {
-        push('/home', 'root', 'replace');
-      }
-    });
+    apiClient.user
+      .getCurrentUser(getConnection())
+      .then((user) => {
+        if (user.id) push('/home', 'root', 'replace');
+      })
+      .catch(() => undefined);
   }, [push]);
 
   return (

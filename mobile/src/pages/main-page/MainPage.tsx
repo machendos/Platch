@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { TimezoneWatcher } from '../../features/timezone/TimezoneWatcher';
 import { IonContent, IonPage } from '@ionic/react';
 import { Temporal } from 'temporal-polyfill';
 import { Calendar } from './calendar/Calendar';
@@ -89,6 +90,7 @@ export const MainPage = () => {
       <IonContent scrollY={false}>
         {isLoaded && currentUser && (
           <div className="main-page-shell" style={layoutCssVariables}>
+            <TimezoneWatcher />
             <Header
               isDispatcherVisible={panes.dispatcher}
               isCalendarVisible={panes.calendar}
