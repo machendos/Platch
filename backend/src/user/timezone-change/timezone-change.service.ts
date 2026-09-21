@@ -11,6 +11,8 @@ export class TimezoneChangeService {
       ianaTimezone: create.ianaTimezone,
       user: { connect: { id: userId } },
       cityLabel: create.cityLabel,
+      countryLabel: create.countryLabel,
+      deviceId: create.deviceId,
       changesAt: create.changesAt,
     });
   }
@@ -21,6 +23,8 @@ export class TimezoneChangeService {
       {
         ianaTimezone: update.ianaTimezone,
         cityLabel: update.cityLabel,
+        countryLabel: update.countryLabel,
+        deviceId: update.deviceId,
         changesAt: update.changesAt,
       },
     );

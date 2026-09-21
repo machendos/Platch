@@ -14,7 +14,7 @@ import {
 } from '@ionic/react';
 import './Login.css';
 import { useState } from 'react';
-import { apiClient, getConnection } from '../../system/api.client';
+import { apiClient, getPublicConnection } from '../../system/api.client';
 
 function validatePassword(password: string): string | null {
   if (password.length < 9) return 'Password must be at least 9 characters.';
@@ -46,7 +46,10 @@ export const Register = () => {
     }
 
     try {
-      await apiClient.user.createUser(getConnection(), { username, password });
+      await apiClient.user.createUser(getPublicConnection(), {
+        username,
+        password,
+      });
       push('/login', 'back', 'replace');
     } catch (e) {
       console.log(e);

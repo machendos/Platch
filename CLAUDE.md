@@ -220,6 +220,8 @@ approaches that were tried and do not work, which the code cannot show.
   files, one Postgres schema per worktree, and teardown.
 - [`docs/rich-text.md`](docs/rich-text.md) — the formatted text body, markdown
   as the stored format, and where the formatting toolbar sits.
+- [`docs/timezone.md`](docs/timezone.md) — the zone timeline, how a change is
+  detected and recorded offline, and why rules are never rewritten across zones.
 
 [`docs/TODO.md`](docs/TODO.md) holds work that has not been started, with the
 decisions that would have to be made before starting it. It is distinct from

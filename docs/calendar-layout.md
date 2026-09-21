@@ -221,6 +221,50 @@ maths that assumes a one-line label was quietly wrong at the same time.
 If the theme ever needs to change, every `.mbsc-ios`-scoped rule in this file
 has to move with it.
 
+## Timezone strips, and why they fight the hour lines
+
+A timezone change leaves one of two strips, both fed to mobiscroll by geometry
+rather than by cell — `invalid` for a forward change (clock readings that never
+happened) and `colors` for a backward one (readings that happened twice). See
+`timezoneBands.ts`.
+
+They are drawn differently on purpose: **the dead strip replaces the grid,
+because there are no hours there to rule; the doubled strip only tints it,
+because that is ordinary schedulable time and the grid must stay readable
+through it.**
+
+**An opaque background is not enough to hide the hour lines.** The obvious
+reading — the lines show through because the hatch has transparent gaps — is
+wrong. Of the 21 `.mbsc-schedule-item` cells that draw the lines, 20 are
+siblings of the strip inside `.mbsc-schedule-column-inner` and come **after**
+it in the DOM. At mobiscroll's own `z-index: 0` they are later in tree order at
+the same stacking level, so they paint over the strip whatever its background.
+Verified by giving them `border-top: 3px red`: the lines crossed an opaque
+strip exactly as before.
+
+So the dead strip needs `z-index: 1`. That has a consequence: events are also
+`z-index: 1` and come *before* the strip, so the strip wins the tie and swallows
+them — which matters, because an event scheduled before a flight can legitimately
+land in time that the flight then deleted. Events are therefore raised to `2`.
+
+**The current-time line is not at risk from that.** Its container carries
+`z-index: 6` and a `clip-path` (so it is its own stacking context), which is far
+above events either way — measured, not assumed, because the line is a sibling
+of the gutter and sits *before* events in the DOM, where a naive reading says
+raising events would cover it.
+
+The doubled strip keeps mobiscroll's layer and takes `z-index: auto` instead —
+that drops the stacking context `z-index: 0` creates, which is what lets its
+label escape to `z-index: 1` and clear the lines while the tint stays beneath
+them. Confirmed with `elementsFromPoint` at the label's centre: label, then
+hairline cell, then strip.
+
+Colours come from tokens in `index.css`. The doubled tint is derived from
+`--accent-primary` through `--accent-primary-rgb` rather than `color-mix()`,
+which needs Safari 16.2 while `.browserslistrc` floors at 14. Its label is
+`#2f7270` darkened: the brand colour itself lands at 4.37:1 on its own 18 %
+tint, under AA for an 11 px label.
+
 ## The time label sets a floor on cell height
 
 A label is one line tall — `1.6em` of a `0.625em` font, about 16 px. An hour
