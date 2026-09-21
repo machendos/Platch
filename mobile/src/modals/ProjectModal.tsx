@@ -89,7 +89,7 @@ export const ProjectModal = (props: ProjectModalProps) => {
     <Modal
       isOpen={isOpen}
       onDismiss={onDismiss}
-      presentation="sheet"
+      presentation="page"
       title={props.mode === 'edit' ? 'Edit project' : 'Create project'}
       isDirty={form?.isDirty ?? false}
       leading={
