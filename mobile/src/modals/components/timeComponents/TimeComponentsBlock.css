@@ -23,9 +23,9 @@
      this is the field that gives so it stays closed down to 360. */
   --time-slot-flex-min: var(--picker-field-min);
   /* Above it, as measured. */
-  --time-exact-date-min: 88px;
+  --time-date-field-min: 88px;
   /* The air between the From/To label, the date and the time. */
-  --time-exact-field-gap: var(--space-4);
+  --time-field-gap: var(--space-4);
 
   border-bottom: var(--hairline-width) solid var(--separator);
 }
@@ -263,14 +263,38 @@
   display: grid;
   grid-template-columns:
     2.8em
-    minmax(var(--time-exact-date-min), var(--picker-field-max))
+    minmax(var(--time-date-field-min), var(--picker-field-max))
     minmax(var(--picker-field-min), var(--picker-field-max));
   align-items: center;
-  column-gap: var(--time-exact-field-gap);
+  column-gap: var(--time-field-gap);
   justify-content: start;
 }
 
 .time-component-exact-row .picker-field {
+  width: 100%;
+  min-width: 0;
+}
+
+/* The cadence's bounds on one line. Same date track as the exact row above, so
+   a date field is the same width whichever card it sits in; the label tracks
+   size to their own words rather than sharing the exact row's, which fits
+   "From". */
+.time-component-bounds-row {
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(var(--time-date-field-min), var(--picker-field-max))
+    auto
+    minmax(var(--time-date-field-min), var(--picker-field-max));
+  align-items: center;
+  column-gap: var(--time-field-gap);
+  justify-content: start;
+  /* Last row in the card, so it states the air above it rather than joining
+     the margin-bottom rule the rows above share. */
+  margin-top: var(--space-3);
+}
+
+.time-component-bounds-row .picker-field {
   width: 100%;
   min-width: 0;
 }
@@ -284,7 +308,7 @@
   .time-components-block {
     /* The flex field's own honesty floor: "23h 55m" at the compact type. */
     --time-slot-flex-min: 74px;
-    --time-exact-field-gap: var(--space-2);
+    --time-field-gap: var(--space-2);
   }
 
   .time-slot-row,

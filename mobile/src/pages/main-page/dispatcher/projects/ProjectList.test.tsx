@@ -26,7 +26,7 @@ const makeProject = (
   deadlineTime: null,
   projectStatus: status,
   projectType: 'EXTERNAL',
-  originalTimezone: null,
+  originalTimezone: 'UTC',
   parentProjectId: parent,
   colorId: null,
   position,

@@ -10,7 +10,10 @@ import {
   isSlotValid,
   newTimeComponentDraft,
   slotDurationMinutes,
+  toCreated,
   withExactFrom,
+  withFirstDate,
+  withFrequency,
   withSlotFlex,
   withSlotRemoved,
   withSlotTime,
@@ -38,7 +41,8 @@ const absolute = (
   recurringByDay: [],
   recurringByMonthDay: null,
   recurringByMonth: null,
-  recurringStartDate: null,
+  firstRecurringEventAt: null,
+  lastRecurringEventAt: null,
   recurringTimeSlots: [],
   ...over,
 });
@@ -56,7 +60,8 @@ const recurring = (
   recurringByDay: ['TU'],
   recurringByMonthDay: null,
   recurringByMonth: null,
-  recurringStartDate: '2026-06-01T00:00:00.000Z',
+  firstRecurringEventAt: '2026-06-01T00:00:00.000Z',
+  lastRecurringEventAt: null,
   recurringTimeSlots: [
     {
       id: 's1',
@@ -86,13 +91,16 @@ describe('fromApiComponent', () => {
     expect(draft.slots[0].from?.toString({ smallestUnit: 'minute' })).toBe(
       '17:45',
     );
-    expect(draft.startDate?.toString()).toBe('2026-06-01');
+    expect(draft.firstDate?.toString()).toBe('2026-06-01');
   });
 });
 
 describe('buildReport', () => {
   it('is clean and valid for untouched data', () => {
-    const initial = [absolute(), recurring()];
+    const initial = [
+      absolute(),
+      recurring({ lastRecurringEventAt: '2026-07-01T00:00:00.000Z' }),
+    ];
     const report = buildReport(initial.map(fromApiComponent), initial);
 
     expect(report.isDirty).toBe(false);
@@ -159,7 +167,8 @@ describe('buildReport', () => {
         recurringByDay: ['FR'],
         recurringByMonthDay: undefined,
         recurringByMonth: undefined,
-        recurringStartDate: '2026-06-19',
+        firstRecurringEventAt: '2026-06-19T00:00',
+        lastRecurringEventAt: undefined,
         recurringTimeSlots: [
           { type: 'ABSOLUTE', from: undefined, to: undefined },
         ],
@@ -335,6 +344,65 @@ describe('validity', () => {
     expect(isDraftValid({ ...draft, byDay: [] })).toBe(false);
     expect(isDraftValid({ ...draft, slots: [] })).toBe(false);
   });
+
+  it('requires a first date and rejects a last one before it', () => {
+    const draft = fromApiComponent(recurring());
+
+    expect(isDraftValid({ ...draft, firstDate: null })).toBe(false);
+    expect(
+      isDraftValid({ ...draft, lastDate: date(2026, 5, 1) }),
+    ).toBe(false);
+    expect(isDraftValid({ ...draft, lastDate: draft.firstDate })).toBe(true);
+    expect(isDraftValid({ ...draft, lastDate: date(2026, 7, 1) })).toBe(true);
+  });
+});
+
+describe('cadence bounds', () => {
+  it('serializes the first date at midnight, with no zone marker', () => {
+    const draft = fromApiComponent(recurring());
+    const created = toCreated({ ...draft, lastDate: date(2026, 7, 1) });
+
+    expect(created.firstRecurringEventAt).toBe('2026-06-01T00:00');
+    expect(created.lastRecurringEventAt).toBe('2026-07-01T00:00');
+    expect(created.firstRecurringEventAt).not.toMatch(/Z$/);
+  });
+
+  it('never rewrites the cadence when the first date moves', () => {
+    const draft = newTimeComponentDraft(ANCHOR);
+    expect(draft.byDay).toEqual(['FR']);
+
+    const moved = withFirstDate(draft, date(2026, 6, 18));
+
+    expect(moved.byDay).toEqual(['FR']);
+    expect(moved.byMonthDay).toBe(19);
+    expect(moved.byMonth).toBe(6);
+    expect(moved.firstDate?.toString()).toBe('2026-06-18');
+  });
+
+  it('moves the last date with the first, keeping the span', () => {
+    const draft = {
+      ...newTimeComponentDraft(ANCHOR),
+      lastDate: date(2026, 7, 3),
+    };
+
+    expect(withFirstDate(draft, date(2026, 6, 26)).lastDate?.toString()).toBe(
+      '2026-07-10',
+    );
+    expect(withFirstDate(newTimeComponentDraft(ANCHOR), date(2026, 6, 26)).lastDate).toBe(
+      null,
+    );
+  });
+
+  it('fills a gap from the first date rather than from today', () => {
+    const draft = {
+      ...newTimeComponentDraft(ANCHOR),
+      firstDate: date(2026, 9, 3),
+      byMonthDay: null,
+      byMonth: null,
+    };
+
+    expect(withFrequency(draft, 'MONTH').byMonthDay).toBe(3);
+  });
 });
 
 describe('draft structure', () => {
@@ -353,6 +421,8 @@ describe('draft structure', () => {
 
     expect(back.byDay).toEqual(['FR']);
     expect(back.byMonthDay).toBe(19);
+    expect(back.firstDate).toEqual(ANCHOR);
+    expect(back.lastDate).toBe(null);
     expect(back.slots).toHaveLength(1);
   });
 

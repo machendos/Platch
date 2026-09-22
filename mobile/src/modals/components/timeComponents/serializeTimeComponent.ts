@@ -156,6 +156,23 @@ const serializeAbsolute = (
   return joinPresent([start, end], ' – ');
 };
 
+// Only what the cadence does not already imply: every component has a first
+// date, so one that has already passed says nothing, while one still to come
+// and any end at all are both real news.
+const serializeBounds = (
+  draft: TimeComponentDraft,
+  today: Temporal.PlainDate,
+): string =>
+  joinPresent(
+    [
+      draft.firstDate && Temporal.PlainDate.compare(draft.firstDate, today) > 0
+        ? `from ${serializeDate(draft.firstDate, today)}`
+        : null,
+      draft.lastDate ? `until ${serializeDate(draft.lastDate, today)}` : null,
+    ],
+    ' ',
+  );
+
 export const serializeTimeComponent = (
   draft: TimeComponentDraft,
   today: Temporal.PlainDate = Temporal.Now.plainDateISO(),
@@ -165,5 +182,8 @@ export const serializeTimeComponent = (
   const slots = draft.slots
     .map(serializeSlot)
     .filter((slot): slot is string => slot !== null);
-  return joinPresent([serializeCadence(draft), slots.join(', ')], ' · ');
+  return joinPresent(
+    [serializeCadence(draft), slots.join(', '), serializeBounds(draft, today)],
+    ' · ',
+  );
 };

@@ -18,6 +18,7 @@ export type TimeComponentWithSlots = {
   recurringByDay: ("MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU")[];
   recurringByMonthDay: null | number;
   recurringByMonth: null | number;
-  recurringStartDate: null | (string & tags.Format<"date-time">);
+  firstRecurringEventAt: null | (string & tags.Format<"date-time">);
+  lastRecurringEventAt: null | (string & tags.Format<"date-time">);
   projectId: string;
 };

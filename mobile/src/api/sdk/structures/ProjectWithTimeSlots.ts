@@ -22,7 +22,7 @@ export type ProjectWithTimeSlots = {
   deadlineTime: null | (string & tags.Format<"date-time">);
   projectStatus: "ACTIVE" | "BACKLOG";
   projectType: "EXTERNAL" | "INTERNAL";
-  originalTimezone: null | string;
+  originalTimezone: string;
   position: string;
   parentProjectId: null | string;
   colorId: null | string;

@@ -217,4 +217,29 @@ describe('recurring cadences', () => {
 
     expect(text).toBe('Every Friday');
   });
+
+  it('says nothing about bounds the cadence already implies', () => {
+    const text = serializeTimeComponent(
+      draft({ slots: [slot({})], firstDate: date(2026, 6, 19), lastDate: null }),
+      TODAY,
+    );
+
+    expect(text).toBe('Every Friday');
+  });
+
+  it('states a first date still to come, and any end at all', () => {
+    expect(
+      serializeTimeComponent(
+        draft({ slots: [slot({})], firstDate: date(2026, 9, 1) }),
+        TODAY,
+      ),
+    ).toBe('Every Friday · from Sep 1');
+
+    expect(
+      serializeTimeComponent(
+        draft({ slots: [slot({})], lastDate: date(2026, 12, 1) }),
+        TODAY,
+      ),
+    ).toBe('Every Friday · until Dec 1');
+  });
 });

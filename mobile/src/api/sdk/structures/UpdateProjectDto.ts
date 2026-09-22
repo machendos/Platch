@@ -22,7 +22,7 @@ export type UpdateProjectDto = {
     | null
     | undefined
     | (string & tags.Pattern<"^\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?$">);
-  originalTimezone?: null | undefined | string;
+  originalTimezone?: undefined | string;
   colorId?: null | undefined | (string & tags.Format<"uuid">);
   createdTimeComponents: TimeComponentFields[];
   updatedTimeComponents: UpdateTimeComponentDto[];

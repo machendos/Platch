@@ -37,7 +37,7 @@ export class UpdateProjectDto {
   deadlineDate?: DateString | null;
   deadlineTime?: TimeString | null;
 
-  originalTimezone?: string | null;
+  originalTimezone?: string;
 
   colorId?: Uuid | null;
 

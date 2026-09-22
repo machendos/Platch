@@ -38,6 +38,7 @@ import {
   ProjectType,
   ProjectTypeSwitch,
 } from './components/projectTypeSwitch/ProjectTypeSwitch';
+import { deviceZone } from '../features/timezone/helpers';
 
 type ProjectModalProps = {
   isOpen: boolean;
@@ -183,7 +184,7 @@ const ProjectForm = (
             target: target?.value ?? EMPTY_TARGET,
             timeComponents: time?.changes.createdTimeComponents ?? [],
             parentProjectId: opened.parentProjectId,
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timeZone: deviceZone(),
           }),
         );
       }

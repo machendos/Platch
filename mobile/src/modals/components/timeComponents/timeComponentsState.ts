@@ -31,7 +31,8 @@ export type TimeComponentDraft = {
   byDay: Weekday[];
   byMonthDay: number | null;
   byMonth: number | null;
-  startDate: Temporal.PlainDate | null;
+  firstDate: Temporal.PlainDate | null;
+  lastDate: Temporal.PlainDate | null;
   slots: SlotDraft[];
 };
 
@@ -76,8 +77,9 @@ export const weekdayOf = (date: Temporal.PlainDate): Weekday =>
 export const sortWeekdays = (days: readonly Weekday[]): Weekday[] =>
   WEEKDAYS.filter((day) => days.includes(day));
 
-// Temporary anchor for a recurring cadence — the current day stands in until
-// first/last dates are a real decision. See docs/TODO.md.
+// Where a new cadence starts unless the user moves it: today. It seeds
+// `firstDate` and, through it, the weekday / day of month / month the cadence
+// repeats on.
 export const currentRecurrenceAnchor = (): Temporal.PlainDate =>
   Temporal.Now.plainDateISO();
 
@@ -109,7 +111,8 @@ export const newTimeComponentDraft = (
   byDay: [weekdayOf(anchor)],
   byMonthDay: anchor.day,
   byMonth: anchor.month,
-  startDate: anchor,
+  firstDate: anchor,
+  lastDate: null,
   slots: [newSlotDraft()],
 });
 
@@ -121,14 +124,14 @@ const withRecurringDefaults = (
   byDay: draft.byDay.length > 0 ? draft.byDay : [weekdayOf(anchor)],
   byMonthDay: draft.byMonthDay ?? anchor.day,
   byMonth: draft.byMonth ?? anchor.month,
-  startDate: draft.startDate ?? anchor,
+  firstDate: draft.firstDate ?? anchor,
   slots: draft.slots.length > 0 ? draft.slots : [newSlotDraft()],
 });
 
 export const withType = (
   draft: TimeComponentDraft,
   type: TimeComponentType,
-  anchor: Temporal.PlainDate = currentRecurrenceAnchor(),
+  anchor: Temporal.PlainDate = draft.firstDate ?? currentRecurrenceAnchor(),
 ): TimeComponentDraft =>
   type === draft.type
     ? draft
@@ -139,8 +142,31 @@ export const withType = (
 export const withFrequency = (
   draft: TimeComponentDraft,
   frequency: RecurringFrequency,
-  anchor: Temporal.PlainDate = currentRecurrenceAnchor(),
+  anchor: Temporal.PlainDate = draft.firstDate ?? currentRecurrenceAnchor(),
 ): TimeComponentDraft => withRecurringDefaults({ ...draft, frequency }, anchor);
+
+// The bounds twin of withExactFrom: moving the first date moves the last with
+// it, keeping the span, so the end cannot be left behind the start. The cadence
+// itself is not touched — the anchor seeds it once at creation, and after that
+// the weekday / day of month is the user's to set.
+export const withFirstDate = (
+  draft: TimeComponentDraft,
+  firstDate: Temporal.PlainDate,
+): TimeComponentDraft => {
+  const span =
+    draft.firstDate && draft.lastDate
+      ? draft.firstDate.until(draft.lastDate).total({ unit: 'days' })
+      : null;
+
+  return {
+    ...draft,
+    firstDate,
+    lastDate:
+      span === null
+        ? draft.lastDate
+        : firstDate.add({ days: Math.max(span, 0) }),
+  };
+};
 
 const DAY_MINUTES = 24 * 60;
 
@@ -294,8 +320,15 @@ export const isDraftValid = (draft: TimeComponentDraft): boolean => {
           ? draft.byMonthDay !== null
           : draft.byMonthDay !== null && draft.byMonth !== null;
 
+  const withinBounds =
+    draft.lastDate === null ||
+    (draft.firstDate !== null &&
+      Temporal.PlainDate.compare(draft.firstDate, draft.lastDate) <= 0);
+
   return (
     draft.interval >= 1 &&
+    draft.firstDate !== null &&
+    withinBounds &&
     byFrequency &&
     draft.slots.length > 0 &&
     draft.slots.every(isSlotValid)
@@ -345,8 +378,11 @@ export const fromApiComponent = (
     byDay: sortWeekdays(source.recurringByDay),
     byMonthDay: source.recurringByMonthDay,
     byMonth: source.recurringByMonth,
-    startDate: source.recurringStartDate
-      ? parseApiDateTime(source.recurringStartDate).toPlainDate()
+    firstDate: source.firstRecurringEventAt
+      ? parseApiDateTime(source.firstRecurringEventAt).toPlainDate()
+      : null,
+    lastDate: source.lastRecurringEventAt
+      ? parseApiDateTime(source.lastRecurringEventAt).toPlainDate()
       : null,
     slots: source.recurringTimeSlots.map((slot) => ({
       key: slot.id,
@@ -365,6 +401,9 @@ const serializeDateTime = (
   date: Temporal.PlainDate,
   time: Temporal.PlainTime,
 ) => date.toPlainDateTime(time).toString({ smallestUnit: 'minute' });
+
+const serializeDay = (date: Temporal.PlainDate) =>
+  date.toPlainDateTime().toString({ smallestUnit: 'minute' });
 
 const toTimeSlot = (slot: SlotDraft): TimeSlot =>
   slot.flexibleMinutesNeeded !== null
@@ -400,7 +439,12 @@ export const toCreated = (draft: TimeComponentDraft): TimeComponentFields =>
             : undefined,
         recurringByMonth:
           draft.frequency === 'YEAR' ? (draft.byMonth ?? undefined) : undefined,
-        recurringStartDate: draft.startDate?.toString(),
+        firstRecurringEventAt: draft.firstDate
+          ? serializeDay(draft.firstDate)
+          : undefined,
+        lastRecurringEventAt: draft.lastDate
+          ? serializeDay(draft.lastDate)
+          : undefined,
         recurringTimeSlots: draft.slots.map(toTimeSlot),
       };
 

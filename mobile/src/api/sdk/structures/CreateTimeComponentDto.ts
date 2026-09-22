@@ -23,6 +23,13 @@ export type CreateTimeComponentDto = {
   recurringByMonth?:
     | undefined
     | (number & tags.Type<"int32"> & tags.Minimum<1> & tags.Maximum<12>);
-  recurringStartDate?: undefined | (string & tags.Format<"date">);
+  firstRecurringEventAt?:
+    | undefined
+    | (string &
+        tags.Pattern<"^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?$">);
+  lastRecurringEventAt?:
+    | undefined
+    | (string &
+        tags.Pattern<"^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?$">);
   recurringTimeSlots?: undefined | TimeSlot[];
 };

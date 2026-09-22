@@ -28,6 +28,7 @@ import {
   newSlotDraft,
   slotWrapsMidnight,
   withExactFrom,
+  withFirstDate,
   withFrequency,
   withSlotChanged,
   withSlotFlex,
@@ -51,7 +52,15 @@ type TimeComponentEditorProps = {
 };
 
 type OpenPicker =
-  | { kind: 'from-date' | 'from-time' | 'to-date' | 'to-time' }
+  | {
+      kind:
+        | 'from-date'
+        | 'from-time'
+        | 'to-date'
+        | 'to-time'
+        | 'first-date'
+        | 'last-date';
+    }
   | { kind: 'slot-times' | 'slot-flex'; slotKey: string }
   | null;
 
@@ -439,6 +448,42 @@ export const TimeComponentEditor = ({
               <IonIcon icon={addOutline} aria-hidden="true" />
             </IconButton>
           </div>
+          <div className="time-component-bounds-row">
+            <span className="time-component-row-label">first</span>
+            <PickerTrigger
+              label="First occurrence date"
+              text={draft.firstDate ? serializeDate(draft.firstDate) : null}
+              placeholder="Date"
+              open={isOpen({ kind: 'first-date' })}
+              onPress={() => toggle({ kind: 'first-date' })}
+            />
+            <span className="time-component-row-label">last</span>
+            <PickerTrigger
+              label="Last occurrence date"
+              text={draft.lastDate ? serializeDate(draft.lastDate) : null}
+              placeholder="Never"
+              open={isOpen({ kind: 'last-date' })}
+              onPress={() => toggle({ kind: 'last-date' })}
+            />
+          </div>
+          <InlineDatePanel
+            open={isOpen({ kind: 'first-date' })}
+            value={draft.firstDate}
+            onChange={(firstDate) => {
+              if (firstDate) onChange(withFirstDate(draft, firstDate));
+              closePicker();
+            }}
+          />
+          <InlineDatePanel
+            open={isOpen({ kind: 'last-date' })}
+            value={draft.lastDate}
+            min={draft.firstDate}
+            clearable
+            onChange={(lastDate) => {
+              onChange({ ...draft, lastDate });
+              closePicker();
+            }}
+          />
         </>
       )}
     </div>

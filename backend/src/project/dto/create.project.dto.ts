@@ -32,7 +32,7 @@ export class CreateProjectDto {
   deadlineDate?: DateString;
   deadlineTime?: TimeString;
 
-  originalTimezone?: string;
+  originalTimezone: string;
 
   parentProjectId?: Uuid;
   colorId?: Uuid;

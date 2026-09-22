@@ -215,7 +215,7 @@ const apiProject = (
   deadlineTime: null,
   projectStatus: 'ACTIVE',
   projectType: 'EXTERNAL',
-  originalTimezone: null,
+  originalTimezone: 'Europe/Kyiv',
   parentProjectId: null,
   colorId: null,
   position: 'a0',

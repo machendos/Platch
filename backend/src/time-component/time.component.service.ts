@@ -9,7 +9,6 @@ import {
 } from './time.component.repository';
 import {
   plainDateTimeToDate,
-  plainDateToDate,
   plainTimeToDate,
 } from '../system/common/date.mappers';
 
@@ -35,7 +34,8 @@ export class TimeComponentsService {
       recurringByDay: dto.recurringByDay,
       recurringByMonthDay: dto.recurringByMonthDay,
       recurringByMonth: dto.recurringByMonth,
-      recurringStartDate: plainDateToDate(dto.recurringStartDate),
+      firstRecurringEventAt: plainDateTimeToDate(dto.firstRecurringEventAt),
+      lastRecurringEventAt: plainDateTimeToDate(dto.lastRecurringEventAt),
 
       recurringTimeSlots: dto.recurringTimeSlots
         ? {
@@ -72,7 +72,10 @@ export class TimeComponentsService {
         recurringByDay: dto.recurringByDay ?? [],
         recurringByMonthDay: dto.recurringByMonthDay ?? null,
         recurringByMonth: dto.recurringByMonth ?? null,
-        recurringStartDate: plainDateToDate(dto.recurringStartDate) ?? null,
+        firstRecurringEventAt:
+          plainDateTimeToDate(dto.firstRecurringEventAt) ?? null,
+        lastRecurringEventAt:
+          plainDateTimeToDate(dto.lastRecurringEventAt) ?? null,
 
         recurringTimeSlots: {
           deleteMany: { id: { notIn: keptIds } },
