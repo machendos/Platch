@@ -4,6 +4,7 @@ import type { Event } from '../../api/event';
 import { ProjectType } from '../../modals/components/projectTypeSwitch/ProjectTypeSwitch';
 import { getTimezoneAtMoment } from '../timezone/useTimezone';
 import { isDefined } from '../../system/helpers/helpers';
+import { spreadRecurringTimeComponent } from './spread.recurring.time.component';
 
 export type SpreadEvent = {
   start: Temporal.PlainDateTime;
@@ -45,10 +46,16 @@ export const spreadProjectsToEvents = (
 ): SpreadEvent[] => {
   const projectById = new Map(projects.map((project) => [project.id, project]));
 
+  const recurringEvents = projects.flatMap((project) =>
+    project.recurringTimeComponents.flatMap((component) =>
+      spreadRecurringTimeComponent(component, dateFrame),
+    ),
+  );
+
   const frameStart = dateFrame[0].toPlainDateTime('00:00');
   const frameEnd = dateFrame[1].add({ days: 1 }).toPlainDateTime('00:00');
 
-  return events
+  return [...events, ...recurringEvents]
     .map((event) => {
       const project = projectById.get(event.projectId);
 
