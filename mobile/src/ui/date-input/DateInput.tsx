@@ -9,7 +9,10 @@ import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/
 import type { Temporal } from 'temporal-polyfill';
 import { WEEK_STARTS_ON } from '../../config/calendarPreferences';
 import { serializeDate } from '../../system/helpers/dateTimeSerializers';
-import { fromJsDate, toJsDate } from '../../system/helpers/helpers';
+import {
+  fromDateToPlainDate,
+  fromPlainDateToDate,
+} from '../../system/helpers/dateConversions';
 import { FieldShell } from '../text-field/FieldShell';
 import { DateInputTrigger } from './DateInputTrigger';
 
@@ -41,7 +44,7 @@ export const DateInput = ({
   const handleChange = ({ value: picked }: MbscDatepickerChangeEvent) => {
     if (!(picked instanceof Date)) return;
 
-    onChange(fromJsDate(picked));
+    onChange(fromDateToPlainDate(picked));
   };
 
   const classes = ['date-input', isOpen ? 'date-input-is-open' : '', className]
@@ -64,7 +67,7 @@ export const DateInput = ({
         // Calendar.tsx — still renders `mbsc-ios`. Same reasoning as Header.
         theme="ios"
         themeVariant={isDarkModeEnabled ? 'dark' : 'light'}
-        value={value ? toJsDate(value) : null}
+        value={value ? fromPlainDateToDate(value) : null}
         onChange={handleChange}
         // Carried as a class rather than left to the shell's `:focus-within`:
         // the calendar takes the focus while it is open, so a focus-driven fill

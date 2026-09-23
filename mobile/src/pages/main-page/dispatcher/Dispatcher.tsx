@@ -6,14 +6,19 @@ import type { SectionWeights, SectionsExpanded } from '../layoutStorage';
 import { layoutStorage } from '../layoutStorage';
 import { ProjectModal } from '../../../modals/ProjectModal';
 import type { CurrentUser } from '../../../api/sdk/structures/CurrentUser';
-import { useMoveProject, useProjectsQuery } from '../../../api/project';
+import { projects as projectsApi, useProjectsHotReload } from '../../../api/project';
 import { applyMove } from './projects/dnd/applyMove';
+import type { MoveProjectDto } from '../../../api/sdk/structures/MoveProjectDto';
 import { ProjectDragProvider } from './projects/dnd/ProjectDragProvider';
 import type { RevealRequest } from './projects/ProjectList';
 import { ProjectList } from './projects/ProjectList';
 import { ProjectStatus } from '../../../modals/components/projectStatusSwitch/ProjectStatusSwitch';
 import { otherCategory, resolveCategoryMove } from './projects/categoryMove';
 import './Dispatcher.css';
+
+const moveProject = (move: MoveProjectDto) => {
+  void projectsApi.moveProject(move, applyMove);
+};
 
 type SectionName = 'plan' | 'active' | 'backlog';
 
@@ -27,8 +32,7 @@ const DEFAULT_EXPANDED: SectionsExpanded = {
 type DispatcherProps = { currentUser: CurrentUser };
 
 export const Dispatcher = ({ currentUser }: DispatcherProps) => {
-  const projects = useProjectsQuery();
-  const move = useMoveProject(applyMove);
+  const projects = useProjectsHotReload();
   const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -50,7 +54,7 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
 
     const target = otherCategory(project.projectStatus);
 
-    move(resolveCategoryMove(projects, project, target));
+    moveProject(resolveCategoryMove(projects, project, target));
     revealProject(id);
   };
 
@@ -109,7 +113,7 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
   return (
     <ProjectDragProvider
       projects={projects}
-      onMove={move}
+      onMove={moveProject}
       onDropped={revealProject}
     >
       <div

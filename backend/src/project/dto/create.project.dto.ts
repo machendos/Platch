@@ -6,14 +6,15 @@ import {
   Uuid,
 } from '../../system/validation/validation.decorators';
 import {
-  TimeComponentFields,
-  toTimeComponent,
-} from '../../time-component/dto/create.time.component.dto';
+  RecurringTimeComponentFields,
+  toRecurringTimeComponent,
+} from '../../recurring-time-component/dto/create.recurring.time.component.dto';
 import { validateEach } from '../../system/validation/validate.each';
 import {
   stringToPlainDate,
   stringToPlainTime,
 } from '../../system/common/date.mappers';
+import { EventFields, toEvent } from '../../event/dto/create.event.dto';
 
 export class CreateProjectDto {
   name?: string;
@@ -32,15 +33,20 @@ export class CreateProjectDto {
   deadlineDate?: DateString;
   deadlineTime?: TimeString;
 
-  originalTimezone?: string;
+  originalTimezone: string;
 
   parentProjectId?: Uuid;
   colorId?: Uuid;
 
-  timeComponents: TimeComponentFields[];
+  recurringTimeComponents: RecurringTimeComponentFields[];
+  events: EventFields[];
 
   static __validate = (dto: CreateProjectDto): string | void =>
-    validateEach(dto.timeComponents, TimeComponentFields, 'timeComponents');
+    validateEach(
+      dto.recurringTimeComponents,
+      RecurringTimeComponentFields,
+      'recurringTimeComponents',
+    ) ?? validateEach(dto.events, EventFields, 'events');
 }
 
 export const toCreateProject = (dto: CreateProjectDto) => ({
@@ -49,7 +55,8 @@ export const toCreateProject = (dto: CreateProjectDto) => ({
   earliestTime: stringToPlainTime(dto.earliestTime) ?? undefined,
   deadlineDate: stringToPlainDate(dto.deadlineDate) ?? undefined,
   deadlineTime: stringToPlainTime(dto.deadlineTime) ?? undefined,
-  timeComponents: dto.timeComponents.map(toTimeComponent),
+  recurringTimeComponents: dto.recurringTimeComponents.map(toRecurringTimeComponent),
+  events: dto.events.map(toEvent),
 });
 
 export type CreateProject = ReturnType<typeof toCreateProject>;

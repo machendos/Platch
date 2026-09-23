@@ -1,7 +1,9 @@
 import type { MoveProjectDto } from '../../../../../api/sdk/structures/MoveProjectDto';
 import type { ProjectWithTimeSlots } from '../../../../../api/sdk/structures/ProjectWithTimeSlots';
 
-export const childrenOfProjectMap = (projects: ProjectWithTimeSlots[]) => {
+export const childrenOfProjectMap = (
+  projects: readonly { id: string; parentProjectId: string | null }[],
+) => {
   const childrenOf = new Map<string, string[]>();
   for (const project of projects) {
     if (project.parentProjectId === null) continue;
@@ -14,7 +16,7 @@ export const childrenOfProjectMap = (projects: ProjectWithTimeSlots[]) => {
 };
 
 export const collectDescendantIds = (
-  projects: ProjectWithTimeSlots[],
+  projects: readonly { id: string; parentProjectId: string | null }[],
   rootId: string,
 ) => {
   const childrenOf = childrenOfProjectMap(projects);

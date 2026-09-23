@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Color, Prisma, Project } from '../../prisma-client';
-import { TimeComponentWithSlots } from '../time-component/time.component.repository';
+import { RecurringTimeComponentWithSlots } from '../recurring-time-component/recurring.time.component.repository';
 import { BaseRepository } from '../system/database/base-repositoty.service';
 
 export interface ProjectWithTimeSlots extends Project {
-  timeComponents: TimeComponentWithSlots[];
+  recurringTimeComponents: RecurringTimeComponentWithSlots[];
   color: Color | null;
 }
 
@@ -40,7 +40,7 @@ export class ProjectsRepository extends BaseRepository {
     return this.db.project.findMany({
       where,
       include: {
-        timeComponents: { include: { recurringTimeSlots: true } },
+        recurringTimeComponents: { include: { recurringTimeSlots: true } },
         color: true,
       },
     });
@@ -49,10 +49,10 @@ export class ProjectsRepository extends BaseRepository {
   async getProjectWithTimeSlots(
     where: Prisma.ProjectWhereUniqueInput,
   ): Promise<ProjectWithTimeSlots> {
-    return this.prismaService.project.findUniqueOrThrow({
+    return this.db.project.findUniqueOrThrow({
       where,
       include: {
-        timeComponents: { include: { recurringTimeSlots: true } },
+        recurringTimeComponents: { include: { recurringTimeSlots: true } },
         color: true,
       },
     });
@@ -82,7 +82,7 @@ export class ProjectsRepository extends BaseRepository {
       where,
       data,
       include: {
-        timeComponents: { include: { recurringTimeSlots: true } },
+        recurringTimeComponents: { include: { recurringTimeSlots: true } },
         color: true,
       },
     });

@@ -16,7 +16,7 @@ type SegmentedControlProps<T extends string> = {
 };
 
 // Generic over the value so call sites keep their own union — most of these
-// bind to a backend enum (TimeComponentType, RecurringFrequency), and a plain
+// bind to a backend enum (RecurringFrequency, ProjectStatus), and a plain
 // `string` here would lose that at every one of them.
 export const SegmentedControl = <T extends string>({
   options,

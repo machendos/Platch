@@ -17,7 +17,8 @@ import {
   withRepetitions,
   withTimeNeeded,
 } from './targetState';
-import type { TargetDraft, TargetMode, TargetState } from './targetState';
+import type { TargetMode, TargetState } from './targetState';
+import type { ProjectTarget } from '../../../api/project';
 
 /* The user's own default block length, which is what the form is handed. */
 const EVEN_LENGTH = hours(1);
@@ -53,7 +54,7 @@ const toTime = (state: TargetState, timeNeededMinutes: number) =>
 describe('normalizeTarget', () => {
   /* Only the backend can produce this: the form makes the two exclusive. */
   it('drops repetitions when both targets arrive set', () => {
-    const draft: TargetDraft = {
+    const draft: ProjectTarget = {
       ...EMPTY_TARGET,
       timeNeededMinutes: hours(2),
       minBlockMinutes: hours(1),
@@ -68,11 +69,11 @@ describe('normalizeTarget', () => {
   });
 
   it('leaves either targetComponent alone on its own', () => {
-    const onlyTime: TargetDraft = {
+    const onlyTime: ProjectTarget = {
       ...EMPTY_TARGET,
       timeNeededMinutes: hours(2),
     };
-    const onlyReps: TargetDraft = { ...EMPTY_TARGET, repetitionsNeeded: 3 };
+    const onlyReps: ProjectTarget = { ...EMPTY_TARGET, repetitionsNeeded: 3 };
 
     expect(normalizeTarget(onlyTime)).toBe(onlyTime);
     expect(normalizeTarget(onlyReps)).toBe(onlyReps);
@@ -365,7 +366,7 @@ describe('dirty', () => {
   });
 
   it('is false again when a change is undone by hand', () => {
-    const baseline: TargetDraft = {
+    const baseline: ProjectTarget = {
       ...EMPTY_TARGET,
       timeNeededMinutes: hours(2),
       minBlockMinutes: hours(1),
@@ -442,7 +443,7 @@ describe('the window cannot run backwards', () => {
   const time = (hour: number, minute: number) =>
     new Temporal.PlainTime(hour, minute);
 
-  const windowed = (over: Partial<TargetDraft>): TargetState => {
+  const windowed = (over: Partial<ProjectTarget>): TargetState => {
     const value = { ...EMPTY_TARGET, timeNeededMinutes: hours(2), ...over };
     return { mode: 'time', value, remembered: { ...value, dividable: false } };
   };

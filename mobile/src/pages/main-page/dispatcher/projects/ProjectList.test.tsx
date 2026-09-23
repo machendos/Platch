@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../api/project';
 import type { ProjectStatus } from './projectTree';
 import { ProjectList } from './ProjectList';
 
@@ -10,8 +10,8 @@ const makeProject = (
   parent: string | null = null,
   position = 'a0',
   status: ProjectStatus = 'ACTIVE',
-): ProjectWithTimeSlots => ({
-  timeComponents: [],
+): Project => ({
+  recurringTimeComponents: [],
   color: null,
   name: id,
   id,
@@ -26,7 +26,7 @@ const makeProject = (
   deadlineTime: null,
   projectStatus: status,
   projectType: 'EXTERNAL',
-  originalTimezone: null,
+  originalTimezone: 'UTC',
   parentProjectId: parent,
   colorId: null,
   position,

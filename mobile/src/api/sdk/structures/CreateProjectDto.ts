@@ -1,6 +1,7 @@
 import type { tags } from "typia";
 
-import type { TimeComponentFields } from "./TimeComponentFields";
+import type { EventFields } from "./EventFields";
+import type { RecurringTimeComponentFields } from "./RecurringTimeComponentFields";
 
 export type CreateProjectDto = {
   name?: undefined | string;
@@ -19,8 +20,9 @@ export type CreateProjectDto = {
   deadlineTime?:
     | undefined
     | (string & tags.Pattern<"^\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?$">);
-  originalTimezone?: undefined | string;
+  originalTimezone: string;
   parentProjectId?: undefined | (string & tags.Format<"uuid">);
   colorId?: undefined | (string & tags.Format<"uuid">);
-  timeComponents: TimeComponentFields[];
+  recurringTimeComponents: RecurringTimeComponentFields[];
+  events: EventFields[];
 };

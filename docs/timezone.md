@@ -236,6 +236,30 @@ no fix: DST divergence between the two zones, `byDay` phase shifting when the
 local time crosses midnight, monthly rules on the 31st, and yearly rules on
 Dec 31.
 
+### A cadence's bounds are wall clock, and the project decides what resolves them
+
+`TimeComponent.firstRecurringEventAt` / `lastRecurringEventAt` are
+`@db.Timestamp(0)` holding `<date>T00:00` — no offset, no `Z`, the same kind of
+value as `absoluteFrom`. The wire type (`DateTimeString`) forbids a trailing
+`Z`, so a UTC instant cannot be sent by accident; the pattern rejects it at the
+boundary.
+
+Turning one into a real moment is `Project.projectType`'s question, not the
+component's. **EXTERNAL** means something outside the user fixed the hour, so
+the wall clock is read against `project.originalTimezone` — which is why that
+column is now `NOT NULL`. **INTERNAL** means the user fixed it themselves, so
+the wall-clock reading *is* the answer and there is nothing to resolve.
+
+**Nothing expands a cadence into events yet, so the resolver is not written.**
+This is the rule it has to implement when it is. Writing it earlier would have
+meant a zone conversion with no reader to prove it against, which is how the
+wrong one gets shipped.
+
+`firstRecurringEventAt` replaced `recurringStartDate`, a `@db.Date` that was
+filled with today and never shown. The editor holds a `Temporal.PlainDate` and
+re-stamps midnight on save, so a non-midnight value written by anything else is
+rounded down by the next edit.
+
 ## Known issues
 
 | | |

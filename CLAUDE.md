@@ -9,6 +9,49 @@ Monorepo: `mobile/` (Ionic + React + Vite, Capacitor for iOS), `backend/` (
 nest.js, postgres, prisma.io), `communication` (REST by using auto-generated SDK
 by nestia.io that is created directly in mobile folder /src/api)
 
+## IMPORTANT. FOLLOW ALWAYS WITH NO EXCEPTIONS
+
+1. **A function's name says what it does, and starts with a verb.** A function
+   always does something; the name has to say what, to someone reading this
+   codebase for the first time.
+
+2. **Never add any comments.** Not for clever solutions, not for non-obvious
+   decisions, not for anything. If something needs explaining, say it in your
+   response or put it in the feature doc in `docs/` — never in the file. A
+   comment is a defect regardless of its content.
+
+3. **Reuse the existing patterns, layers and separation of responsibility.**
+   This is one of the most important and essential approaches we take. Whatever
+   you are adding, there is almost certainly an exact place in an exact file
+   where it belongs. Never add something in an arbitrary location without
+   reasoning.
+
+   - **Backend.** A repository is the only kind of file that may reach the
+     database directly through Prisma. The DTO layer runs easy-to-medium
+     validation — anything that needs no external data to validate, cross-field
+     checks included — and is always where dates and times are mapped. Services
+     therefore never work with stringified data unless it came from the
+     database.
+
+   - **Frontend.** API gateways are a standardized layer. A gateway exports a
+     tidy object with simple methods — CRUD. It may export extra methods only
+     when simple CRUD is not enough and there is an exact feature requirement
+     for them: the event gateway, for instance, needs two read methods, read
+     events by project and read events by date frame. On top of that object a
+     gateway may expose a hook shaped like `useEntityHotReload`, and sometimes
+     several hooks. A gateway ALWAYS does the simple mapping: stringified dates
+     and times in its `select`, and the mapping back when data departs to the
+     backend. Everything above the gateway works with Temporal primitives,
+     never with strings. Avoid unnecessary mapping and renaming. An entity,
+     field, process or structure is named exactly the same everywhere in the
+     system.
+
+4. **Prefer plain, wordy naming built from as few distinct words as possible.**
+   Do not invent new ways of naming. A name has to tell someone seeing the
+   codebase for the first time exactly what it is.
+
+5. Before adding any mechanism — a hook, a listener, a wrapper, a store, a guard, a cache — name the library default that already covers it and say why it is not enough. If you cannot name one, you have not looked. A mechanism is justified by an observed failure, never by symmetry with existing code. Copying a pattern from another feature requires stating out loud the reason that pattern exists and checking that reason still applies. When I name a hook, file or pattern, that is a description of what I want to happen — if the platform already does it, say so instead of building it.
+
 ## App layout
 
 One page — `mobile/src/pages/main-page/` — a header above two panes:
@@ -111,7 +154,7 @@ The trigger is **property count, not `include` vs `select`**. A narrow
 projection is fine unnamed:
 
 ```ts
-select: { id: true, name: true, timeComponents: { select: { id: true } } }
+select: { id: true, name: true, recurringTimeComponents: { select: { id: true } } }
 ```
 
 Anything returning a whole `Project` (17 scalars) is over the limit however it
@@ -141,7 +184,7 @@ its name reaches the generator intact:
 
 ```ts
 export interface ProjectWithTimeSlots extends Project {
-  timeComponents: TimeComponentWithSlots[];
+  recurringTimeComponents: RecurringTimeComponentWithSlots[];
 }
 
 getProjectsWithTimeSlots(
@@ -222,6 +265,9 @@ approaches that were tried and do not work, which the code cannot show.
   as the stored format, and where the formatting toolbar sits.
 - [`docs/timezone.md`](docs/timezone.md) — the zone timeline, how a change is
   detected and recorded offline, and why rules are never rewritten across zones.
+- [`docs/events-and-plan.md`](docs/events-and-plan.md) — projects spread
+  into events, materialized exceptions, the calendar's event editing, and the
+  dispatcher's PLAN section. **Design only — not yet built.**
 
 [`docs/TODO.md`](docs/TODO.md) holds work that has not been started, with the
 decisions that would have to be made before starting it. It is distinct from
@@ -256,10 +302,6 @@ something that already ships.
   named*), where an alias loses its name before the generator sees it and emits
   invalid TypeScript. It was earned by converting it, regenerating, and reading
   the output, which is the only way to earn another.
-- **Comments**: We don't add comments to the code. In very rare cases, we can
-  make an exception only when it's justified by an unexpected or unclear
-  solution or decision that needs to survive refactoring and could otherwise be 
-  accidentally broken.
 - When we write code, we try to keep components, modules, and services as
   standalone and pure as possible so they can be easily reused, tuned, and found 
   later. If a component contains more than 4–5 child components, we should treat

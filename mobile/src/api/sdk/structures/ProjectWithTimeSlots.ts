@@ -1,9 +1,9 @@
 import type { tags } from "typia";
 
-import type { TimeComponentWithSlots } from "./TimeComponentWithSlots";
+import type { RecurringTimeComponentWithSlots } from "./RecurringTimeComponentWithSlots";
 
 export type ProjectWithTimeSlots = {
-  timeComponents: TimeComponentWithSlots[];
+  recurringTimeComponents: RecurringTimeComponentWithSlots[];
   color: null | {
     id: string;
     placement: number;
@@ -22,7 +22,7 @@ export type ProjectWithTimeSlots = {
   deadlineTime: null | (string & tags.Format<"date-time">);
   projectStatus: "ACTIVE" | "BACKLOG";
   projectType: "EXTERNAL" | "INTERNAL";
-  originalTimezone: null | string;
+  originalTimezone: string;
   position: string;
   parentProjectId: null | string;
   colorId: null | string;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../api/project';
 import type { ProjectStatus } from './projectTree';
 import { otherCategory, resolveCategoryMove } from './categoryMove';
 
@@ -17,7 +17,7 @@ const makeProject = ({
   parent = null,
   position = 'a0',
   status = 'BACKLOG',
-}: Seed): ProjectWithTimeSlots =>
+}: Seed): Project =>
   ({
     id,
     name: name === undefined ? id : name,
@@ -25,13 +25,13 @@ const makeProject = ({
     position,
     projectStatus: status,
     color: null,
-    timeComponents: [],
+    recurringTimeComponents: [],
     userId: 'user',
-  }) as unknown as ProjectWithTimeSlots;
+  }) as unknown as Project;
 
 const plan = (seeds: Seed[], id: string, target: ProjectStatus = 'ACTIVE') => {
   const projects = seeds.map(makeProject);
-  const moved = projects.find((project) => project.id === id) as ProjectWithTimeSlots;
+  const moved = projects.find((project) => project.id === id) as Project;
 
   return resolveCategoryMove(projects, moved, target);
 };

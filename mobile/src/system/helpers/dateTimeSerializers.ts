@@ -1,16 +1,5 @@
 import { Temporal } from 'temporal-polyfill';
 
-/* Every date the API sends arrives as a full ISO instant, whatever column it
-   came from — a `@db.Date` comes back midnight-stamped and a `@db.Time` comes
-   back on the epoch day. The zone is the trap: read `1970-01-01T17:45:00.000Z`
-   through a local calendar and a 5:45 PM deadline moves by hours. Stripping the
-   marker first makes `PlainDateTime` read the wall-clock fields it was written
-   with, which is what these columns mean. */
-const withoutZone = (value: string) => value.replace(/(\.\d+)?Z?$/i, '');
-
-export const parseApiDateTime = (value: string): Temporal.PlainDateTime =>
-  Temporal.PlainDateTime.from(withoutZone(value));
-
 export const MONTH_NAMES = [
   'Jan',
   'Feb',

@@ -7,7 +7,8 @@
 import { getDeviceId } from '../../system/device-storage/deviceId';
 import { timezoneChanges } from './api/timezoneChanges';
 import { canonicalZone, deviceZone, settledZone } from './helpers';
-import { zoneAtMoment } from './useTimezone';
+import { getTimezoneAtMomentStrict } from './useTimezone';
+import { Temporal } from 'temporal-polyfill';
 
 let recordInFlight: Promise<string | null> | null = null;
 
@@ -24,7 +25,10 @@ export const recordDeviceZone = (): Promise<string | null> =>
     const zoneReadNow = deviceZone();
 
     const history = await timezoneChanges.getHistory();
-    const zoneOnTimeline = zoneAtMoment(history, new Date());
+    const zoneOnTimeline = getTimezoneAtMomentStrict(
+      history,
+      Temporal.Now.instant(),
+    );
 
     if (
       zoneOnTimeline !== null &&

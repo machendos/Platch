@@ -10,26 +10,20 @@ import { ActiveFieldProvider } from '../ui/text-field/toolbar/activeField';
 import { CONTEXT_FIELD, GOAL_FIELD, NAME_FIELD } from './fieldPresets';
 import { useEntityForm } from './useEntityForm';
 import { projectName } from '../config/labels';
-import {
-  buildCreateProjectDto,
-  buildUpdateProjectDto,
-  toProjectFormValues,
-  toTargetDraft,
-} from './projectPayload';
-import type { ProjectFormValues } from './projectPayload';
-import {
-  useProjectsQuery,
-  useRefreshProjects,
-  useSaveProject,
-} from '../api/project';
-import { useColorsQuery, useRefreshColors } from '../api/color';
+import { toProjectFormValues, toProjectTarget } from './projectFormValues';
+import type { ProjectFormValues } from './projectFormValues';
+import { NO_PROJECT_CHANGES, projects as projectsApi } from '../api/project';
+import type { Project } from '../api/project';
+import { events } from '../api/event';
+import type { Event } from '../api/event';
+import { colors as colorsApi } from '../api/color';
+import type { ColorInUse } from '../api/color';
 import { ColorField } from './components/colorComponent/ColorField';
 import { TargetComponent } from './components/targetComponent/TargetComponent';
 import type { TargetReport } from './components/targetComponent/targetState';
 import { EMPTY_TARGET } from './components/targetComponent/targetState';
-import { TimeComponentsBlock } from './components/timeComponents/TimeComponentsBlock';
-import type { TimeComponentsReport } from './components/timeComponents/timeComponentsState';
-import { NO_TIME_COMPONENT_CHANGES } from './components/timeComponents/timeComponentsState';
+import { TimeComponentsBlock } from './components/recurringTimeComponents/TimeComponentsBlock';
+import type { TimeEntriesReport } from './components/recurringTimeComponents/timeEntriesState';
 import {
   ProjectStatus,
   ProjectStatusSwitch,
@@ -38,6 +32,7 @@ import {
   ProjectType,
   ProjectTypeSwitch,
 } from './components/projectTypeSwitch/ProjectTypeSwitch';
+import { deviceZone } from '../features/timezone/helpers';
 
 type ProjectModalProps = {
   isOpen: boolean;
@@ -58,6 +53,18 @@ const BLANK: Omit<ProjectFormValues, 'status'> = {
 
 type FormState = { canSave: boolean; isDirty: boolean; save: () => void };
 
+type OpenedData = {
+  projects: Project[];
+  colors: ColorInUse[];
+  projectEvents: Event[];
+};
+
+const NOTHING_OPENED: OpenedData = {
+  projects: [],
+  colors: [],
+  projectEvents: [],
+};
+
 /* The sheet opens on the tap and fills in when the list arrives, rather than
    waiting to appear at all. The form still seeds once from settled data — it
    just mounts inside a sheet that is already on screen.
@@ -66,24 +73,29 @@ type FormState = { canSave: boolean; isDirty: boolean; save: () => void };
    do, the same way the blocks inside it report to the form. */
 export const ProjectModal = (props: ProjectModalProps) => {
   const { isOpen, onDismiss } = props;
-  const refreshProjects = useRefreshProjects();
-  const refreshColors = useRefreshColors();
-  const [isRefreshed, setIsRefreshed] = useState(false);
+  const [opened, setOpened] = useState<OpenedData | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
+  const projectId = props.mode === 'edit' ? props.projectId : null;
 
   useEffect(() => {
     let isCurrent = true;
 
-    Promise.all([refreshProjects(), refreshColors()])
-      .catch(() => {})
-      .finally(() => {
-        if (isCurrent) setIsRefreshed(true);
+    Promise.all([
+      projectsApi.getProjects(),
+      colorsApi.getColors(),
+      projectId === null ? [] : events.getEventsOfProject(projectId),
+    ])
+      .then(([projects, colors, projectEvents]) => {
+        if (isCurrent) setOpened({ projects, colors, projectEvents });
+      })
+      .catch(() => {
+        if (isCurrent) setOpened(NOTHING_OPENED);
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [refreshProjects, refreshColors]);
+  }, [projectId]);
 
   return (
     <Modal
@@ -108,18 +120,25 @@ export const ProjectModal = (props: ProjectModalProps) => {
         </button>
       }
     >
-      {isRefreshed && <ProjectForm {...props} onFormState={setForm} />}
+      {opened && (
+        <ProjectForm {...props} {...opened} onFormState={setForm} />
+      )}
     </Modal>
   );
 };
 
 const ProjectForm = (
-  props: ProjectModalProps & { onFormState: (state: FormState) => void },
+  props: ProjectModalProps &
+    OpenedData & { onFormState: (state: FormState) => void },
 ) => {
-  const { onDismiss, defaultEvenLengthMinutes, onFormState } = props;
-  const projects = useProjectsQuery();
-  const colors = useColorsQuery();
-  const { createProject, updateProject } = useSaveProject();
+  const {
+    onDismiss,
+    defaultEvenLengthMinutes,
+    onFormState,
+    projects,
+    colors,
+    projectEvents,
+  } = props;
 
   const isEdit = props.mode === 'edit';
 
@@ -146,20 +165,21 @@ const ProjectForm = (
             status:
               props.mode === 'create' ? props.status : ProjectStatus.ACTIVE,
           },
-      target: project ? toTargetDraft(project) : EMPTY_TARGET,
-      timeComponents: project ? project.timeComponents : [],
+      target: project ? toProjectTarget(project) : EMPTY_TARGET,
+      recurringTimeComponents: project ? project.recurringTimeComponents : [],
       inheritedColorId:
         ancestors.find(({ colorId }) => colorId !== null)?.colorId ?? null,
       parentProjectId,
     };
   });
 
-  const [target, setTarget] = useState<TargetReport | null>(null);
-  const [time, setTime] = useState<TimeComponentsReport | null>(null);
+  const [targetReport, setTargetReport] = useState<TargetReport | null>(null);
+  const [timeEntriesReport, setTimeEntriesReport] =
+    useState<TimeEntriesReport | null>(null);
 
   const form = useEntityForm({
     initialValues: opened.values,
-    reports: [target, time],
+    reports: [targetReport, timeEntriesReport],
     onDismiss,
   });
 
@@ -167,25 +187,33 @@ const ProjectForm = (
 
   const save = () =>
     form.save(async () => {
+      const changes = timeEntriesReport?.changes ?? NO_PROJECT_CHANGES;
+
       if (opened.project) {
-        await updateProject(
-          buildUpdateProjectDto({
-            id: opened.project.id,
-            values,
-            target: target?.value ?? opened.target,
-            timeComponentsChanges: time?.changes ?? NO_TIME_COMPONENT_CHANGES,
-          }),
-        );
+        await projectsApi.updateProject({
+          id: opened.project.id,
+          name: values.name,
+          goal: values.goal,
+          context: values.context,
+          projectType: values.type,
+          colorId: values.colorId,
+          ...(targetReport?.value ?? opened.target),
+          ...changes,
+        });
       } else {
-        await createProject(
-          buildCreateProjectDto({
-            values,
-            target: target?.value ?? EMPTY_TARGET,
-            timeComponents: time?.changes.createdTimeComponents ?? [],
-            parentProjectId: opened.parentProjectId,
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          }),
-        );
+        await projectsApi.createProject({
+          name: values.name,
+          goal: values.goal,
+          context: values.context,
+          projectStatus: values.status,
+          projectType: values.type,
+          colorId: values.colorId,
+          parentProjectId: opened.parentProjectId,
+          originalTimezone: deviceZone(),
+          ...(targetReport?.value ?? EMPTY_TARGET),
+          recurringTimeComponents: changes.createdRecurringTimeComponents,
+          events: changes.createdEvents,
+        });
       }
     });
 
@@ -241,15 +269,16 @@ const ProjectForm = (
         <TargetComponent
           initial={opened.target}
           defaultEvenLengthMinutes={defaultEvenLengthMinutes}
-          onChange={setTarget}
+          onChange={setTargetReport}
         />
       </div>
 
       <div className="project-form-time-components">
         <TimeComponentsBlock
-          initialTimeComponents={opened.timeComponents}
+          initialRecurringTimeComponents={opened.recurringTimeComponents}
+          initialEvents={projectEvents}
           seedFirstComponent={!isEdit}
-          onChange={setTime}
+          onChange={setTimeEntriesReport}
         />
 
         <div className="project-form-row">

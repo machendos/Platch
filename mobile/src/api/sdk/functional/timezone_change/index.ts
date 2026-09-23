@@ -34,13 +34,6 @@ export namespace getUserTimezoneChanges {
     changesAt: string & tags.Format<"date-time">;
     cityLabel: null | string;
     countryLabel: null | string;
-
-    /**
-     * Which device reported this. Two devices in two zones answer differently,
-     *      and the later answer is not automatically the right one — without knowing
-     *      who said what, rows that disagree cannot be untangled afterwards. An
-     *      install id, not a hardware one: reinstalling reads as a new device.
-     */
     deviceId: null | string;
   }[];
 
@@ -93,13 +86,6 @@ export namespace createTimezoneChange {
     changesAt: string & tags.Format<"date-time">;
     cityLabel: null | string;
     countryLabel: null | string;
-
-    /**
-     * Which device reported this. Two devices in two zones answer differently,
-     *      and the later answer is not automatically the right one — without knowing
-     *      who said what, rows that disagree cannot be untangled afterwards. An
-     *      install id, not a hardware one: reinstalling reads as a new device.
-     */
     deviceId: null | string;
   };
 
@@ -155,13 +141,6 @@ export namespace updateTimezoneChange {
     changesAt: string & tags.Format<"date-time">;
     cityLabel: null | string;
     countryLabel: null | string;
-
-    /**
-     * Which device reported this. Two devices in two zones answer differently,
-     *      and the later answer is not automatically the right one — without knowing
-     *      who said what, rows that disagree cannot be untangled afterwards. An
-     *      install id, not a hardware one: reinstalling reads as a new device.
-     */
     deviceId: null | string;
   };
 

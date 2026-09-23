@@ -1,7 +1,9 @@
 import type { tags } from "typia";
 
-import type { TimeComponentFields } from "./TimeComponentFields";
-import type { UpdateTimeComponentDto } from "./UpdateTimeComponentDto";
+import type { EventFields } from "./EventFields";
+import type { RecurringTimeComponentFields } from "./RecurringTimeComponentFields";
+import type { UpdateEventDto } from "./UpdateEventDto";
+import type { UpdateRecurringTimeComponentDto } from "./UpdateRecurringTimeComponentDto";
 
 export type UpdateProjectDto = {
   id: string & tags.Format<"uuid">;
@@ -22,9 +24,12 @@ export type UpdateProjectDto = {
     | null
     | undefined
     | (string & tags.Pattern<"^\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?$">);
-  originalTimezone?: null | undefined | string;
+  originalTimezone?: undefined | string;
   colorId?: null | undefined | (string & tags.Format<"uuid">);
-  createdTimeComponents: TimeComponentFields[];
-  updatedTimeComponents: UpdateTimeComponentDto[];
-  deletedTimeComponentIds: (string & tags.Format<"uuid">)[];
+  createdRecurringTimeComponents: RecurringTimeComponentFields[];
+  updatedRecurringTimeComponents: UpdateRecurringTimeComponentDto[];
+  deletedRecurringTimeComponentIds: (string & tags.Format<"uuid">)[];
+  createdEvents: EventFields[];
+  updatedEvents: UpdateEventDto[];
+  deletedEventIds: (string & tags.Format<"uuid">)[];
 };

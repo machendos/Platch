@@ -4,7 +4,10 @@ import { useState } from 'react';
 import '@mobiscroll/react/dist/css/mobiscroll.min.css';
 import { Datepicker } from '@mobiscroll/react';
 import type { MbscDatepickerChangeEvent } from '@mobiscroll/react/dist/src/core/components/datepicker/datepicker.types.public';
-import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
+import {
+  fromDateToPlainDate,
+  fromPlainDateToDate,
+} from '../../../system/helpers/dateConversions';
 import { serializeRange } from '../../../system/helpers/dateTimeSerializers';
 import type { DateRange } from '../../../system/helpers/dateRange';
 import { WEEK_STARTS_ON } from '../../../config/calendarPreferences';
@@ -45,7 +48,10 @@ export const Header = ({
 
     if (start && end) {
       setPendingRange(null);
-      onRangeChange({ start: fromJsDate(start), end: fromJsDate(end) });
+      onRangeChange({
+        start: fromDateToPlainDate(start),
+        end: fromDateToPlainDate(end),
+      });
       return;
     }
 
@@ -103,7 +109,10 @@ export const Header = ({
         // — except mid-pick, where the half-made range has to win or the click
         // that started it gets undone.
         value={
-          pendingRange ?? [toJsDate(dateFrame.start), toJsDate(dateFrame.end)]
+          pendingRange ?? [
+            fromPlainDateToDate(dateFrame.start),
+            fromPlainDateToDate(dateFrame.end),
+          ]
         }
         // Dismissing part-way through leaves a start with no end; forget it,
         // so the field and the next open show the range actually in effect.

@@ -12,7 +12,11 @@ import { useRef } from 'react';
 import { MbscEventcalendarView } from '@mobiscroll/react/dist/src/core/components/eventcalendar/eventcalendar.types.public';
 import type { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
 import { Temporal } from 'temporal-polyfill';
-import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
+import {
+  fromDateToPlainDate,
+  fromPlainDateTimeToDate,
+  fromPlainDateToDate,
+} from '../../../system/helpers/dateConversions';
 import {
   DEFAULT_CELL_STEP_MINUTES,
   DEFAULT_LABEL_STEP_MINUTES,
@@ -29,6 +33,7 @@ import {
 import { DayHeader } from './DayHeader';
 import type { TimezoneBand } from '../../../features/timezone/timezoneBands';
 import { useTimezone } from '../../../features/timezone/useTimezone';
+import type { Project } from '../../../api/project';
 
 const getSchedulerViewOption = (
   days: number,
@@ -52,7 +57,11 @@ type CalendarProps = {
   dayCount: number;
   /** Hours the grid covers, as `HH:MM:SS` — the first and last shown. */
   timeFrame: [string, string];
-  events: MbscCalendarEvent[];
+  events: Array<{
+    start: Temporal.PlainDateTime;
+    end: Temporal.PlainDateTime;
+    project: Project;
+  }>;
   todayRequest: number;
   onPageChange: (delta: number) => void;
 };
@@ -91,6 +100,12 @@ export const Calendar = ({
     ]),
   );
 
+  const preparedEvents: MbscCalendarEvent[] = events.map((event) => ({
+    title: event.project.name ?? undefined,
+    start: fromPlainDateTimeToDate(event.start),
+    end: fromPlainDateTimeToDate(event.end),
+  }));
+
   const pageEnd = pageStart.add({ days: dayCount - 1 });
   const bands = getTimezoneBands([pageStart, pageEnd]);
 
@@ -100,8 +115,8 @@ export const Calendar = ({
     const end = start.add({ days: days - 1 });
     return bands.filter(
       (band) =>
-        Temporal.PlainDate.compare(fromJsDate(band.start), end) <= 0 &&
-        Temporal.PlainDate.compare(fromJsDate(band.end), start) >= 0,
+        Temporal.PlainDate.compare(fromDateToPlainDate(band.start), end) <= 0 &&
+        Temporal.PlainDate.compare(fromDateToPlainDate(band.end), start) >= 0,
     );
   };
 
@@ -204,10 +219,10 @@ export const Calendar = ({
               // iOS border token) stopped matching the columns' material one.
               theme="ios"
               themeVariant={isDarkModeEnabled ? 'dark' : 'light'}
-              refDate={toJsDate(start)}
-              selectedDate={toJsDate(start)}
+              refDate={fromPlainDateToDate(start)}
+              selectedDate={fromPlainDateToDate(start)}
               view={getSchedulerViewOption(days, timeFrame)}
-              data={events}
+              data={preparedEvents}
               /* A forward change leaves clock readings that never happened, so
                they are marked invalid rather than merely shaded — that also
                stops drag-to-create, move and resize landing in them, which
@@ -228,7 +243,7 @@ export const Calendar = ({
                positioning sit outside that branch either way, so this replaces
                only the content. */
               renderSchedulerDay={({ date }) => {
-                const day = fromJsDate(date);
+                const day = fromDateToPlainDate(date);
                 return (
                   <DayHeader
                     date={day}

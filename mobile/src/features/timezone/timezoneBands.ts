@@ -9,6 +9,7 @@
  */
 
 import { Temporal } from 'temporal-polyfill';
+import { fromPlainDateTimeToDate } from '../../system/helpers/dateConversions';
 import { serializeTimezoneOffset } from '../../system/helpers/dateTimeSerializers';
 
 export type TimezoneChange = {
@@ -23,15 +24,6 @@ export type TimezoneBand = {
   end: Date;
   title: string;
 };
-
-const toJsDate = (moment: Temporal.PlainDateTime) =>
-  new Date(
-    moment.year,
-    moment.month - 1,
-    moment.day,
-    moment.hour,
-    moment.minute,
-  );
 
 const NANOSECONDS_PER_MINUTE = 60_000_000_000;
 
@@ -106,8 +98,8 @@ export const timezoneBands = (
 
     bands.push({
       kind: shiftDirection > 0 ? 'dead' : 'doubled',
-      start: toJsDate(start),
-      end: toJsDate(end),
+      start: fromPlainDateTimeToDate(start),
+      end: fromPlainDateTimeToDate(end),
       title: bandLabel(
         currentChange,
         shiftMinutes(
