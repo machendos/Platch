@@ -10,7 +10,7 @@ import { TokensGuard } from './auth/guards/tokens.guard';
 import { LoggerModule } from './system/logger/logger.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ProjectsModule } from './project/project.module';
-import { TimeComponentsModule } from './time-component/time.component.module';
+import { RecurringTimeComponentsModule } from './recurring-time-component/recurring.time.component.module';
 import { EventsModule } from './event/event.module';
 
 @Module({
@@ -20,7 +20,7 @@ import { EventsModule } from './event/event.module';
     PrismaModule,
     UserModule,
     ProjectsModule,
-    TimeComponentsModule,
+    RecurringTimeComponentsModule,
     EventsModule,
     LoggerModule,
     ScheduleModule.forRoot(),

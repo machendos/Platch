@@ -6,7 +6,6 @@ import { Calendar } from './calendar/Calendar';
 import { Dispatcher } from './dispatcher/Dispatcher';
 import { Header } from './header/Header';
 import { Divider } from './Divider';
-import { testEvents } from './test.data';
 import { DEFAULT_PANE_WEIGHTS, layoutCssVariables } from './layout-config';
 import './MainPage.css';
 import type { DateRange } from '../../system/helpers/dateRange';
@@ -16,21 +15,23 @@ import { apiClient, getConnection } from '../../system/api.client';
 import type { CurrentUser } from '../../api/sdk/structures/CurrentUser';
 import { useVisibleRange } from './useVisibleRange';
 import { useWorkspaceLayout } from './useWorkspaceLayout';
-import { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
+import { spreadProjectsToEvents } from '../../features/projects-spread/spread.projects.to.events';
+import { useProjectsHotReload } from '../../api/project';
+import { useEventsInRangeHotReload } from '../../api/event';
+import { useTimezone } from '../../features/timezone/useTimezone';
 
 const DEFAULT_PANES: PanesVisible = { dispatcher: true, calendar: true };
 
-// TODO: the range is the span the test events sit in; make it today's once
-// there is real data to show.
-const DEFAULT_RANGE: DateRange = {
-  start: new Temporal.PlainDate(2026, 8, 1),
-  end: new Temporal.PlainDate(2026, 8, 2),
+const defaultDateFrame = (): DateRange => {
+  const today = Temporal.Now.plainDateISO();
+
+  return { start: today, end: today.add({ days: 1 }) };
 };
 
 export const MainPage = () => {
   const [panes, setPanes] = useState(DEFAULT_PANES);
   const [paneWeights, setPaneWeights] = useState(DEFAULT_PANE_WEIGHTS);
-  const [dateFrame, setDateFrame] = useState(DEFAULT_RANGE);
+  const [dateFrame, setDateFrame] = useState(defaultDateFrame);
 
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -65,7 +66,6 @@ export const MainPage = () => {
   // TODO: expose as user settings.
   const [isDarkModeEnabled] = useState(false);
   const [timeFrame] = useState<[string, string]>(['00:00:00', '24:00:00']);
-  const [events] = useState(testEvents);
 
   const { dayCount, todayRequest, goToPage, goToToday } = useVisibleRange(
     dateFrame,
@@ -73,6 +73,17 @@ export const MainPage = () => {
   );
 
   const workspaceRef = useRef<HTMLElement>(null);
+
+  const projects = useProjectsHotReload();
+  const frameEvents = useEventsInRangeHotReload(dateFrame.start, dateFrame.end);
+  const { history } = useTimezone();
+
+  const events = spreadProjectsToEvents(
+    projects,
+    frameEvents,
+    [dateFrame.start, dateFrame.end],
+    history,
+  );
 
   const { rememberWidths, resizePanes, gridTemplateColumns } =
     useWorkspaceLayout(
@@ -129,7 +140,7 @@ export const MainPage = () => {
                   pageStart={dateFrame.start}
                   dayCount={dayCount}
                   timeFrame={timeFrame}
-                  events={events as MbscCalendarEvent[]}
+                  events={events}
                   todayRequest={todayRequest}
                   onPageChange={goToPage}
                 />

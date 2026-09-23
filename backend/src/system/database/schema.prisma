@@ -50,22 +50,18 @@ model Project {
 
   position String
 
-  childProjects  Project[]       @relation("ParentChildProjects")
-  timeComponents TimeComponent[]
-  events         Event[]
+  childProjects           Project[]                @relation("ParentChildProjects")
+  recurringTimeComponents RecurringTimeComponent[]
+  events                  Event[]
 
   @@index([userId, projectStatus, parentProjectId, position])
 }
 
-model TimeComponent {
-  id   String            @id @default(uuid())
-  type TimeComponentType
+model RecurringTimeComponent {
+  id String @id @default(uuid())
 
-  absoluteFrom DateTime? @db.Timestamp(0)
-  absoluteTo   DateTime? @db.Timestamp(0)
-
-  recurringInterval   Int?
-  recurringFrequency  RecurringFrequency?
+  recurringInterval   Int
+  recurringFrequency  RecurringFrequency
   recurringByDay      WEEKDAY[]
   recurringByMonthDay Int?
   recurringByMonth    Int?
@@ -87,9 +83,9 @@ model RecurringTimeSlots {
   to                    DateTime?              @db.Time(0)
   flexibleMinutesNeeded Int?
 
-  timeComponent   TimeComponent @relation(fields: [timeComponentId], references: [id])
-  timeComponentId String
-  events          Event[]
+  recurringTimeComponent   RecurringTimeComponent @relation(fields: [recurringTimeComponentId], references: [id])
+  recurringTimeComponentId String
+  events                   Event[]
 }
 
 model Event {
@@ -98,16 +94,16 @@ model Event {
   overridedGoal    String?
   overridedContext String?
 
-  absoluteFrom             DateTime? @db.Timestamp(0)
-  absoluteTo               DateTime? @db.Timestamp(0)
+  start                    DateTime? @db.Timestamp(0)
+  end                      DateTime? @db.Timestamp(0)
   recurringOccurrenceIndex Int?
 
-  project              Project             @relation(fields: [projectId], references: [id])
-  projectId            String
-  timeComponent        TimeComponent       @relation(fields: [timeComponentId], references: [id])
-  timeComponentId      String
-  recurringTimeSlot    RecurringTimeSlots? @relation(fields: [recurringTimeSlotsId], references: [id])
-  recurringTimeSlotsId String?
+  project                  Project                 @relation(fields: [projectId], references: [id])
+  projectId                String
+  recurringTimeComponent   RecurringTimeComponent? @relation(fields: [recurringTimeComponentId], references: [id])
+  recurringTimeComponentId String?
+  recurringTimeSlot        RecurringTimeSlots?     @relation(fields: [recurringTimeSlotsId], references: [id])
+  recurringTimeSlotsId     String?
 
   @@unique([recurringTimeSlotsId, recurringOccurrenceIndex])
 }
@@ -139,11 +135,6 @@ enum ProjectStatus {
 enum ProjectType {
   EXTERNAL
   INTERNAL
-}
-
-enum TimeComponentType {
-  ABSOLUTE
-  RECURRING
 }
 
 enum RecurringTimeSlotsType {

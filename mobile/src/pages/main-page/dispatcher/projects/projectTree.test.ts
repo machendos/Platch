@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateNKeysBetween } from 'fractional-indexing';
-import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../api/project';
 import type { ProjectStatus } from './projectTree';
 import { buildSectionRows } from './projectTree';
 
@@ -18,8 +18,8 @@ const makeProject = ({
   position = 'a0',
   status = 'ACTIVE',
   color = null,
-}: Seed): ProjectWithTimeSlots => ({
-  timeComponents: [],
+}: Seed): Project => ({
+  recurringTimeComponents: [],
   color: color === null ? null : { id: color, placement: 1, hexCode: color },
   name: id,
   id,

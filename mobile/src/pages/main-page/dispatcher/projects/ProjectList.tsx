@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CollisionPriority } from '@dnd-kit/abstract';
 import { useDroppable } from '@dnd-kit/react';
-import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../api/project';
 import type { ProjectStatus } from './projectTree';
 import { buildSectionRows } from './projectTree';
 import { ConsequenceLine } from './ConsequenceLine';
@@ -19,9 +19,9 @@ import './ProjectList.css';
 export type RevealRequest = { id: string; token: number };
 
 type ProjectListProps = {
-  projects: ProjectWithTimeSlots[];
+  projects: Project[];
   status: ProjectStatus;
-  onProjectEditOpen: (project: ProjectWithTimeSlots) => void;
+  onProjectEditOpen: (project: Project) => void;
   reveal: RevealRequest | null;
   onMoveToOtherCategory: (id: string) => void;
 };
@@ -31,7 +31,7 @@ type ProjectListProps = {
    branches that merely happen to sit lower in the tree. */
 const landedRun = (
   rows: ProjectRowModel[],
-  projects: ProjectWithTimeSlots[],
+  projects: Project[],
   id: string,
 ) => {
   const subtree = collectDescendantIds(projects, id);
@@ -43,7 +43,7 @@ const landedRun = (
 
 const withAncestorsExpanded = (
   collapsedIds: ReadonlySet<string>,
-  projects: ProjectWithTimeSlots[],
+  projects: Project[],
   id: string,
 ) => {
   const byId = new Map(projects.map((project) => [project.id, project]));

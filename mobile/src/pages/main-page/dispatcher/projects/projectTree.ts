@@ -1,9 +1,9 @@
-import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../api/project';
 
-export type ProjectStatus = ProjectWithTimeSlots['projectStatus'];
+export type ProjectStatus = Project['projectStatus'];
 
 export type ProjectRow = {
-  project: ProjectWithTimeSlots;
+  project: Project;
   depth: number;
   hasChildren: boolean;
   hexCode: string | null;
@@ -24,8 +24,8 @@ export const sortProjectsByPosition = <
   );
 
 export type MemberTree = {
-  memberById: Map<string, ProjectWithTimeSlots>;
-  childrenOf: Map<string | null, ProjectWithTimeSlots[]>;
+  memberById: Map<string, Project>;
+  childrenOf: Map<string | null, Project[]>;
 };
 
 /* A section's projects and the edges between them, and nothing else. A parent
@@ -34,7 +34,7 @@ export type MemberTree = {
    already got. Moves keep parent and child in one category, so that fallback
    should never fire; it is here so bad data stays visible. */
 export const buildMemberTree = (
-  projects: ProjectWithTimeSlots[],
+  projects: Project[],
   status: ProjectStatus,
 ): MemberTree => {
   const memberById = new Map(
@@ -43,7 +43,7 @@ export const buildMemberTree = (
       .map((project) => [project.id, project]),
   );
 
-  const childrenOf = new Map<string | null, ProjectWithTimeSlots[]>();
+  const childrenOf = new Map<string | null, Project[]>();
 
   for (const project of memberById.values()) {
     const parentId = project.parentProjectId;
@@ -63,7 +63,7 @@ export const buildMemberTree = (
 type Options = { collapsedIds?: ReadonlySet<string> };
 
 export const buildSectionRows = (
-  projects: ProjectWithTimeSlots[],
+  projects: Project[],
   status: ProjectStatus,
   { collapsedIds }: Options = {},
 ): ProjectRow[] => {

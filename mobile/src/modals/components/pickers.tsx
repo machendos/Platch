@@ -19,7 +19,7 @@ import type {
   TimeInputValue,
   TimeScale,
 } from '../../ui/time-input/timeInputLogic';
-import { slotDurationMinutes } from './timeComponents/timeComponentsState';
+import { getSlotDurationMinutes } from './recurringTimeComponents/recurringTimeComponentsState';
 
 type PickerTriggerProps = {
   label: string;
@@ -73,7 +73,7 @@ export const PickerTrigger = ({
 const asTime = (time: Temporal.PlainTime | null): TimeInputValue | null =>
   time ? { time, durationMinutes: null } : null;
 
-const minutesOf = (time: Temporal.PlainTime) => time.hour * 60 + time.minute;
+const getMinutesOfDay = (time: Temporal.PlainTime) => time.hour * 60 + time.minute;
 
 // The wheel only lists what may be picked, so an end constrained by its start
 // simply starts its scale one minute later — the grid then lands on the next
@@ -84,8 +84,8 @@ const boundedTimeScale = (
   notAfter: Temporal.PlainTime | null | undefined,
 ) => ({
   ...TIME_OF_DAY,
-  min: notBefore ? minutesOf(notBefore) + 1 : TIME_OF_DAY.min,
-  wheelMax: notAfter ? minutesOf(notAfter) - 1 : TIME_OF_DAY.wheelMax,
+  min: notBefore ? getMinutesOfDay(notBefore) + 1 : TIME_OF_DAY.min,
+  wheelMax: notAfter ? getMinutesOfDay(notAfter) - 1 : TIME_OF_DAY.wheelMax,
 });
 
 type InlineTimeRangePanelProps = {
@@ -122,7 +122,7 @@ export const InlineTimeRangePanel = ({
             <span className="time-picker-duration">
               Duration:{' '}
               <span className="time-picker-duration-value">
-                {serializeDuration(slotDurationMinutes(from, to))}
+                {serializeDuration(getSlotDurationMinutes(from, to))}
               </span>
             </span>
           )}

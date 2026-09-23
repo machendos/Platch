@@ -33,10 +33,11 @@ import {
   withRepetitions,
   withTimeNeeded,
 } from './targetState';
-import type { TargetBound, TargetDraft, TargetReport } from './targetState';
+import type { TargetBound, TargetReport } from './targetState';
+import type { ProjectTarget } from '../../../api/project';
 
 type TargetComponentProps = {
-  initial: TargetDraft;
+  initial: ProjectTarget;
   defaultEvenLengthMinutes: number;
   onChange: (report: TargetReport) => void;
 };

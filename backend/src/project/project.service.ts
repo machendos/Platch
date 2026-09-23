@@ -8,7 +8,9 @@ import {
   ProjectsSnapshot,
   ProjectWithTimeSlots,
 } from './project.repository';
-import { TimeComponentsService } from '../time-component/time.component.service';
+import { RecurringTimeComponentsService } from '../recurring-time-component/recurring.time.component.service';
+import { EventsService } from '../event/event.service';
+import { TransactionsService } from '../system/database/transactions.service';
 import { ErrorType, PlatchError } from '../system/errors/platch.error';
 import {
   plainDateToDate,
@@ -35,7 +37,9 @@ const relation = (id?: string | null) => {
 export class ProjectsService {
   constructor(
     private projectsRepository: ProjectsRepository,
-    private timeComponentsService: TimeComponentsService,
+    private recurringTimeComponentsService: RecurringTimeComponentsService,
+    private eventsService: EventsService,
+    private transactionsService: TransactionsService,
   ) {}
 
   async getProjectsByUser(userId: string): Promise<ProjectsSnapshot> {
@@ -113,9 +117,18 @@ export class ProjectsService {
     });
 
     await Promise.all(
-      dto.timeComponents.map((timeComponent) =>
-        this.timeComponentsService.createTimeComponent({
-          ...timeComponent,
+      dto.recurringTimeComponents.map((component) =>
+        this.recurringTimeComponentsService.createRecurringTimeComponent({
+          ...component,
+          projectId: createdProject.id,
+        }),
+      ),
+    );
+
+    await Promise.all(
+      dto.events.map((event) =>
+        this.eventsService.createEvent({
+          ...event,
           projectId: createdProject.id,
         }),
       ),
@@ -132,66 +145,101 @@ export class ProjectsService {
     dto: UpdateProject,
     userId: string,
   ): Promise<ProjectWithTimeSlots> {
-    const project = await this.projectsRepository.getProjectWithTimeSlots({
-      id: dto.id,
-      userId,
+    return this.transactionsService.executeInTransaction({}, async () => {
+      const project = await this.projectsRepository.getProjectWithTimeSlots({
+        id: dto.id,
+        userId,
+      });
+
+      const events = await this.eventsService.getEventsOfProject(
+        userId,
+        dto.id,
+      );
+
+      const unexistingEventIds = [
+        ...dto.updatedEvents.map(({ id }) => id),
+        ...dto.deletedEventIds,
+      ].filter((id) => events.every(({ id: itToTest }) => itToTest !== id));
+
+      if (unexistingEventIds.length > 0) {
+        throw new PlatchError({
+          type: ErrorType.CLIENT_UNEXPECTED,
+          message: 'Unexisting events to edit/delete',
+          extraData: { unexistingEventIds },
+        });
+      }
+
+      const unexistingTimeComponentIds = [
+        ...dto.updatedRecurringTimeComponents.map(({ id }) => id),
+        ...dto.deletedRecurringTimeComponentIds,
+      ].filter((id) =>
+        project.recurringTimeComponents.every(
+          ({ id: itToTest }) => itToTest !== id,
+        ),
+      );
+
+      if (unexistingTimeComponentIds.length > 0) {
+        throw new PlatchError({
+          type: ErrorType.CLIENT_UNEXPECTED,
+          message: 'Unexisting time components to edit/delete',
+          extraData: { unexistingTimeComponentIds },
+        });
+      }
+
+      await this.projectsRepository.updateProject(
+        { id: dto.id },
+        {
+          name: dto.name,
+          goal: dto.goal,
+          context: dto.context,
+          projectType: dto.projectType,
+          timeNeededMinutes: dto.timeNeededMinutes,
+          minBlockMinutes: dto.minBlockMinutes,
+          repetitionsNeeded: dto.repetitionsNeeded,
+          earliestDate: dateColumn(dto.earliestDate),
+          earliestTime: timeColumn(dto.earliestTime),
+          deadlineDate: dateColumn(dto.deadlineDate),
+          deadlineTime: timeColumn(dto.deadlineTime),
+          originalTimezone: dto.originalTimezone,
+
+          // TODO: status can be edited with children follow
+          /* Category and parent are not editable here. They decide each other —
+               a parent owns its children's category — and only the move endpoint
+               cascades that to the subtree, holds the lock, and bumps the version a
+               client needs to accept the result. */
+          color: relation(dto.colorId),
+        },
+      );
+
+      for (const id of dto.deletedRecurringTimeComponentIds ?? [])
+        await this.recurringTimeComponentsService.deleteRecurringTimeComponent(
+          id,
+        );
+
+      for (const component of dto.updatedRecurringTimeComponents ?? [])
+        await this.recurringTimeComponentsService.updateRecurringTimeComponent(
+          component,
+        );
+
+      for (const component of dto.createdRecurringTimeComponents ?? [])
+        await this.recurringTimeComponentsService.createRecurringTimeComponent({
+          ...component,
+          projectId: dto.id,
+        });
+
+      for (const id of dto.deletedEventIds ?? [])
+        await this.eventsService.deleteEvent(id);
+
+      for (const event of dto.updatedEvents ?? [])
+        await this.eventsService.updateEvent(event);
+
+      for (const event of dto.createdEvents ?? [])
+        await this.eventsService.createEvent({ ...event, projectId: dto.id });
+
+      await this.projectsRepository.bumpProjectsVersion(userId);
+
+      return this.projectsRepository.getProjectWithTimeSlots({ id: dto.id });
     });
-
-    const unexistingTimeComponentIds = [
-      ...dto.updatedTimeComponents.map(({ id }) => id),
-      ...dto.deletedTimeComponentIds,
-    ].filter((id) =>
-      project.timeComponents.every(({ id: itToTest }) => itToTest !== id),
-    );
-
-    if (unexistingTimeComponentIds.length > 0) {
-      throw new PlatchError({
-        type: ErrorType.CLIENT_UNEXPECTED,
-        message: 'Unexisting time components to edit/delete',
-        extraData: { unexistingTimeComponentIds },
-      });
-    }
-
-    await this.projectsRepository.updateProject(
-      { id: dto.id },
-      {
-        name: dto.name,
-        goal: dto.goal,
-        context: dto.context,
-        projectType: dto.projectType,
-        timeNeededMinutes: dto.timeNeededMinutes,
-        minBlockMinutes: dto.minBlockMinutes,
-        repetitionsNeeded: dto.repetitionsNeeded,
-        earliestDate: dateColumn(dto.earliestDate),
-        earliestTime: timeColumn(dto.earliestTime),
-        deadlineDate: dateColumn(dto.deadlineDate),
-        deadlineTime: timeColumn(dto.deadlineTime),
-        originalTimezone: dto.originalTimezone,
-
-        // TODO: status can be edited with children follow
-        /* Category and parent are not editable here. They decide each other —
-           a parent owns its children's category — and only the move endpoint
-           cascades that to the subtree, holds the lock, and bumps the version a
-           client needs to accept the result. */
-        color: relation(dto.colorId),
-      },
-    );
-
-    for (const id of dto.deletedTimeComponentIds ?? [])
-      await this.timeComponentsService.deleteTimeComponent(id);
-
-    for (const component of dto.updatedTimeComponents ?? [])
-      await this.timeComponentsService.updateTimeComponent(component);
-
-    for (const component of dto.createdTimeComponents ?? [])
-      await this.timeComponentsService.createTimeComponent({
-        ...component,
-        projectId: dto.id,
-      });
-
-    await this.projectsRepository.bumpProjectsVersion(userId);
-
-    return this.projectsRepository.getProjectWithTimeSlots({ id: dto.id });
   }
 
   deleteProject() {}

@@ -5,8 +5,15 @@ import {
   TimeString,
 } from '../validation/validation.decorators';
 
-export const plainDateToDate = (value?: Temporal.PlainDate | null) =>
-  value ? new Date(Date.UTC(value.year, value.month - 1, value.day)) : value;
+export function plainDateToDate(value: Temporal.PlainDate): Date;
+export function plainDateToDate(
+  value?: Temporal.PlainDate | null,
+): Date | null | undefined;
+export function plainDateToDate(value?: Temporal.PlainDate | null) {
+  return value
+    ? new Date(Date.UTC(value.year, value.month - 1, value.day))
+    : value;
+}
 
 export const plainTimeToDate = (value?: Temporal.PlainTime | null) =>
   value

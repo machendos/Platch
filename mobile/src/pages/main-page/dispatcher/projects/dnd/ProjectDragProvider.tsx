@@ -4,7 +4,7 @@ import { DragDropProvider, PointerSensor } from '@dnd-kit/react';
 import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom';
 import { isSortable } from '@dnd-kit/react/sortable';
 import type { MoveProjectDto } from '../../../../../api/sdk/structures/MoveProjectDto';
-import type { ProjectWithTimeSlots } from '../../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../../api/project';
 import {
   DRAG_TOUCH_DELAY_MS,
   DRAG_TOUCH_TOLERANCE_PX,
@@ -23,7 +23,7 @@ import type { DragState } from './ProjectDragContext';
 import { EMPTY_DRAG, ProjectDragContext } from './ProjectDragContext';
 
 type ProjectDragProviderProps = {
-  projects: ProjectWithTimeSlots[];
+  projects: Project[];
   onMove: (dto: MoveProjectDto) => void;
   onDropped: (id: string) => void;
   children: ReactNode;
@@ -46,14 +46,14 @@ const sensors = [
 /* Ordered the way the list orders itself, ties on id included. Comparing keys
    alone reports no predecessor whenever two siblings share one, which reads as
    "nothing moved" and swallows the move. */
-const precedes = (left: ProjectWithTimeSlots, right: ProjectWithTimeSlots) =>
+const precedes = (left: Project, right: Project) =>
   left.position === right.position
     ? left.id.localeCompare(right.id) < 0
     : left.position < right.position;
 
 const findPreviousSibling = (
-  projects: ProjectWithTimeSlots[],
-  project: ProjectWithTimeSlots,
+  projects: Project[],
+  project: Project,
 ) =>
   projects
     .filter(

@@ -1,6 +1,6 @@
 import { generateKeyBetween } from 'fractional-indexing';
 import type { MoveProjectDto } from '../../../../api/sdk/structures/MoveProjectDto';
-import type { ProjectWithTimeSlots } from '../../../../api/sdk/structures/ProjectWithTimeSlots';
+import type { Project } from '../../../../api/project';
 import type { ProjectStatus } from './projectTree';
 import { buildMemberTree, sortProjectsByPosition } from './projectTree';
 
@@ -16,8 +16,8 @@ const matchKey = (name: string | null) => {
    actually see there. A project whose parent sits in the other category renders
    at the top level, so it should be matched as a top-level project too. */
 const buildAncestorNames = (
-  projects: ProjectWithTimeSlots[],
-  project: ProjectWithTimeSlots,
+  projects: Project[],
+  project: Project,
 ) => {
   const byId = new Map(projects.map((candidate) => [candidate.id, candidate]));
   const seen = new Set<string>();
@@ -51,7 +51,7 @@ const findDestinationParent = (
   for (const name of ancestorNames) {
     if (name === null) break;
 
-    const match: ProjectWithTimeSlots | undefined = sortProjectsByPosition(
+    const match: Project | undefined = sortProjectsByPosition(
       tree.childrenOf.get(parentId) ?? [],
     ).find((candidate) => matchKey(candidate.name) === name);
 
@@ -72,8 +72,8 @@ const findDestinationParent = (
    categories mirror each other, so the project returns to the root rather than
    to where it started. */
 export const resolveCategoryMove = (
-  projects: ProjectWithTimeSlots[],
-  project: ProjectWithTimeSlots,
+  projects: Project[],
+  project: Project,
   targetStatus: ProjectStatus,
 ): MoveProjectDto => {
   const tree = buildMemberTree(projects, targetStatus);

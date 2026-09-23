@@ -2,25 +2,8 @@ import { Temporal } from 'temporal-polyfill';
 import { MIN_BLOCK_TIME } from '../../../config/timeScales';
 import { clampToScale, snapTo } from '../../../ui/time-input/timeInputLogic';
 import type { TimeScale } from '../../../ui/time-input/timeInputLogic';
+import type { ProjectTarget } from '../../../api/project';
 
-/* Null-shaped, so the value the parent receives is the Project columns
-   themselves — no second representation that could disagree with them, and
-   `isDirty` is exact: a number picked behind a box that was then unticked
-   leaves nothing behind. */
-export type TargetDraft = {
-  timeNeededMinutes: number | null;
-  minBlockMinutes: number | null;
-  repetitionsNeeded: number | null;
-
-  /* The window the work has to land inside. Not the same kind of thing as the
-     targets above: those say how much, these say when it may happen — which is
-     why nothing here is exclusive with anything, and why a mode change carries
-     them through untouched. */
-  earliestDate: Temporal.PlainDate | null;
-  earliestTime: Temporal.PlainTime | null;
-  deadlineDate: Temporal.PlainDate | null;
-  deadlineTime: Temporal.PlainTime | null;
-};
 
 export type TargetBound =
   | 'earliestDate'
@@ -35,7 +18,7 @@ const NO_BOUNDS = {
   deadlineTime: null,
 } as const;
 
-const boundsOf = (draft: TargetDraft) => ({
+const boundsOf = (draft: ProjectTarget) => ({
   earliestDate: draft.earliestDate,
   earliestTime: draft.earliestTime,
   deadlineDate: draft.deadlineDate,
@@ -52,7 +35,7 @@ export type TargetMode = 'none' | 'time' | 'repetitions';
    counted as a change. Switching target hides the numbers rather than
    destroying them: coming back to a target the user has already filled in and
    finding it blank reads as the form having thrown the work away. */
-export type TargetMemory = TargetDraft & {
+export type TargetMemory = ProjectTarget & {
   /* Whether the block line was last on, separate from its number for the same
      reason `mode` is separate from the value: a block that is off has no
      number, so "off because it was turned off" would otherwise read the same
@@ -63,7 +46,7 @@ export type TargetMemory = TargetDraft & {
 
 export type TargetState = {
   mode: TargetMode;
-  value: TargetDraft;
+  value: ProjectTarget;
   remembered: TargetMemory;
 };
 
@@ -83,7 +66,7 @@ export type TargetReport = {
      box holds nothing, and the window belongs to a target that was asked for.
      Same value isDirty is measured against, so a form cannot save something it
      did not consider a change. */
-  value: TargetDraft;
+  value: ProjectTarget;
 };
 
 export const TARGET_FIELD_IDS = {
@@ -91,7 +74,7 @@ export const TARGET_FIELD_IDS = {
   repetitions: 'target-repetitions',
 } as const;
 
-export const EMPTY_TARGET: TargetDraft = {
+export const EMPTY_TARGET: ProjectTarget = {
   timeNeededMinutes: null,
   minBlockMinutes: null,
   repetitionsNeeded: null,
@@ -105,7 +88,7 @@ export const EMPTY_TARGET: TargetDraft = {
    moments count as backwards — a window that opens and closes at the same
    instant is one nothing can happen inside, which is the whole point of a
    window. */
-const windowFault = (draft: TargetDraft): 'date' | 'time' | null => {
+const windowFault = (draft: ProjectTarget): 'date' | 'time' | null => {
   const { earliestDate, earliestTime, deadlineDate, deadlineTime } = draft;
 
   if (earliestDate === null || deadlineDate === null) return null;
@@ -129,7 +112,7 @@ const windowFault = (draft: TargetDraft): 'date' | 'time' | null => {
    Only as much is wiped as is impossible. A deadline on the wrong day takes
    its time with it; one on the right day at the wrong hour keeps its date and
    loses only the hour. */
-const withPossibleWindow = (draft: TargetDraft): TargetDraft => {
+const withPossibleWindow = (draft: ProjectTarget): ProjectTarget => {
   const fault = windowFault(draft);
 
   if (fault === 'date') {
@@ -145,7 +128,7 @@ const withPossibleWindow = (draft: TargetDraft): TargetDraft => {
    the draft, so a record that arrives broken opens clean showing the reading
    it will be saved under, rather than opening pre-dirtied by a correction
    nobody made. */
-export const normalizeTarget = (draft: TargetDraft): TargetDraft =>
+export const normalizeTarget = (draft: ProjectTarget): ProjectTarget =>
   withPossibleWindow(
     draft.timeNeededMinutes !== null && draft.repetitionsNeeded !== null
       ? { ...draft, repetitionsNeeded: null }
@@ -168,7 +151,7 @@ export type BoundLimits = {
 };
 
 export const boundLimits = (
-  draft: TargetDraft,
+  draft: ProjectTarget,
   end: 'earliest' | 'deadline',
 ): BoundLimits => {
   const sameDay =
@@ -191,13 +174,13 @@ export const boundLimits = (
       };
 };
 
-export const modeOf = (draft: TargetDraft): TargetMode => {
+export const modeOf = (draft: ProjectTarget): TargetMode => {
   if (draft.timeNeededMinutes !== null) return 'time';
   if (draft.repetitionsNeeded !== null) return 'repetitions';
   return 'none';
 };
 
-export const openState = (initial: TargetDraft): TargetState => {
+export const openState = (initial: ProjectTarget): TargetState => {
   const value = normalizeTarget(initial);
 
   return {
@@ -260,7 +243,7 @@ const blockAt = (
 /* What a target shows when it is switched back to. Only the fields that belong
    to the mode come back, which is what keeps the two exclusive. */
 type TargetFields = Pick<
-  TargetDraft,
+  ProjectTarget,
   'timeNeededMinutes' | 'minBlockMinutes' | 'repetitionsNeeded'
 >;
 
@@ -416,7 +399,7 @@ const sameMoment = (
   b: unknown | null,
 ) => (a === null || b === null ? a === b : a.equals(b as never));
 
-const same = (a: TargetDraft, b: TargetDraft) =>
+const same = (a: ProjectTarget, b: ProjectTarget) =>
   a.timeNeededMinutes === b.timeNeededMinutes &&
   a.minBlockMinutes === b.minBlockMinutes &&
   a.repetitionsNeeded === b.repetitionsNeeded &&
@@ -444,7 +427,7 @@ export const withBound = (
    number is not saved at all, so the default block hanging off it is not
    either — otherwise merely ticking a box would count as an edit, and closing
    would offer to discard a number the user never chose. */
-const savable = (state: TargetState, problems: FieldProblem[]): TargetDraft =>
+const savable = (state: TargetState, problems: FieldProblem[]): ProjectTarget =>
   problems.length > 0 || state.mode === 'none' ? EMPTY_TARGET : state.value;
 
 /* Dirty compares what would be saved, not what is on screen, and never the
@@ -452,7 +435,7 @@ const savable = (state: TargetState, problems: FieldProblem[]): TargetDraft =>
    lose, so closing on one must not offer to discard anything. */
 export const buildReport = (
   state: TargetState,
-  baseline: TargetDraft,
+  baseline: ProjectTarget,
 ): TargetReport => {
   const problems = targetProblems(state);
   const value = savable(state, problems);
