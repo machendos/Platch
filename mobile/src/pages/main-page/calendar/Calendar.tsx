@@ -12,7 +12,10 @@ import { useRef } from 'react';
 import { MbscEventcalendarView } from '@mobiscroll/react/dist/src/core/components/eventcalendar/eventcalendar.types.public';
 import type { MbscCalendarEvent } from '@mobiscroll/react/dist/src/core/shared/calendar-view/calendar-view.types.public';
 import { Temporal } from 'temporal-polyfill';
-import { fromJsDate, toJsDate } from '../../../system/helpers/helpers';
+import {
+  fromDateToPlainDate,
+  fromPlainDateToDate,
+} from '../../../system/helpers/dateConversions';
 import {
   DEFAULT_CELL_STEP_MINUTES,
   DEFAULT_LABEL_STEP_MINUTES,
@@ -100,8 +103,8 @@ export const Calendar = ({
     const end = start.add({ days: days - 1 });
     return bands.filter(
       (band) =>
-        Temporal.PlainDate.compare(fromJsDate(band.start), end) <= 0 &&
-        Temporal.PlainDate.compare(fromJsDate(band.end), start) >= 0,
+        Temporal.PlainDate.compare(fromDateToPlainDate(band.start), end) <= 0 &&
+        Temporal.PlainDate.compare(fromDateToPlainDate(band.end), start) >= 0,
     );
   };
 
@@ -204,8 +207,8 @@ export const Calendar = ({
               // iOS border token) stopped matching the columns' material one.
               theme="ios"
               themeVariant={isDarkModeEnabled ? 'dark' : 'light'}
-              refDate={toJsDate(start)}
-              selectedDate={toJsDate(start)}
+              refDate={fromPlainDateToDate(start)}
+              selectedDate={fromPlainDateToDate(start)}
               view={getSchedulerViewOption(days, timeFrame)}
               data={events}
               /* A forward change leaves clock readings that never happened, so
@@ -228,7 +231,7 @@ export const Calendar = ({
                positioning sit outside that branch either way, so this replaces
                only the content. */
               renderSchedulerDay={({ date }) => {
-                const day = fromJsDate(date);
+                const day = fromDateToPlainDate(date);
                 return (
                   <DayHeader
                     date={day}

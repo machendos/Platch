@@ -2,7 +2,7 @@ import type { CreateProjectDto } from '../api/sdk/structures/CreateProjectDto';
 import type { ProjectWithTimeSlots } from '../api/sdk/structures/ProjectWithTimeSlots';
 import type { TimeComponentFields } from '../api/sdk/structures/TimeComponentFields';
 import type { UpdateProjectDto } from '../api/sdk/structures/UpdateProjectDto';
-import { parseApiDateTime } from '../system/helpers/dateTimeSerializers';
+import { fromApiStringToPlainDateTime } from '../system/helpers/dateConversions';
 import type { ProjectStatus } from './components/projectStatusSwitch/ProjectStatusSwitch';
 import type { ProjectType } from './components/projectTypeSwitch/ProjectTypeSwitch';
 import type { TargetDraft } from './components/targetComponent/targetState';
@@ -122,15 +122,15 @@ export const toTargetDraft = (project: ProjectWithTimeSlots): TargetDraft => ({
   repetitionsNeeded: project.repetitionsNeeded,
 
   earliestDate: project.earliestDate
-    ? parseApiDateTime(project.earliestDate).toPlainDate()
+    ? fromApiStringToPlainDateTime(project.earliestDate).toPlainDate()
     : null,
   earliestTime: project.earliestTime
-    ? parseApiDateTime(project.earliestTime).toPlainTime()
+    ? fromApiStringToPlainDateTime(project.earliestTime).toPlainTime()
     : null,
   deadlineDate: project.deadlineDate
-    ? parseApiDateTime(project.deadlineDate).toPlainDate()
+    ? fromApiStringToPlainDateTime(project.deadlineDate).toPlainDate()
     : null,
   deadlineTime: project.deadlineTime
-    ? parseApiDateTime(project.deadlineTime).toPlainTime()
+    ? fromApiStringToPlainDateTime(project.deadlineTime).toPlainTime()
     : null,
 });

@@ -1,5 +1,10 @@
 import { Temporal } from 'temporal-polyfill';
-import { parseApiDateTime } from '../../../system/helpers/dateTimeSerializers';
+import {
+  fromApiStringToPlainDateTime,
+  fromPlainDateToApiString,
+  fromPlainDateTimeToApiString,
+  fromPlainTimeToApiString,
+} from '../../../system/helpers/dateConversions';
 import type { TimeComponentFields } from '../../../api/sdk/structures/TimeComponentFields';
 import type { TimeComponentWithSlots } from '../../../api/sdk/structures/TimeComponentWithSlots';
 import type { TimeSlot } from '../../../api/sdk/structures/TimeSlot';
@@ -357,12 +362,15 @@ export const displayOrder = (
   ...drafts.filter((draft) => draft.type === 'ABSOLUTE'),
 ];
 
-
 export const fromApiComponent = (
   source: TimeComponentWithSlots,
 ): TimeComponentDraft => {
-  const from = source.absoluteFrom ? parseApiDateTime(source.absoluteFrom) : null;
-  const to = source.absoluteTo ? parseApiDateTime(source.absoluteTo) : null;
+  const from = source.absoluteFrom
+    ? fromApiStringToPlainDateTime(source.absoluteFrom)
+    : null;
+  const to = source.absoluteTo
+    ? fromApiStringToPlainDateTime(source.absoluteTo)
+    : null;
 
   return {
     key: source.id,
@@ -379,39 +387,30 @@ export const fromApiComponent = (
     byMonthDay: source.recurringByMonthDay,
     byMonth: source.recurringByMonth,
     firstDate: source.firstRecurringEventAt
-      ? parseApiDateTime(source.firstRecurringEventAt).toPlainDate()
+      ? fromApiStringToPlainDateTime(source.firstRecurringEventAt).toPlainDate()
       : null,
     lastDate: source.lastRecurringEventAt
-      ? parseApiDateTime(source.lastRecurringEventAt).toPlainDate()
+      ? fromApiStringToPlainDateTime(source.lastRecurringEventAt).toPlainDate()
       : null,
     slots: source.recurringTimeSlots.map((slot) => ({
       key: slot.id,
       id: slot.id,
-      from: slot.from ? parseApiDateTime(slot.from).toPlainTime() : null,
-      to: slot.to ? parseApiDateTime(slot.to).toPlainTime() : null,
+      from: slot.from
+        ? fromApiStringToPlainDateTime(slot.from).toPlainTime()
+        : null,
+      to: slot.to ? fromApiStringToPlainDateTime(slot.to).toPlainTime() : null,
       flexibleMinutesNeeded: slot.flexibleMinutesNeeded,
     })),
   };
 };
-
-const serializeTime = (time: Temporal.PlainTime) =>
-  time.toString({ smallestUnit: 'minute' });
-
-const serializeDateTime = (
-  date: Temporal.PlainDate,
-  time: Temporal.PlainTime,
-) => date.toPlainDateTime(time).toString({ smallestUnit: 'minute' });
-
-const serializeDay = (date: Temporal.PlainDate) =>
-  date.toPlainDateTime().toString({ smallestUnit: 'minute' });
 
 const toTimeSlot = (slot: SlotDraft): TimeSlot =>
   slot.flexibleMinutesNeeded !== null
     ? { type: 'FLEXIBLE', flexibleMinutesNeeded: slot.flexibleMinutesNeeded }
     : {
         type: 'ABSOLUTE',
-        from: slot.from ? serializeTime(slot.from) : undefined,
-        to: slot.to ? serializeTime(slot.to) : undefined,
+        from: slot.from ? fromPlainTimeToApiString(slot.from) : undefined,
+        to: slot.to ? fromPlainTimeToApiString(slot.to) : undefined,
       };
 
 export const toCreated = (draft: TimeComponentDraft): TimeComponentFields =>
@@ -420,11 +419,15 @@ export const toCreated = (draft: TimeComponentDraft): TimeComponentFields =>
         type: 'ABSOLUTE',
         absoluteFrom:
           draft.fromDate && draft.fromTime
-            ? serializeDateTime(draft.fromDate, draft.fromTime)
+            ? fromPlainDateTimeToApiString(
+                draft.fromDate.toPlainDateTime(draft.fromTime),
+              )
             : undefined,
         absoluteTo:
           draft.toDate && draft.toTime
-            ? serializeDateTime(draft.toDate, draft.toTime)
+            ? fromPlainDateTimeToApiString(
+                draft.toDate.toPlainDateTime(draft.toTime),
+              )
             : undefined,
       }
     : {
@@ -440,10 +443,10 @@ export const toCreated = (draft: TimeComponentDraft): TimeComponentFields =>
         recurringByMonth:
           draft.frequency === 'YEAR' ? (draft.byMonth ?? undefined) : undefined,
         firstRecurringEventAt: draft.firstDate
-          ? serializeDay(draft.firstDate)
+          ? fromPlainDateToApiString(draft.firstDate)
           : undefined,
         lastRecurringEventAt: draft.lastDate
-          ? serializeDay(draft.lastDate)
+          ? fromPlainDateToApiString(draft.lastDate)
           : undefined,
         recurringTimeSlots: draft.slots.map(toTimeSlot),
       };

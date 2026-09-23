@@ -8,7 +8,10 @@ import type { Temporal } from 'temporal-polyfill';
 import { WEEK_STARTS_ON } from '../../config/calendarPreferences';
 import { SLOT_FLEXIBLE_TIME, TIME_OF_DAY } from '../../config/timeScales';
 import { serializeDuration } from '../../system/helpers/dateTimeSerializers';
-import { fromJsDate, toJsDate } from '../../system/helpers/helpers';
+import {
+  fromDateToPlainDate,
+  fromPlainDateToDate,
+} from '../../system/helpers/dateConversions';
 import { FieldShell } from '../../ui/text-field/FieldShell';
 import { Reveal } from '../../ui/reveal/Reveal';
 import { TimeWheels } from '../../ui/time-input/TimeInput';
@@ -252,7 +255,7 @@ export const InlineDatePanel = ({
   const handleChange = ({ value: picked }: MbscDatepickerChangeEvent) => {
     if (!(picked instanceof Date)) return;
 
-    onChange(fromJsDate(picked));
+    onChange(fromDateToPlainDate(picked));
   };
 
   return (
@@ -271,12 +274,12 @@ export const InlineDatePanel = ({
           // today by itself and fires onChange for it — the panel then commits
           // a date nobody picked and closes before it has ever been seen.
           defaultSelection={null}
-          min={min ? toJsDate(min) : undefined}
-          max={max ? toJsDate(max) : undefined}
+          min={min ? fromPlainDateToDate(min) : undefined}
+          max={max ? fromPlainDateToDate(max) : undefined}
           firstDay={WEEK_STARTS_ON}
           theme="ios"
           themeVariant="light"
-          value={value ? toJsDate(value) : null}
+          value={value ? fromPlainDateToDate(value) : null}
           onChange={handleChange}
         />
       </div>
