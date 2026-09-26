@@ -17,7 +17,7 @@ export class RecurringTimeComponentFields {
   recurringByMonthDay?: Int<1, 31>;
   recurringByMonth?: Int<1, 12>;
 
-  firstRecurringEventAt?: DateTimeString;
+  firstRecurringEventAt: DateTimeString;
   lastRecurringEventAt?: DateTimeString;
 
   recurringTimeSlots?: TimeSlot[];

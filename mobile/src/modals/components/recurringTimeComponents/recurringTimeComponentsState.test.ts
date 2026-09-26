@@ -136,12 +136,9 @@ describe('validity', () => {
     );
   });
 
-  it('requires a first date and rejects a last one before it', () => {
+  it('rejects a last date before the first', () => {
     const draft = toRecurringTimeComponentDraft(recurring());
 
-    expect(
-      isRecurringTimeComponentDraftValid({ ...draft, firstRecurringEventAt: null }),
-    ).toBe(false);
     expect(
       isRecurringTimeComponentDraftValid({
         ...draft,

@@ -1,41 +1,14 @@
 import { Temporal } from 'temporal-polyfill';
 import type { Project } from '../../api/project';
 import type { Event } from '../../api/event';
-import { ProjectType } from '../../modals/components/projectTypeSwitch/ProjectTypeSwitch';
-import { getTimezoneAtMoment } from '../timezone/useTimezone';
-import { isDefined } from '../../system/helpers/helpers';
+import { spreadRecurringTimeComponent } from './spread.recurring.time.component';
+import {
+  overlapsDateFrame,
+  resolveInViewerZone,
+} from './resolve.in.viewer.zone';
+import type { SpreadEvent, TimezoneChange } from './resolve.in.viewer.zone';
 
-export type SpreadEvent = {
-  start: Temporal.PlainDateTime;
-  end: Temporal.PlainDateTime;
-  project: Project;
-};
-
-type TimezoneChange = { changesAt: Temporal.Instant; ianaTimezone: string };
-
-const resolve = (
-  project: Project,
-  event: Event,
-  timezoneChanges: TimezoneChange[],
-): SpreadEvent | undefined => {
-  if (!event.start || !event.end) return undefined;
-
-  const { start, end } = event;
-
-  if (project.projectType === ProjectType.INTERNAL)
-    return { start, end, project };
-
-  const projectTz = project.originalTimezone;
-  const tzAtStart = getTimezoneAtMoment(
-    timezoneChanges,
-    start.toZonedDateTime(projectTz).toInstant(),
-  );
-
-  const inViewerZone = (moment: Temporal.PlainDateTime) =>
-    moment.toZonedDateTime(projectTz).withTimeZone(tzAtStart).toPlainDateTime();
-
-  return { start: inViewerZone(start), end: inViewerZone(end), project };
-};
+export type { SpreadEvent } from './resolve.in.viewer.zone';
 
 export const spreadProjectsToEvents = (
   projects: Project[],
@@ -45,19 +18,29 @@ export const spreadProjectsToEvents = (
 ): SpreadEvent[] => {
   const projectById = new Map(projects.map((project) => [project.id, project]));
 
-  const frameStart = dateFrame[0].toPlainDateTime('00:00');
-  const frameEnd = dateFrame[1].add({ days: 1 }).toPlainDateTime('00:00');
+  const fromEvents = events.flatMap((event) => {
+    const project = projectById.get(event.projectId);
+    if (!project || event.start === null || event.end === null) return [];
 
-  return events
-    .map((event) => {
-      const project = projectById.get(event.projectId);
-
-      return project ? resolve(project, event, timezoneChanges) : undefined;
-    })
-    .filter(isDefined)
-    .filter(
-      ({ start, end }) =>
-        Temporal.PlainDateTime.compare(end, frameStart) > 0 &&
-        Temporal.PlainDateTime.compare(start, frameEnd) < 0,
+    const resolved = resolveInViewerZone(
+      project,
+      { start: event.start, end: event.end },
+      timezoneChanges,
     );
+
+    return overlapsDateFrame(resolved, dateFrame) ? [resolved] : [];
+  });
+
+  const fromCadences = projects.flatMap((project) =>
+    project.recurringTimeComponents.flatMap((component) =>
+      spreadRecurringTimeComponent(
+        component,
+        project,
+        dateFrame,
+        timezoneChanges,
+      ),
+    ),
+  );
+
+  return [...fromEvents, ...fromCadences];
 };

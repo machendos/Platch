@@ -67,13 +67,12 @@ export class RecurringTimeComponentsService {
     return this.recurringTimeComponentsRepository.updateRecurringTimeComponent(
       { id: dto.id },
       {
-        recurringInterval: dto.recurringInterval ?? null,
-        recurringFrequency: dto.recurringFrequency ?? null,
+        recurringInterval: dto.recurringInterval,
+        recurringFrequency: dto.recurringFrequency,
         recurringByDay: dto.recurringByDay ?? [],
         recurringByMonthDay: dto.recurringByMonthDay ?? null,
         recurringByMonth: dto.recurringByMonth ?? null,
-        firstRecurringEventAt:
-          plainDateTimeToDate(dto.firstRecurringEventAt) ?? null,
+        firstRecurringEventAt: plainDateTimeToDate(dto.firstRecurringEventAt),
         lastRecurringEventAt:
           plainDateTimeToDate(dto.lastRecurringEventAt) ?? null,
 
