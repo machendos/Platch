@@ -71,7 +71,6 @@ const fillRecurringDefaults = (
     draft.recurringByDay.length > 0 ? draft.recurringByDay : [getWeekday(anchor)],
   recurringByMonthDay: draft.recurringByMonthDay ?? anchor.day,
   recurringByMonth: draft.recurringByMonth ?? anchor.month,
-  firstRecurringEventAt: draft.firstRecurringEventAt ?? anchor,
   recurringTimeSlots:
     draft.recurringTimeSlots.length > 0
       ? draft.recurringTimeSlots
@@ -81,8 +80,7 @@ const fillRecurringDefaults = (
 export const changeRecurringFrequency = (
   draft: RecurringTimeComponentDraft,
   recurringFrequency: RecurringFrequency,
-  anchor: Temporal.PlainDate = draft.firstRecurringEventAt ??
-    getRecurrenceAnchor(),
+  anchor: Temporal.PlainDate = draft.firstRecurringEventAt,
 ): RecurringTimeComponentDraft =>
   fillRecurringDefaults({ ...draft, recurringFrequency }, anchor);
 
@@ -91,11 +89,11 @@ export const changeFirstRecurringEventAt = (
   firstRecurringEventAt: Temporal.PlainDate,
 ): RecurringTimeComponentDraft => {
   const span =
-    draft.firstRecurringEventAt && draft.lastRecurringEventAt
-      ? draft.firstRecurringEventAt
+    draft.lastRecurringEventAt === null
+      ? null
+      : draft.firstRecurringEventAt
           .until(draft.lastRecurringEventAt)
-          .total({ unit: 'days' })
-      : null;
+          .total({ unit: 'days' });
 
   return {
     ...draft,
@@ -194,15 +192,13 @@ export const isRecurringTimeComponentDraftValid = (
 
   const withinBounds =
     draft.lastRecurringEventAt === null ||
-    (draft.firstRecurringEventAt !== null &&
-      Temporal.PlainDate.compare(
-        draft.firstRecurringEventAt,
-        draft.lastRecurringEventAt,
-      ) <= 0);
+    Temporal.PlainDate.compare(
+      draft.firstRecurringEventAt,
+      draft.lastRecurringEventAt,
+    ) <= 0;
 
   return (
     draft.recurringInterval >= 1 &&
-    draft.firstRecurringEventAt !== null &&
     withinBounds &&
     byFrequency &&
     draft.recurringTimeSlots.length > 0 &&

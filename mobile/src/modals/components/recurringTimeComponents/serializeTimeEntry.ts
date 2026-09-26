@@ -182,7 +182,6 @@ const serializeBounds = (
 ): string =>
   joinPresent(
     [
-      draft.firstRecurringEventAt &&
       Temporal.PlainDate.compare(draft.firstRecurringEventAt, today) > 0
         ? `from ${serializeDate(draft.firstRecurringEventAt, today)}`
         : null,

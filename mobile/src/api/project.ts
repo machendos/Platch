@@ -35,7 +35,7 @@ export type RecurringTimeComponent = Omit<
   ComponentFromApi,
   'firstRecurringEventAt' | 'lastRecurringEventAt' | 'recurringTimeSlots'
 > & {
-  firstRecurringEventAt: Temporal.PlainDate | null;
+  firstRecurringEventAt: Temporal.PlainDate;
   lastRecurringEventAt: Temporal.PlainDate | null;
   recurringTimeSlots: Slot[];
 };
@@ -143,7 +143,9 @@ const toProject = (project: ProjectWithTimeSlots): Project => ({
   deadlineTime: toPlainTime(project.deadlineTime),
   recurringTimeComponents: project.recurringTimeComponents.map((component) => ({
     ...component,
-    firstRecurringEventAt: toPlainDate(component.firstRecurringEventAt),
+    firstRecurringEventAt: fromApiStringToPlainDate(
+      component.firstRecurringEventAt,
+    ),
     lastRecurringEventAt: toPlainDate(component.lastRecurringEventAt),
     recurringTimeSlots: component.recurringTimeSlots.map((slot) => ({
       ...slot,
@@ -180,9 +182,9 @@ const toRecurringTimeComponentFields = (
     component.recurringFrequency === 'YEAR'
       ? (component.recurringByMonth ?? undefined)
       : undefined,
-  firstRecurringEventAt: component.firstRecurringEventAt
-    ? fromPlainDateToApiDateTime(component.firstRecurringEventAt)
-    : undefined,
+  firstRecurringEventAt: fromPlainDateToApiDateTime(
+    component.firstRecurringEventAt,
+  ),
   lastRecurringEventAt: component.lastRecurringEventAt
     ? fromPlainDateToApiDateTime(component.lastRecurringEventAt)
     : undefined,

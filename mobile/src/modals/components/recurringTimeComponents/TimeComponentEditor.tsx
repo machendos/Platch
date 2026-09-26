@@ -472,11 +472,7 @@ export const TimeComponentEditor = ({
             <span className="time-component-row-label">first</span>
             <PickerTrigger
               label="First occurrence date"
-              text={
-                draft.firstRecurringEventAt
-                  ? serializeDate(draft.firstRecurringEventAt)
-                  : null
-              }
+              text={serializeDate(draft.firstRecurringEventAt)}
               placeholder="Date"
               open={isOpen({ kind: 'first-date' })}
               onPress={() => toggle({ kind: 'first-date' })}

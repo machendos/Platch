@@ -34,7 +34,7 @@ export namespace getRecurringTimeComponentsByUser {
     recurringByDay: ("MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU")[];
     recurringByMonthDay: null | number;
     recurringByMonth: null | number;
-    firstRecurringEventAt: null | (string & tags.Format<"date-time">);
+    firstRecurringEventAt: string & tags.Format<"date-time">;
     lastRecurringEventAt: null | (string & tags.Format<"date-time">);
     projectId: string;
   }[];

@@ -31,7 +31,7 @@ export type TimeEntriesReport = {
 
 const getEntryAnchor = (entry: TimeEntryDraft): Temporal.PlainDate =>
   entry.kind === 'RECURRING'
-    ? (entry.firstRecurringEventAt ?? getRecurrenceAnchor())
+    ? entry.firstRecurringEventAt
     : (entry.fromDate ?? getRecurrenceAnchor());
 
 export const changeEntryKind = (

@@ -85,6 +85,29 @@ event it exists to catch. The meaningful moment is the resume: `appStateChange`
 from `@capacitor/app` inside the native shell, `visibilitychange` in the browser
 and simulator Safari, plus the first mount.
 
+### A cadence is expanded in the project's calendar, then shifted
+
+`getOccurrenceDates` knows nothing about zones, and should not: "every Monday"
+on a Tokyo project means a *Tokyo* Monday, so the occurrence dates are plain
+dates in the project's own calendar. Only placing those dates on the viewer's
+timeline is a zone question — the project's zone turns a wall clock into an
+instant, and `getTimezoneAtMoment` says which zone to read that instant back in.
+
+The trap is that the frame handed down is the **viewer's** range, so clipping
+occurrences to it in project-local dates loses the edges. A Tokyo cadence at
+08:00 on project-local 26 September is 16:00 on 25 September in Los Angeles —
+inside a viewer frame of the 25th, but never generated, because the generator
+was bounded by the 25th in Tokyo terms. It only ever loses occurrences, never
+duplicates them: the overlap filter that runs after the shift is exact.
+
+So `spreadRecurringTimeComponent` widens the frame before expanding and filters
+against the real one afterwards. **3 days before and 2 days after**, because the
+IANA offset spread is 26 hours (UTC−12 to UTC+14) and a slot can be 24 hours
+long, so an occurrence starting up to 50 hours before the frame can still
+overlap it — and 50 hours before midnight lands three dates back. Widening
+cannot invent anything: `getOccurrenceDates` intersects the frame with
+`firstRecurringEventAt` and `lastRecurringEventAt`, which stay authoritative.
+
 ### The write is local first
 
 Detection fires when someone steps off a plane, which is exactly when the network
