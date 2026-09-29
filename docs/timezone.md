@@ -108,6 +108,26 @@ overlap it — and 50 hours before midnight lands three dates back. Widening
 cannot invent anything: `getOccurrenceDates` intersects the frame with
 `firstRecurringEventAt` and `lastRecurringEventAt`, which stay authoritative.
 
+**Reading stored events has the same problem one layer earlier**, and losing one
+there is worse — the row never reaches the client, so no amount of filtering
+afterwards recovers it. `Event.start` and `Event.end` are project wall clock,
+and `GET /event?from&to` compares them against viewer dates, so an event stored
+at 22:00 on the 29th in Los Angeles is 01:00 on the 30th in New York and falls
+outside a query for the 30th. `MainPage` therefore widens before asking for the
+events, and still hands the real frame to `spreadProjectsToEvents`, whose filter
+clips what comes back. The gateway is not involved: it asks for the range it is
+given, because how wide a frame must be read is a question about zones, not
+about talking to the server.
+
+Both callers use `widenForZoneShift`, which sits beside the conversion it exists
+for. The fetch strictly needs only 2 days before, since the server tests both
+ends of an event and so already accounts for its duration, while the cadence
+filters occurrence *start* dates and must cover the slot length too. One
+function sized for the wider case costs a day of over-fetching and saves a
+reader working out why two nearly identical margins differ. It assumes a slot
+cannot exceed 24 hours, which the editor enforces; were stored events ever
+filtered by start alone, the margin would stop being sufficient.
+
 ### The write is local first
 
 Detection fires when someone steps off a plane, which is exactly when the network

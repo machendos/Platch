@@ -3,15 +3,13 @@ import type { Project, RecurringTimeComponent } from '../../api/project';
 import {
   overlapsDateFrame,
   resolveInViewerZone,
+  widenForZoneShift,
 } from './resolve.in.viewer.zone';
 import type {
   SpreadEvent,
   TimeSpan,
   TimezoneChange,
 } from './resolve.in.viewer.zone';
-
-const FRAME_MARGIN_DAYS_BEFORE = 3;
-const FRAME_MARGIN_DAYS_AFTER = 2;
 
 type Weekday = RecurringTimeComponent['recurringByDay'][number];
 
@@ -156,12 +154,7 @@ export const spreadRecurringTimeComponent = (
   dateFrame: [Temporal.PlainDate, Temporal.PlainDate],
   timezoneChanges: TimezoneChange[],
 ): SpreadEvent[] => {
-  const widerFrame: [Temporal.PlainDate, Temporal.PlainDate] = [
-    dateFrame[0].subtract({ days: FRAME_MARGIN_DAYS_BEFORE }),
-    dateFrame[1].add({ days: FRAME_MARGIN_DAYS_AFTER }),
-  ];
-
-  return getOccurrenceDates(component, widerFrame)
+  return getOccurrenceDates(component, widenForZoneShift(dateFrame))
     .flatMap((date) => toSpans(component, date))
     .map((span) => resolveInViewerZone(project, span, timezoneChanges))
     .filter((event) => overlapsDateFrame(event, dateFrame));
