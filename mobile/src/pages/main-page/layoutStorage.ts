@@ -32,7 +32,7 @@ export type SectionsExpanded = {
 };
 export type SectionWeights = { plan: number; active: number; backlog: number };
 
-export const encodeDateFrame = ({ start, end }: DateRange): StoredRange => {
+export const encodeDateFrame = ([start, end]: DateRange): StoredRange => {
   const today = Temporal.Now.plainDateISO();
   return start.equals(today) && end.equals(today)
     ? TODAY
@@ -42,12 +42,13 @@ export const encodeDateFrame = ({ start, end }: DateRange): StoredRange => {
 export const decodeDateFrame = (stored: StoredRange): DateRange => {
   if (stored === TODAY) {
     const today = Temporal.Now.plainDateISO();
-    return { start: today, end: today };
+    return [today, today];
   }
-  return {
-    start: Temporal.PlainDate.from(stored.start),
-    end: Temporal.PlainDate.from(stored.end),
-  };
+
+  return [
+    Temporal.PlainDate.from(stored.start),
+    Temporal.PlainDate.from(stored.end),
+  ];
 };
 
 export const layoutStorage = {
@@ -83,8 +84,6 @@ export const layoutStorage = {
     }
   },
 
-  setDateFrame: (range: DateRange) => (
-    console.log(encodeDateFrame(range)),
-    deviceStorage.set(KEYS.range, encodeDateFrame(range))
-  ),
+  setDateFrame: (range: DateRange) =>
+    deviceStorage.set(KEYS.range, encodeDateFrame(range)),
 };

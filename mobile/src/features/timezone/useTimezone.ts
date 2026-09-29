@@ -2,12 +2,12 @@
    the device's own zone, and the strips a change leaves between them. */
 
 import { Temporal } from 'temporal-polyfill';
+import type { DateRange } from '../../system/helpers/dateRange';
 import { fromPlainDateToInstant } from '../../system/helpers/dateConversions';
 import { useTimezoneHistory } from './api/timezoneChanges';
 import { timezoneBands } from './timezoneBands';
 import { deviceZone } from './helpers';
 
-type DateRange = [Temporal.PlainDate, Temporal.PlainDate];
 
 export const getTimezoneAtMoment = (
   history: { changesAt: Temporal.Instant; ianaTimezone: string }[],

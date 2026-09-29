@@ -2,15 +2,12 @@ import { useState } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import type { DateRange } from '../../system/helpers/dateRange';
 
-export const daysIn = ({ start, end }: DateRange) => start.until(end).days + 1;
+export const daysIn = ([start, end]: DateRange) => start.until(end).days + 1;
 
 export const shiftRange = (
-  { start, end }: DateRange,
+  [start, end]: DateRange,
   days: number,
-): DateRange => ({
-  start: start.add({ days }),
-  end: end.add({ days }),
-});
+): DateRange => [start.add({ days }), end.add({ days })];
 
 /**
  * The range one whole page away from `range`, repeated until it covers `date`.
@@ -21,7 +18,7 @@ export const shiftRange = (
  */
 export const pageContaining = (range: DateRange, date: Temporal.PlainDate) => {
   const length = daysIn(range);
-  const pages = Math.floor(range.start.until(date).days / length);
+  const pages = Math.floor(range[0].until(date).days / length);
   return pages === 0 ? range : shiftRange(range, pages * length);
 };
 

@@ -2,6 +2,7 @@ import { Temporal } from 'temporal-polyfill';
 import type { Project } from '../../api/project';
 import { ProjectType } from '../../modals/components/projectTypeSwitch/ProjectTypeSwitch';
 import { getTimezoneAtMoment } from '../timezone/useTimezone';
+import type { DateRange } from '../../system/helpers/dateRange';
 
 export type TimeSpan = {
   start: Temporal.PlainDateTime;
@@ -14,6 +15,14 @@ export type TimezoneChange = {
 };
 
 export type SpreadEvent = TimeSpan & { project: Project };
+
+const ZONE_SHIFT_MARGIN_DAYS_BEFORE = 3;
+const ZONE_SHIFT_MARGIN_DAYS_AFTER = 2;
+
+export const widenForZoneShift = ([from, to]: DateRange): DateRange => [
+  from.subtract({ days: ZONE_SHIFT_MARGIN_DAYS_BEFORE }),
+  to.add({ days: ZONE_SHIFT_MARGIN_DAYS_AFTER }),
+];
 
 export const resolveInViewerZone = (
   project: Project,
@@ -38,7 +47,7 @@ export const resolveInViewerZone = (
 
 export const overlapsDateFrame = (
   { start, end }: TimeSpan,
-  [frameStart, frameEnd]: [Temporal.PlainDate, Temporal.PlainDate],
+  [frameStart, frameEnd]: DateRange,
 ): boolean =>
   Temporal.PlainDateTime.compare(end, frameStart.toPlainDateTime('00:00')) >
     0 &&

@@ -16,6 +16,7 @@ import type { CurrentUser } from '../../api/sdk/structures/CurrentUser';
 import { useVisibleRange } from './useVisibleRange';
 import { useWorkspaceLayout } from './useWorkspaceLayout';
 import { spreadProjectsToEvents } from '../../features/projects-spread/spread.projects.to.events';
+import { widenForZoneShift } from '../../features/projects-spread/resolve.in.viewer.zone';
 import { useProjectsHotReload } from '../../api/project';
 import { useEventsInRangeHotReload } from '../../api/event';
 import { useTimezone } from '../../features/timezone/useTimezone';
@@ -25,7 +26,7 @@ const DEFAULT_PANES: PanesVisible = { dispatcher: true, calendar: true };
 const defaultDateFrame = (): DateRange => {
   const today = Temporal.Now.plainDateISO();
 
-  return { start: today, end: today.add({ days: 1 }) };
+  return [today, today.add({ days: 1 })];
 };
 
 export const MainPage = () => {
@@ -75,13 +76,14 @@ export const MainPage = () => {
   const workspaceRef = useRef<HTMLElement>(null);
 
   const projects = useProjectsHotReload();
-  const frameEvents = useEventsInRangeHotReload(dateFrame.start, dateFrame.end);
+  const [eventsFrom, eventsTo] = widenForZoneShift(dateFrame);
+  const frameEvents = useEventsInRangeHotReload(eventsFrom, eventsTo);
   const { history } = useTimezone();
 
   const events = spreadProjectsToEvents(
     projects,
     frameEvents,
-    [dateFrame.start, dateFrame.end],
+    dateFrame,
     history,
   );
 
@@ -137,7 +139,7 @@ export const MainPage = () => {
               {panes.calendar && (
                 <Calendar
                   isDarkModeEnabled={isDarkModeEnabled}
-                  pageStart={dateFrame.start}
+                  pageStart={dateFrame[0]}
                   dayCount={dayCount}
                   timeFrame={timeFrame}
                   events={events}

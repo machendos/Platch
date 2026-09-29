@@ -48,10 +48,7 @@ export const Header = ({
 
     if (start && end) {
       setPendingRange(null);
-      onRangeChange({
-        start: fromDateToPlainDate(start),
-        end: fromDateToPlainDate(end),
-      });
+      onRangeChange([fromDateToPlainDate(start), fromDateToPlainDate(end)]);
       return;
     }
 
@@ -110,8 +107,8 @@ export const Header = ({
         // that started it gets undone.
         value={
           pendingRange ?? [
-            fromPlainDateToDate(dateFrame.start),
-            fromPlainDateToDate(dateFrame.end),
+            fromPlainDateToDate(dateFrame[0]),
+            fromPlainDateToDate(dateFrame[1]),
           ]
         }
         // Dismissing part-way through leaves a start with no end; forget it,
@@ -119,7 +116,7 @@ export const Header = ({
         onClose={() => setPendingRange(null)}
         inputComponent={DateFrameInput}
         inputProps={{
-          serializedRange: serializeRange(dateFrame.start, dateFrame.end),
+          serializedRange: serializeRange(dateFrame[0], dateFrame[1]),
         }}
         onChange={handleRangeChange}
       />
