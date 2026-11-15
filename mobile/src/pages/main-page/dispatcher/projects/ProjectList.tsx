@@ -216,27 +216,29 @@ export const ProjectList = ({
         dropRef(element);
       }}
     >
-      {swipeAction && <ProjectSwipeBackArea action={swipeAction} />}
+      <div className="project-card">
+        {swipeAction && <ProjectSwipeBackArea action={swipeAction} />}
 
-      {placed.map(({ row, opensGap }, index) => (
-        <ProjectRow
-          key={row.project.id}
-          row={row}
-          index={index}
-          opensGap={opensGap}
-          status={status}
-          isExpanded={!collapsedIds.has(row.project.id)}
-          onToggleExpanded={toggleExpanded}
-          onOpen={onProjectEditOpen}
-          onMoveToOtherCategory={onMoveToOtherCategory}
-          revealDelayMs={
-            revealing.indexOf(row.project.id) === -1
-              ? null
-              : revealing.indexOf(row.project.id) *
-                revealStagger(revealing.length)
-          }
-        />
-      ))}
+        {placed.map(({ row, opensGap }, index) => (
+          <ProjectRow
+            key={row.project.id}
+            row={row}
+            index={index}
+            opensGap={opensGap}
+            status={status}
+            isExpanded={!collapsedIds.has(row.project.id)}
+            onToggleExpanded={toggleExpanded}
+            onOpen={onProjectEditOpen}
+            onMoveToOtherCategory={onMoveToOtherCategory}
+            revealDelayMs={
+              revealing.indexOf(row.project.id) === -1
+                ? null
+                : revealing.indexOf(row.project.id) *
+                  revealStagger(revealing.length)
+            }
+          />
+        ))}
+      </div>
 
       {showLine && (
         <ConsequenceLine

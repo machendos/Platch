@@ -1,6 +1,6 @@
 /* The surface a swiped row slides across.
 
-   It covers the whole line, edge to edge of the section — not the strip the row
+   It covers the whole line, edge to edge of the card — not the strip the row
    has vacated. The row is opaque and passes over it, so what shows is exactly
    what the row has uncovered, without anything having to measure that.
 
@@ -10,9 +10,10 @@
    static row would sit below every positioned sibling, this one included. */
 .project-swipe-action {
   position: absolute;
-  /* Out past the list's inset so it meets the section's own border. The row can
-     travel that far, so the surface under it has to reach at least as far. */
-  inset-inline: calc(var(--section-body-padding) * -1);
+  /* The card is the edge now: the list clips to its own radius, so a surface
+     reaching past it would only be cut off there anyway — and squared off
+     against a rounded corner if it were not. */
+  inset-inline: 0;
   top: var(--project-swipe-top, 0);
   height: var(--project-swipe-height, 0);
 

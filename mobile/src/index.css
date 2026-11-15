@@ -108,6 +108,9 @@
      Containers select; :root only states. */
   --control-height-md: 26px;
   --control-height-lg: 34px;
+  /* One rung above large, for a control that stands alone in its own row
+     rather than in a crowded bar. */
+  --control-height-xl: 40px;
   --control-height-compact-md: 22px;
   --control-height-compact-lg: 30px;
 
@@ -172,28 +175,22 @@
      That reads as decisive when something is arriving somewhere, and as a snap
      when something is only going back where it was. */
   --easing-gentle: cubic-bezier(0.33, 1, 0.68, 1);
-  /* Overshoots on the way back, which --easing-standard cannot express. The
-     overshoot is what makes a release read as a spring rather than a fade. */
-  --easing-overshoot: cubic-bezier(0.34, 1.42, 0.64, 1);
   --duration-enter: 300ms;
   --duration-exit: 200ms;
-  --duration-press: 500ms;
 
-  /* Press. Every control in the app responds with these, so they are stated
-     once here rather than in press.css.
-
-     The control fills rather than shrinking. A scale reads as the button
-     moving away from the finger and, on a control the size of these, the
-     change is too small to see at all — while a fill lights the whole target,
-     which is what makes a small button legible as pressed. Two steps, because a
-     pointer can hover: --press-hover answers "you are on it", --press-dim
-     answers "you are pressing it". */
-  /* Held while the finger is down, and the value the release curve starts
-     from — press.css's keyframes open on this exact number, so the two must
-     agree or the spring begins with a jump. */
-  --press-scale: 0.94;
+  /* The press fill. Its colour lives here with the other colours; how far it
+     travels, how long it takes and how much each shape shrinks are in
+     press.css. --press-dim is the pressed value and the one the press system
+     fades to a lighter opacity for hover; --press-hover is the flat value for
+     the two controls that tint themselves rather than carrying a shade. */
   --press-hover: rgba(0, 0, 0, 0.04);
   --press-dim: rgba(0, 0, 0, 0.08);
+
+  /* Focus. Shown to someone navigating by keyboard and to nobody else — see
+     the rules below and system/inputModality.ts. */
+  --focus-ring: var(--accent);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
 
   /* Elevation */
   --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -215,6 +212,24 @@
   :root {
     --hairline-width: 0.5px;
   }
+}
+
+/* The app's ring rather than the browser's, which draws itself in the operating
+   system's accent colour and so can never match the palette.
+
+   Excluded: anything at tabindex -1. Those are focused by script and are not
+   tab stops — Ionic focuses the modal container itself on open, which would
+   otherwise put a ring around a whole sheet. */
+:focus-visible:not([tabindex='-1']) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Nothing at all once the last thing the user did was point at something. The
+   browser counts focus handed back by a closing overlay as keyboard focus, so
+   `:focus-visible` on its own leaves a ring behind every tap that opened one. */
+:root[data-modality='pointer'] :focus-visible {
+  outline: none;
 }
 
 /* ion-content sets this on itself, but overlays are portalled to <ion-app>,

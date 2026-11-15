@@ -1,7 +1,11 @@
-/* The air between the section's edge and its list. Named because the swipe
-   reaches past it — the action surface cancels exactly this much to sit against
-   the section's own border. */
+/* What the section header is tuned by. Everything else it draws comes from the
+   global tokens.
+
+   --section-body-padding is named because the swipe reaches past it: the action
+   surface cancels exactly this much to sit against the card's own edge. */
 :root {
+  --section-title-tracking: 0.06em;
+  --section-chevron-size: 13px;
   --section-body-padding: var(--space-2);
 }
 
@@ -13,7 +17,8 @@
 }
 
 /* --section-header-height comes from layoutConfig.ts (applied as a
-   CSS variable on the page shell in MainPage.tsx) */
+   CSS variable on the page shell in MainPage.tsx). No background: the header
+   stands on the canvas and the list below it is the raised surface. */
 .section-header {
   height: var(--section-header-height);
   box-sizing: border-box;
@@ -21,54 +26,87 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  /* More room at the trailing edge than the leading one: the chevron reads
-     from its glyph and sits close, while the add button is a filled target
-     that needs to clear the section's edge. */
   padding: 0 var(--space-2) 0 var(--space-1);
-  background: var(--surface-header);
+}
+
+/* Chevron, title and count are one target: all three say what the section is
+   and whether it is open, and three adjacent things doing one job should not be
+   three places to aim at. */
+.section-hit {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.section-chevron {
+  flex-shrink: 0;
+  width: var(--section-chevron-size);
+  height: var(--section-chevron-size);
+  color: var(--text-tertiary);
+  transition: transform var(--duration-exit) var(--easing-standard);
+}
+
+.section-hit[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
 }
 
 /* min-width: 0 because a flex item defaults to min-width: auto and refuses to
-   shrink below its text, which on a narrow pane pushed the buttons out through
-   the header's border. The header is a fixed height, so a wrapped title
-   overflows it too — one clipped line is the honest failure here. */
+   shrink below its text, which on a narrow pane pushed the count and the add
+   button out through the header's edge. */
 .section-title {
-  flex: 1;
   min-width: 0;
-  text-align: center;
-  font-weight: 600;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  letter-spacing: var(--section-title-tracking);
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
-/* Balances the chevron so the title centres between them, with or without a
-   button in it. The old fix was a margin on the title hard-coding the
-   chevron's width, which could not survive a second control in this row. */
-.section-header-slot {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+/* Tabular so the header does not reflow as the number changes width. */
+.section-count {
   flex-shrink: 0;
-  width: var(--control-height-lg);
-  /* Stretch so the button inside can take the row's full height as its target.
-     It still cannot exceed the row, which is the point. */
-  align-self: stretch;
+  font-weight: 500;
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
 }
 
-.chevron-button {
-  /* No font-size: the glyph is a fraction of the button, which the rung sets. */
-  display: flex;
+/* Qualified past IconButton's own state rules, which are (0,3,0): at equal
+   weight whichever stylesheet loaded later would decide the colour. */
+.section-header .icon-button.section-add {
+  color: var(--accent);
 }
 
-.chevron {
-  display: inline-block;
-  transition: transform 0.15s;
+@media (hover: hover) and (pointer: fine) {
+  .section-hit {
+    cursor: pointer;
+  }
+
+  .section-hit:hover {
+    background-color: var(--press-hover);
+  }
+
+  .section-header .icon-button.section-add:hover:not(:disabled) {
+    color: var(--accent);
+  }
 }
 
-/* Expanded: chevron points up; collapsed (default): points right */
-.chevron-expanded {
-  transform: rotate(-90deg);
+.section-hit[data-pressed] {
+  background-color: var(--press-dim);
 }
 
 .section-body {
@@ -80,5 +118,10 @@
      computes to `auto` next to `overflow-y` and the section grows a horizontal
      scrollbar the moment a row moves. */
   overflow-x: hidden;
-  padding: var(--section-body-padding);
+  /* Without this, flicking past the end of one list hands the gesture to
+     whatever scroller is behind it — the single biggest reason two stacked
+     lists feel unusable on a phone. */
+  overscroll-behavior: contain;
+  padding-inline: var(--section-body-padding);
+  padding-block: var(--space-1) var(--space-3);
 }

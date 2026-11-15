@@ -337,3 +337,23 @@
 .time-slot-dim {
   opacity: 0.45;
 }
+
+/* Alone in its row, so it takes the rung above large — the shade is the whole
+   answer to the press here, and at 34px it read as a dot rather than a
+   surface. */
+.time-component-add-slot {
+  --icon-button-size: var(--control-height-xl);
+}
+
+/* Pressable rather than a bare button, so it answers like everything else.
+   A radius is needed because the shade inherits it and would otherwise paint a
+   square behind text that has none. */
+.time-components-edit {
+  border-radius: var(--radius-md);
+  padding-inline: var(--space-2);
+}
+
+.time-component-add-glyph {
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+}

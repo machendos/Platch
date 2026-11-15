@@ -13,6 +13,7 @@ import './index.css';
 import { Login } from './pages/login/Login';
 import { Register } from './pages/login/Register';
 import { MainPage } from './pages/main-page/MainPage';
+import { ButtonsPage } from './pages/buttons/ButtonsPage';
 import { queryClient } from './api/query.client';
 
 setupIonicReact({ mode: 'ios' });
@@ -27,6 +28,7 @@ const App: React.FC = () => (
         <IonRouterOutlet>
           <Route exact path="/login" component={Login} />
           <Route exact path="/register" component={Register} />
+          <Route exact path="/buttons" component={ButtonsPage} />
           <Route path="/home" component={MainPage} />
           <Route exact path="/">
             <Redirect to="/login" />

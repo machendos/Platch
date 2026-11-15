@@ -83,7 +83,18 @@
    Part of the shell's vocabulary rather than any one modal's, so every modal
    spells its actions the same way. */
 .modal-action {
-  padding: var(--space-1) var(--space-2);
+  /* One stadium for both header actions: same height, same radius, same
+     breathing room, and the press shade inherits all of it.
+
+     The side padding is derived, not chosen. A stadium's corner radius is half
+     its height, so a label starting any closer than that sits inside the
+     curve — which is why `Cancel` read as cramped against `Done` when the two
+     carried different numbers. Half the height is the smallest value that
+     clears it, for any label and at any type size. */
+  --modal-action-height: calc(var(--font-lg) + var(--space-2) * 2);
+  border-radius: var(--radius-pill);
+  padding-block: var(--space-2);
+  padding-inline: calc(var(--modal-action-height) / 2);
   border: none;
   background: none;
   font: inherit;
@@ -94,12 +105,10 @@
 }
 
 /* The confirming action, filled. On a form the two header controls are not
-   peers — one commits the work and one throws it away — so the confirm reads
-   as a button and the way out reads as a link. Same fill and contrast as a
-   selected segment, so the header agrees with the form under it. */
+   peers — one commits the work and one throws it away — so the difference is
+   carried by the fill alone, not by the shape or the spacing. Same fill and
+   contrast as a selected segment, so the header agrees with the form. */
 .modal-action-primary {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 600;

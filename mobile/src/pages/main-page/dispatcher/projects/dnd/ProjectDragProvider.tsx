@@ -29,17 +29,63 @@ type ProjectDragProviderProps = {
   children: ReactNode;
 };
 
+/* The controls inside a row that answer for themselves. Neither the drag nor
+   the row's own press may claim them — a tap on either does something else, and
+   both already have their own feedback.
+
+   Everything else in the row drags, the name included. The sensor refuses to
+   start a drag on any button by default, and the name is a button covering most
+   of the row, which had left the colour strip as the only place a project could
+   be picked up at all. Replacing that rule rather than widening it is safe here
+   because a project row is the only draggable there is. */
+const ROW_CONTROLS =
+  '.project-row-chevron-button, .popover-menu-trigger';
+
+/* The browser still fires a click after a drag, and dnd-kit only calls
+   preventDefault on it — which cancels the default action but not a React
+   handler, so a row that had just been dragged opened its project on release.
+
+   Swallowed in the capture phase, before React sees it. Disarmed by the click
+   it was waiting for, or by the next press if none ever came — a drag that ends
+   in a cancel produces no click, and the listener must not be left lying in
+   wait for a real one. */
+const swallowClickAfterDrag = () => {
+  const disarm = () => {
+    document.removeEventListener('click', swallow, true);
+    document.removeEventListener('pointerdown', disarm, true);
+  };
+  const swallow = (event: MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+    disarm();
+  };
+
+  document.addEventListener('click', swallow, true);
+  document.addEventListener('pointerdown', disarm, true);
+};
+
 const sensors = [
   PointerSensor.configure({
-    activationConstraints: (event) =>
-      event.pointerType === 'mouse'
-        ? [new PointerActivationConstraints.Distance({ value: 4 })]
-        : [
-            new PointerActivationConstraints.Delay({
-              value: DRAG_TOUCH_DELAY_MS,
-              tolerance: DRAG_TOUCH_TOLERANCE_PX,
-            }),
-          ],
+    preventActivation: (event) =>
+      event.target instanceof Element &&
+      event.target.closest(ROW_CONTROLS) !== null,
+    /* Whichever fires first wins — the controller stops at the first constraint
+       to activate, and a delay that loses its tolerance cancels only itself.
+
+       A mouse gets both: moving is unambiguous so it picks the row up at once,
+       and holding still picks it up too, so "press and hold" means the same
+       thing on every input. A finger gets only the hold, because an immediate
+       distance would leave the list unscrollable. */
+    activationConstraints: (event) => {
+      const hold = new PointerActivationConstraints.Delay({
+        value: DRAG_TOUCH_DELAY_MS,
+        tolerance: DRAG_TOUCH_TOLERANCE_PX,
+      });
+
+      return event.pointerType === 'mouse'
+        ? [new PointerActivationConstraints.Distance({ value: 4 }), hold]
+        : [hold];
+    },
   }),
 ];
 
@@ -281,6 +327,8 @@ export const ProjectDragProvider = ({
         update(section, pointerY.current, event.operation.transform.x);
       }}
       onDragEnd={(event) => {
+        swallowClickAfterDrag();
+
         if (event.canceled) {
           latest.current = {
             id: null,

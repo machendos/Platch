@@ -1,13 +1,39 @@
-/* Positioned so the consequence line can be placed against the list rather
-   than inserted between its rows. */
+/* Two boxes, because the drop target and the card want different heights.
+
+   The list is the drop target and has to reach the bottom of the section body:
+   the rows are the only targets dnd-kit knows about, so without it the space
+   under the last row belongs to nobody and a category with no rows at all can
+   never be dropped into. It draws nothing.
+
+   The card is the visible surface and hugs its rows, so a short list is a short
+   card. It is also positioned last in paint order below the rows but above the
+   swipe surface, which is why that surface sits inside it: `overflow: hidden`
+   then clips the surface to the card's corners as well as the rows. */
+
 .project-list {
-  /* Fills the section body so the empty space under the last row is still part
-     of the drop target — an empty list is zero-height otherwise, and a category
-     with nothing in it could never be dropped into. */
   min-height: 100%;
   box-sizing: border-box;
+  /* Anchors the consequence line, which stays outside the card so it can point
+     at the empty space below it. */
   position: relative;
+}
+
+/* Draws no fill of its own — each row paints its own, starting at its indent,
+   so a nested row leaves the page showing to its left and the card's leading
+   edge steps with the tree. All the card contributes is the corner: the radius
+   and the clip that rounds the first and last rows into it. */
+.project-card {
   display: flex;
   flex-direction: column;
   gap: var(--project-row-gap);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+/* Nothing at all for a category with no rows: an empty card is a shape with no
+   meaning, and the list behind it is still the drop target. Not `:empty` — the
+   swipe surface is a child too, so a swipeable section with nothing in it would
+   keep a zero-height card and draw its ring as a stray hairline. */
+.project-card:not(:has(.project-row)) {
+  display: none;
 }

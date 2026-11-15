@@ -1,0 +1,113 @@
+/* Every number the press is tuned by. Change them here, nowhere else. The
+   fill colour itself is --press-dim, in index.css with the other colours. */
+:root {
+  --press-opacity-hover: 0.45;
+  --press-opacity-pressed: 1;
+
+  /* Instant in, sprung out — and the asymmetry is the whole design. A trackpad
+     tap holds the pointer for about ten milliseconds. Easing IN would start
+     and reverse before the eye caught it, so a tap looked like nothing had
+     happened; landing at full depth at once and animating only the return is
+     what makes a press of any length play in full. It is also why none of
+     this needs a timer.
+
+     The way back is a real spring, not an ease. An ordinary decelerating
+     curve is 82% travelled by 60ms and spends the rest of its duration
+     crawling invisibly — it reads as a snap, which is exactly the complaint
+     that sent the first version back. These stops are the response of a
+     stiffness 600 / damping 22 / mass 0.7 spring sampled to 315ms: 33% at
+     30ms, 81% at 60ms, overshooting to 111% at 150ms before settling. The
+     overshoot is the part the eye reads as alive. */
+  --press-duration: 315ms;
+  /* Pre-17.2 WebKit has no linear(); an invalid value here would take the
+     whole transition down with it, so the spring is opted into rather than
+     declared and the fallback is the closest single curve. */
+  --press-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* How far a control's shade sits inside its own edge at rest, in PIXELS
+     rather than a proportion so a 26px icon and a 132px date frame travel the
+     same distance. The box never moves, so nothing can collide with a
+     neighbour four pixels away or be clipped at the screen edge. */
+  --press-inset: 3px;
+
+  --press-scale-text: 0.96;
+  /* A 34px chip at 0.96 moves its edge 0.68px — invisible. A small control
+     needs a bigger factor to travel the same *distance* as a wide one, and it
+     is the drawn chip that scales, never the 44pt hit area around it. */
+  --press-scale-control: 0.9;
+  /* A row is wide and short: one factor moves its sides eight pixels and its
+     top and bottom under one, so the axes are set separately. */
+  --press-scale-row-x: 0.96;
+  --press-scale-row-y: 0.91;
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --press-ease: linear(
+      0, 0.0892, 0.2936, 0.5347, 0.7582, 0.9344, 1.0525, 1.1159, 1.1355,
+      1.125, 1.0981, 1.0655, 1.0348, 1.0104, 0.9938, 0.9847, 0.9817, 0.9828,
+      0.9864, 0.9908, 1
+    );
+  }
+}
+
+/* In :where() so it carries no specificity: it is a default, and a host that
+   positions itself some other way overrides it with an ordinary rule. Without
+   it the shade sizes against whatever ancestor happens to be positioned,
+   which has produced a 414px shade on a 67px button. */
+:where(.press-host) {
+  position: relative;
+}
+
+/* A layer over whatever background the control already has, so a control that
+   has one keeps it — animating background-color would replace a project row's
+   surface rather than darken it. `border-radius: inherit` means it can never
+   paint a square behind a rounded control. */
+.press-shade {
+  position: absolute;
+  inset: var(--press-inset);
+  border-radius: inherit;
+  background: var(--press-dim);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--press-duration) var(--press-ease),
+    inset var(--press-duration) var(--press-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .press-host:hover > .press-shade {
+    opacity: var(--press-opacity-hover);
+    inset: 0;
+  }
+}
+
+.press-host[data-pressed] > .press-shade {
+  opacity: var(--press-opacity-pressed);
+  inset: 0;
+}
+
+/* Off leaves it inert: a row being carried by the drag must not also read as
+   pressed. Last, so it outranks hover and press at equal specificity. */
+.press-host[data-press-off] > .press-shade {
+  opacity: 0;
+  inset: var(--press-inset);
+}
+
+/* The shapes. Declared here, not per component, so any Pressable gets them —
+   `.project-row` is the one exception and says why in its own stylesheet. */
+.press-text {
+  transition: scale var(--press-duration) var(--press-ease);
+}
+
+.press-text[data-pressed] {
+  scale: var(--press-scale-text);
+}
+
+.press-row {
+  transition: scale var(--press-duration) var(--press-ease);
+}
+
+.press-row[data-pressed] {
+  scale: var(--press-scale-row-x) var(--press-scale-row-y);
+}

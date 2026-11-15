@@ -1,0 +1,90 @@
+.buttons-page {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  background: var(--surface);
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.buttons-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+}
+
+.buttons-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.buttons-section h2 {
+  margin: 0;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.buttons-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* Exactly the real dispatcher card: radius and clip only, no fill of its own.
+   The rows carry the surface, so a shrinking row reveals the page rather than a
+   card of its own colour — which is what read as a ghost left behind. */
+.buttons-card {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.buttons-card .button-row {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.button-row + .button-row {
+  border-top: var(--hairline-width) solid var(--separator);
+}
+
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--project-row-min-height);
+  padding-inline-end: var(--space-1);
+  overflow: hidden;
+}
+
+.button-row-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.buttons-add-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--project-row-min-height);
+  padding-inline: var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: start;
+}
+
+.buttons-add-glyph {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}

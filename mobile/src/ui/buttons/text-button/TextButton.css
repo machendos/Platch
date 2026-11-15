@@ -18,6 +18,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   gap: var(--space-1);
   flex-shrink: 0;
   height: var(--text-button-height);

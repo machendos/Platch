@@ -1,7 +1,11 @@
-/* No block padding and no inline-start padding: the colour strip is the card's
-   own leading edge and has to reach all four corners of it. The breathing room
-   lives on the text block instead, and `overflow: hidden` is what clips the
-   strip to the card's radius. */
+/* No block padding and no inline-start padding: the colour strip is the row's
+   own leading edge and has to reach both its corners. The breathing room lives
+   on the text block instead.
+
+   The fill is the list's own, not a lighter one: the rows sit inside a single
+   card and have to read as part of it. It still has to be opaque and it still
+   has to be painted, because the swipe surface is revealed purely by the row
+   travelling off it. */
 .project-row {
   min-height: var(--project-row-min-height);
   box-sizing: border-box;
@@ -13,18 +17,40 @@
   align-items: center;
   gap: var(--space-1);
   padding-inline-end: var(--space-1);
+  /* Clips the strip, and also clips the menu trigger's 44px hit expander back
+     to the row — without it that expander reaches into the rows either side. */
   overflow: hidden;
-  border: var(--hairline-width) solid var(--border-control);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--surface-subtle);
   /* The browser owns vertical panning until a drag actually starts, so the
      section scrolls under a finger that moves straight away. A hold does not
      pan, so the long press still reaches dnd-kit. */
   touch-action: pan-y;
-  /* Only the spacing animates. A transition on everything would also catch the
-     transforms dnd-kit writes on the carried row and fight it for control of
-     where that row is. */
-  transition: margin-block-start var(--duration-exit) var(--easing-standard);
+}
+
+/* The depth itself is the shared `row` shape in press.css; this replaces only
+   its transition, and is qualified with `.press-row` because at equal weight
+   the winner would be whichever stylesheet loaded last. Named properties only
+   — a transition on everything would also catch the transforms dnd-kit writes
+   on the carried row and fight it for control of where that row is. `scale`
+   rather than `transform` for the same reason: separate properties compose. */
+.project-row.press-row {
+  transition:
+    margin-block-start var(--duration-exit) var(--easing-standard),
+    scale var(--press-duration) var(--press-ease);
+}
+
+/* Between rows only: nothing above the first or below the last, which is what
+   makes the group read as one card rather than a stack of strips. Inset past
+   the strip so the colour column runs unbroken down the card, and drawn inside
+   the row so it steps sideways with the indent. */
+.project-row + .project-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--project-strip-width);
+  right: 0;
+  height: var(--hairline-width);
+  background: var(--separator);
 }
 
 /* The row after the gap steps down, opening the space the consequence line sits
@@ -35,7 +61,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-row {
+  .project-row.press-row {
     transition: none;
   }
 }
@@ -50,6 +76,9 @@
    so anything React puts on the row lands on both — which is how the row under
    the finger ended up wearing the placeholder's styling and vanishing. */
 [data-dnd-dragging='true'] {
+  /* Lifted out of the group, so it becomes a card again for as long as it is
+     carried — a square-cornered shadow reads as a torn-off strip. */
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow-raised);
   cursor: grabbing;
   /* The indent is already inside the measured left dnd-kit pins the row to, so
@@ -124,10 +153,10 @@
   transition: transform 0.15s;
 }
 
-/* Up when expanded, matching the section headers and the concept, rather than
-   the tree convention of pointing down. */
+/* Down when expanded, matching the section headers and the disclosure
+   convention. */
 .project-row-chevron-expanded {
-  transform: rotate(-90deg);
+  transform: rotate(90deg);
 }
 
 /* Ionic anchors a popover to its trigger's box, so the trigger has to span the
@@ -147,6 +176,10 @@
 .project-row-lines {
   flex: 1;
   min-width: 0;
+  /* Full row height, not content height. Centred by default it left a five
+     pixel band above and below where the row itself was the hit target, so the
+     cursor fell back to an arrow between every pair of rows. */
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -162,14 +195,10 @@
 
 .project-row-name {
   font-size: var(--font-md);
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Reserved, and sized so the row does not grow when it is filled. */
-.project-row-meta {
-  min-height: calc(var(--font-sm) * 1.2);
 }
 
 /* Unfolds from no height at all rather than wiping in place, so everything below

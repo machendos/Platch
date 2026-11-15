@@ -324,11 +324,12 @@ export const displayOrder = (
   ...drafts.filter((draft) => draft.type === 'ABSOLUTE'),
 ];
 
-
 export const fromApiComponent = (
   source: TimeComponentWithSlots,
 ): TimeComponentDraft => {
-  const from = source.absoluteFrom ? parseApiDateTime(source.absoluteFrom) : null;
+  const from = source.absoluteFrom
+    ? parseApiDateTime(source.absoluteFrom)
+    : null;
   const to = source.absoluteTo ? parseApiDateTime(source.absoluteTo) : null;
 
   return {

@@ -8,17 +8,14 @@
 
 export const DISPATCHER_SECTION_HEADER_HEIGHT = 36;
 
-export const PROJECT_ROW_MIN_HEIGHT = 48;
-export const PROJECT_ROW_GAP = 6;
+export const PROJECT_ROW_MIN_HEIGHT = 38;
+export const PROJECT_ROW_GAP = 0;
 
-/* Two rows is where a section stops being worth the space it claims. Three was
-   the original figure and does not fit: rows measure 48px and headers 36, so a
-   three-row floor is 192px, and three expanded sections would need 578px of a
-   dispatcher that is about 590px on a 360x640 phone. */
+/* Three rows. Two was the answer while rows were 48px and three would have cost
+   192px of a dispatcher that is about 590px on a 360x640 phone; at 38px the
+   floor is 150px, which is what the mock's own grid reserves. */
 export const SECTION_MIN_HEIGHT =
-  DISPATCHER_SECTION_HEADER_HEIGHT +
-  2 * PROJECT_ROW_MIN_HEIGHT +
-  PROJECT_ROW_GAP;
+  DISPATCHER_SECTION_HEADER_HEIGHT + 3 * PROJECT_ROW_MIN_HEIGHT;
 
 export const PROJECT_INDENT_STEP = 24;
 

@@ -28,6 +28,10 @@
   align-self: stretch;
   min-height: var(--icon-button-size);
   min-width: var(--icon-button-size);
+  /* Draws nothing — the face carries the chip. It is here so the focus ring,
+     which follows the element's own corners, rounds to match that chip rather
+     than boxing it. */
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,36 +73,9 @@
   width: var(--icon-button-size);
   height: var(--icon-button-size);
   border-radius: var(--radius-md);
-}
-
-/* The press paints the face, not the button. .pressable fills its own host by
-   default, which here is the hit area — a 28x36 rectangle with no radius — so
-   it drew a square highlight behind the chip's rounded one. The host keeps the
-   spring and gives up the fill. */
-/* The selector has to carry the same :not() pair as press.css's, because each
-   :not() adds its argument's specificity — without them this rule is (0,3,0)
-   against that one's (0,4,0) and silently loses, which is exactly what left a
-   square highlight behind the chip. */
-.icon-button.pressable:hover:not(:disabled):not([aria-disabled='true']),
-.icon-button.pressable.is-pressing {
-  background-image: none;
-}
-
-/* Filling the hit area would light a box visibly larger than the control. */
-/* Outranks the hover rule below, which is (0,4,0): a pointer keeps :hover
-   while the button is held, so at equal weight the 4% hover fill would win and
-   the press would paint lighter than the state it came from. */
-.icon-button.is-pressing:not(:disabled):not([aria-disabled='true'])
-  .icon-button-face {
-  background-color: var(--press-dim);
-}
-
-/* Pressed is the strongest state, so the glyph goes to full ink rather than
-   fading. Fading it was backwards: the fill darkens 4% -> 8% but the icon
-   carries most of a 28px control, so dimming it made the press read lighter
-   than the hover it came from. */
-.icon-button.is-pressing {
-  color: var(--text-primary);
+  /* The shade is absolute inside it, and positions against the chip rather than
+     the hit area — so it can never be larger than what is drawn. */
+  position: relative;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -109,8 +86,35 @@
   .icon-button:hover:not(:disabled) {
     color: var(--text-primary);
   }
+}
 
-  .icon-button:hover:not(:disabled) .icon-button-face {
-    background-color: var(--press-hover);
+/* The shade lives in the face, but the state has to be read on the BUTTON:
+   the hit area is larger than the chip, and a press on its rim must still
+   fill. Three rules rather than the shared ones, which reach a direct child. */
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover > .icon-button-face > .press-shade {
+    opacity: var(--press-opacity-hover);
+    inset: 0;
   }
+}
+
+.icon-button[data-pressed] > .icon-button-face > .press-shade {
+  opacity: var(--press-opacity-pressed);
+  inset: 0;
+}
+
+.icon-button[aria-disabled] > .icon-button-face > .press-shade {
+  opacity: 0;
+  inset: var(--press-inset);
+}
+
+/* The FACE scales, not the button: the hit area stays 44pt while the visible
+   chip answers. 0.96 on a 34px box is 0.68px and cannot be seen, which is why
+   this rung gets its own, deeper factor. */
+.icon-button-face {
+  transition: scale var(--press-duration) var(--press-ease);
+}
+
+.icon-button[data-pressed] > .icon-button-face {
+  scale: var(--press-scale-control);
 }

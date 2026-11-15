@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
-import { IonIcon } from '@ionic/react';
-import { addCircleOutline } from 'ionicons/icons';
+import { ChevronRight, Plus } from 'lucide-react';
 import { IconButton } from '../../../ui/buttons/icon-button/IconButton';
+import { Pressable } from '../../../ui/buttons/press/Pressable';
 import './DispatcherSection.css';
 
 type DispatcherSectionProps = {
   title: string;
   expanded: boolean;
   onSetExpanded: (expanded: boolean) => void;
+  /** Omitted where a section has nothing to count, which is what keeps PLAN
+      from claiming a number it cannot have. */
+  count?: number;
   onAdd?: () => void;
   children?: ReactNode;
 };
@@ -16,35 +19,43 @@ export const DispatcherSection = ({
   title,
   expanded,
   onSetExpanded,
+  count,
   onAdd,
   children,
-}: DispatcherSectionProps) => (
-  <section className="dispatcher-section">
-    <header className="section-header">
-      <IconButton
-        className="chevron-button"
-        label={expanded ? `Collapse ${title}` : `Expand ${title}`}
-        onClick={() => onSetExpanded(!expanded)}
-        size="large"
-      >
-        <span className={expanded ? 'chevron chevron-expanded' : 'chevron'}>
-          ›
-        </span>
-      </IconButton>
+}: DispatcherSectionProps) => {
+  /* No scale: this target is the width of the pane, and shrinking it reads as
+     the whole section twitching rather than a button answering. The fill in
+     the stylesheet is the visible half. */
 
-      <span className="section-title">{title}</span>
+  return (
+    <section className="dispatcher-section">
+      <header className="section-header">
+        <Pressable
+          shape="none"
+          className="section-hit"
+          aria-expanded={expanded}
+          onClick={() => onSetExpanded(!expanded)}
+        >
+          <ChevronRight className="section-chevron" aria-hidden="true" />
+          <span className="section-title">{title}</span>
+          {count !== undefined && (
+            <span className="section-count">{count}</span>
+          )}
+        </Pressable>
 
-      {/* The slot is rendered whether or not it holds a button: it is what
-          balances the chevron, and the title is centred between the two. */}
-      <span className="section-header-slot">
         {onAdd && (
-          <IconButton label={`Add to ${title}`} onClick={onAdd} size="large">
-            <IonIcon icon={addCircleOutline} aria-hidden="true" />
+          <IconButton
+            className="section-add"
+            label={`Add to ${title}`}
+            onClick={onAdd}
+            size="large"
+          >
+            <Plus aria-hidden="true" />
           </IconButton>
         )}
-      </span>
-    </header>
+      </header>
 
-    {expanded && <div className="section-body">{children}</div>}
-  </section>
-);
+      {expanded && <div className="section-body">{children}</div>}
+    </section>
+  );
+};

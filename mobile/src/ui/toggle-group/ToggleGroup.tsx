@@ -1,7 +1,7 @@
 import './ToggleGroup.css';
 
 import type { ReactNode } from 'react';
-import { usePress } from '../buttons/pressable/usePress';
+import { Pressable } from '../buttons/press/Pressable';
 const ToggleOptionButton = ({
   selected,
   label,
@@ -11,24 +11,18 @@ const ToggleOptionButton = ({
   label: ReactNode;
   onToggle: () => void;
 }) => {
-  const press = usePress({ animate: false });
-
   return (
-    <button
-      ref={press.ref}
+    <Pressable
+      shape="none"
       className={['toggle-option', selected ? 'toggle-option-selected' : null]
         .filter(Boolean)
         .join(' ')}
       type="button"
       aria-pressed={selected}
       onClick={onToggle}
-      onPointerDown={press.onPointerDown}
-      onPointerUp={press.onPointerUp}
-      onPointerCancel={press.onPointerCancel}
-      onPointerLeave={press.onPointerLeave}
     >
       {label}
-    </button>
+    </Pressable>
   );
 };
 

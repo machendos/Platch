@@ -7,7 +7,9 @@ type ColorStripProps = {
 
 export const ColorStrip = ({ hexCode, isInherited }: ColorStripProps) => (
   <span
-    className={isInherited ? 'color-strip color-strip-inherited' : 'color-strip'}
+    className={
+      isInherited ? 'color-strip color-strip-inherited' : 'color-strip'
+    }
     style={hexCode ? { background: hexCode } : undefined}
     aria-hidden="true"
   />

@@ -1,9 +1,11 @@
 import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { useSortable } from '@dnd-kit/react/sortable';
+import { ChevronRight } from 'lucide-react';
 import { ellipsisVertical } from 'ionicons/icons';
 import { projectName } from '../../../../../config/labels';
 import { IconButton } from '../../../../../ui/buttons/icon-button/IconButton';
 import { PopoverMenu } from '../../../../../ui/menu/PopoverMenu';
+import { Pressable } from '../../../../../ui/buttons/press/Pressable';
 import { PROJECT_MENU_TRIGGER_SIZE } from '../../layoutConfig';
 import { ColorStrip } from './ColorStrip';
 import { projectMenuItems } from './projectMenu';
@@ -56,7 +58,10 @@ export const ProjectRow = ({
   });
 
   return (
-    <div
+    <Pressable
+      as="div"
+      shape="row"
+      pressable={!isDragSource}
       ref={ref}
       data-project-id={project.id}
       data-depth={depth}
@@ -82,18 +87,17 @@ export const ProjectRow = ({
           <IconButton
             className="project-row-chevron-button"
             label={isExpanded ? `Collapse ${name}` : `Expand ${name}`}
-            size="medium"
+            size="large"
             onClick={() => onToggleExpanded(project.id)}
           >
-            <span
+            <ChevronRight
               className={
                 isExpanded
                   ? 'project-row-chevron project-row-chevron-expanded'
                   : 'project-row-chevron'
               }
-            >
-              ›
-            </span>
+              aria-hidden="true"
+            />
           </IconButton>
         )}
       </span>
@@ -108,7 +112,6 @@ export const ProjectRow = ({
         onClick={() => onOpen(project)}
       >
         <span className="project-row-name">{name}</span>
-        <span className="project-row-meta" aria-hidden="true" />
       </button>
 
       <PopoverMenu
@@ -119,6 +122,6 @@ export const ProjectRow = ({
         icon={ellipsisVertical}
         triggerSize={PROJECT_MENU_TRIGGER_SIZE}
       />
-    </div>
+    </Pressable>
   );
 };

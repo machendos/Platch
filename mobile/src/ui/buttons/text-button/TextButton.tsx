@@ -2,7 +2,7 @@ import './TextButton.css';
 
 import type { ReactNode } from 'react';
 import type { ControlSize } from '../icon-button/IconButton';
-import { usePress } from '../pressable/usePress';
+import { Pressable } from '../press/Pressable';
 
 type TextButtonProps = {
   size: ControlSize;
@@ -38,13 +38,12 @@ export const TextButton = ({
   ref,
   children,
 }: TextButtonProps) => {
-  const press = usePress<HTMLButtonElement>({ ref, animate });
-
   return (
-    <button
-      ref={press.ref}
+    <Pressable
+      shape="text"
+      pressable={animate}
+      ref={ref}
       className={[
-        press.className,
         'text-button',
         size === 'large' ? 'text-button-lg' : 'text-button-md',
         outlined ? 'text-button-outlined' : null,
@@ -56,10 +55,6 @@ export const TextButton = ({
       type="button"
       aria-label={label}
       onClick={onClick}
-      onPointerDown={press.onPointerDown}
-      onPointerUp={press.onPointerUp}
-      onPointerCancel={press.onPointerCancel}
-      onPointerLeave={press.onPointerLeave}
     >
       <span className="text-button-label" ref={labelRef} style={labelStyle}>
         {children}
@@ -69,6 +64,6 @@ export const TextButton = ({
           {trailing}
         </span>
       )}
-    </button>
+    </Pressable>
   );
 };

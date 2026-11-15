@@ -1,7 +1,7 @@
 import './SegmentedControl.css';
 
 import type { CSSProperties, ReactNode } from 'react';
-import { usePress } from '../buttons/pressable/usePress';
+import { Pressable } from '../buttons/press/Pressable';
 
 export type SegmentedOption<T extends string> = {
   value: T;
@@ -18,13 +18,9 @@ const SegmentedOptionButton = ({
   label: ReactNode;
   onSelect: () => void;
 }) => {
-  const press = usePress();
-
   return (
-    <button
-      ref={press.ref}
+    <Pressable
       className={[
-        press.className,
         'segmented-option',
         selected ? 'segmented-option-selected' : null,
       ]
@@ -33,13 +29,9 @@ const SegmentedOptionButton = ({
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
-      onPointerDown={press.onPointerDown}
-      onPointerUp={press.onPointerUp}
-      onPointerCancel={press.onPointerCancel}
-      onPointerLeave={press.onPointerLeave}
     >
       {label}
-    </button>
+    </Pressable>
   );
 };
 

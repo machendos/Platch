@@ -2,8 +2,10 @@ import './TimeComponentsBlock.css';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IonIcon } from '@ionic/react';
-import { addCircleOutline, chevronDownOutline } from 'ionicons/icons';
+import { chevronDownOutline } from 'ionicons/icons';
+import { Plus } from 'lucide-react';
 import { IconButton } from '../../../ui/buttons/icon-button/IconButton';
+import { Pressable } from '../../../ui/buttons/press/Pressable';
 import { Reveal } from '../../../ui/reveal/Reveal';
 import type { TimeComponentWithSlots } from '../../../api/sdk/structures/TimeComponentWithSlots';
 import { AnimatedEntry } from './AnimatedEntry';
@@ -145,13 +147,9 @@ export const TimeComponentsBlock = ({
 
       {!isEditing && (
         <div className="time-components-peace" onClick={startEditing}>
-          <button
-            className="time-components-edit"
-            type="button"
-            onClick={startEditing}
-          >
+          <Pressable className="time-components-edit" onClick={startEditing}>
             Edit
-          </button>
+          </Pressable>
           {ordered.length > 0 ? (
             <ol className="time-components-list time-components-summaries">
               {ordered.map((draft, index) => (
@@ -209,15 +207,14 @@ export const TimeComponentsBlock = ({
             });
           })()}
           <li>
-            <button
+            <Pressable
               className="time-component-add-card"
-              type="button"
               aria-label="Add time component"
               onClick={addComponent}
             >
               <span className="time-component-ordinal">{activeCount + 1}.</span>
-              <IonIcon icon={addCircleOutline} aria-hidden="true" />
-            </button>
+              <Plus className="time-component-add-glyph" aria-hidden="true" />
+            </Pressable>
           </li>
         </ol>
       </Reveal>

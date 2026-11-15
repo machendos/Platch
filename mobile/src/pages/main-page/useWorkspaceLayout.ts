@@ -49,7 +49,7 @@ export const useWorkspaceLayout = (
     // come out negative. A negative `fr` makes the whole
     // `grid-template-columns` declaration invalid, so the browser drops it and
     // the workspace loses its layout entirely, not just one track.
-    if (!start) return;
+    if (!start) return false;
 
     // Negative when dragging left, positive when dragging right.
     const appliedDelta = clamp(
@@ -61,6 +61,8 @@ export const useWorkspaceLayout = (
       dispatcher: start.dispatcher + appliedDelta,
       calendar: start.calendar - appliedDelta,
     });
+    // Whether a pane hit its own minimum, so the seam can say why it stopped.
+    return appliedDelta !== delta;
   };
 
   const gridTemplateColumns =

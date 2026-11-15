@@ -38,6 +38,7 @@ import {
   ProjectType,
   ProjectTypeSwitch,
 } from './components/projectTypeSwitch/ProjectTypeSwitch';
+import { Pressable } from '../ui/buttons/press/Pressable';
 
 type ProjectModalProps = {
   isOpen: boolean;
@@ -89,23 +90,30 @@ export const ProjectModal = (props: ProjectModalProps) => {
     <Modal
       isOpen={isOpen}
       onDismiss={onDismiss}
-      presentation="sheet"
+      presentation="page"
       title={props.mode === 'edit' ? 'Edit project' : 'Create project'}
       isDirty={form?.isDirty ?? false}
       leading={
-        <button className="modal-action" type="button" onClick={onDismiss}>
+        <Pressable
+          shape="text"
+          className="modal-action"
+          type="button"
+          onClick={onDismiss}
+        >
           Cancel
-        </button>
+        </Pressable>
       }
       trailing={
-        <button
+        <Pressable
+          shape="text"
           className="modal-action modal-action-primary"
           type="button"
+          pressable={form?.canSave ?? false}
           disabled={!form?.canSave}
           onClick={() => form?.save()}
         >
           Done
-        </button>
+        </Pressable>
       }
     >
       {isRefreshed && <ProjectForm {...props} onFormState={setForm} />}

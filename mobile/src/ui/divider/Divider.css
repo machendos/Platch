@@ -146,6 +146,13 @@
   background: var(--accent);
 }
 
+/* The clamp bound, so the seam says why it stopped rather than going dead under
+   the finger. Qualified past the drag colour above, which a held seam is
+   wearing at the moment this has to replace it. */
+.divider.divider-draggable.divider-dragging.divider-at-limit .divider-grip {
+  background: var(--text-tertiary);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .divider-grip,
   .divider-draggable::after {

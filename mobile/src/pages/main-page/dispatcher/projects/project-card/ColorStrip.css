@@ -11,6 +11,12 @@
   width: var(--project-strip-width);
 }
 
+/* Narrower mark, same lane. The reserved width is what keeps every name in the
+   card starting at one place and lets the rule between rows line up with the
+   lane rather than with whichever strip happens to be below it. */
 .color-strip-inherited {
   width: var(--project-strip-width-inherited);
+  margin-inline-end: calc(
+    var(--project-strip-width) - var(--project-strip-width-inherited)
+  );
 }

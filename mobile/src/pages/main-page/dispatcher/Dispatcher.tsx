@@ -32,8 +32,21 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
   const [expanded, setExpanded] = useState(DEFAULT_EXPANDED);
   const [weights, setWeights] = useState(EVEN_WEIGHTS);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [createUnderStatus, setCreateUnderStatus] =
-    useState<ProjectStatus | null>(null);
+  /* Carries a token, like `reveal` below, so that asking twice for the same
+     section is still two requests. Holding the status alone meant a second
+     press set the state to the value it already had — no re-render, no modal —
+     and any dismissal that failed to clear it left that section's `+` dead
+     until the other section's was used to change the value. */
+  const [createRequest, setCreateRequest] = useState<{
+    status: ProjectStatus;
+    token: number;
+  } | null>(null);
+
+  const openCreateForm = (status: ProjectStatus) =>
+    setCreateRequest((current) => ({
+      status,
+      token: (current?.token ?? 0) + 1,
+    }));
   const [editedProjectId, setEditedProjectId] = useState<string | null>(null);
 
   /* Which project to reveal, and a token so the same project can be revealed
@@ -53,6 +66,9 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
     move(resolveCategoryMove(projects, project, target));
     revealProject(id);
   };
+
+  const countFor = (status: 'ACTIVE' | 'BACKLOG') =>
+    projects.filter((project) => project.projectStatus === status).length;
 
   const listFor = (status: 'ACTIVE' | 'BACKLOG') => (
     <ProjectList
@@ -131,9 +147,10 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
 
         <DispatcherSection
           title="ACTIVE PROJECTS"
+          count={countFor('ACTIVE')}
           expanded={expanded.active}
           onSetExpanded={(next) => setSectionExpanded('active', next)}
-          onAdd={() => setCreateUnderStatus(ProjectStatus.ACTIVE)}
+          onAdd={() => openCreateForm(ProjectStatus.ACTIVE)}
         >
           {listFor('ACTIVE')}
         </DispatcherSection>
@@ -148,21 +165,22 @@ export const Dispatcher = ({ currentUser }: DispatcherProps) => {
 
         <DispatcherSection
           title="BACKLOG"
+          count={countFor('BACKLOG')}
           expanded={expanded.backlog}
           onSetExpanded={(next) => setSectionExpanded('backlog', next)}
-          onAdd={() => setCreateUnderStatus(ProjectStatus.BACKLOG)}
+          onAdd={() => openCreateForm(ProjectStatus.BACKLOG)}
         >
           {listFor('BACKLOG')}
         </DispatcherSection>
 
-        {createUnderStatus && (
+        {createRequest && (
           <ProjectModal
-            key={createUnderStatus}
+            key={createRequest.token}
             mode="create"
             isOpen
-            onDismiss={() => setCreateUnderStatus(null)}
+            onDismiss={() => setCreateRequest(null)}
             parentProjectId={null}
-            status={createUnderStatus}
+            status={createRequest.status}
             defaultEvenLengthMinutes={currentUser.defaultEvenLengthMinutes}
           />
         )}

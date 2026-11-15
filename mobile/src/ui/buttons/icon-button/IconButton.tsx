@@ -1,7 +1,8 @@
 import './IconButton.css';
+import '../press/press.css';
 
 import type { ReactNode } from 'react';
-import { usePress } from '../pressable/usePress';
+import { usePress } from '../press/usePress';
 
 export type ControlSize = 'medium' | 'large';
 
@@ -30,30 +31,29 @@ export const IconButton = ({
   children,
   className,
 }: IconButtonProps) => {
-  const press = usePress();
+  const press = usePress({ enabled: !unavailable });
 
   return (
     <button
-      ref={press.ref}
-      className={[
-        press.className,
-        'icon-button',
-        size === 'large' ? 'icon-button-lg' : 'icon-button-md',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      type="button"
-      aria-label={label}
-      aria-pressed={pressed}
-      aria-disabled={unavailable || undefined}
-      onClick={onClick}
-      onPointerDown={press.onPointerDown}
-      onPointerUp={press.onPointerUp}
-      onPointerCancel={press.onPointerCancel}
-      onPointerLeave={press.onPointerLeave}
+    className={[
+      'icon-button',
+      size === 'large' ? 'icon-button-lg' : 'icon-button-md',
+      className,
+    ]
+      .filter(Boolean)
+      .join(' ')}
+    type="button"
+    aria-label={label}
+    aria-pressed={pressed}
+    aria-disabled={unavailable || undefined}
+    onPointerDown={press.hold}
+    data-pressed={press.pressed ? '' : undefined}
+    onClick={onClick}
     >
-      <span className="icon-button-face">{children}</span>
+      <span className="icon-button-face">
+        <span className="press-shade" />
+        {children}
+      </span>
     </button>
   );
 };
