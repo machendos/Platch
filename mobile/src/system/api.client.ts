@@ -10,9 +10,23 @@ import { authStorage } from '../pages/login/save.tokens';
 
    The origin is spelled out rather than left bare: @nestia/fetcher builds
    `new URL(host + path)`, which throws on a host that is not absolute. */
+const productionHost = () => {
+  const host = import.meta.env.VITE_API_HOST;
+  /* Loudly, at startup, rather than silently falling back to localhost — which
+     on a phone is the phone, so every request fails and the app looks broken
+     with nothing to say why. A build that cannot name its backend must not
+     reach a tester. Set it in mobile/.env.production. */
+  if (!host)
+    throw new Error(
+      'VITE_API_HOST is not set. A production build has no backend to reach — ' +
+        'put the deployed API URL in mobile/.env.production.',
+    );
+  return host;
+};
+
 const API_HOST = import.meta.env.DEV
   ? `${window.location.origin}/api`
-  : (import.meta.env.VITE_API_HOST ?? 'http://localhost:3001');
+  : productionHost();
 
 export const apiClient = unboundedApi.functional;
 
